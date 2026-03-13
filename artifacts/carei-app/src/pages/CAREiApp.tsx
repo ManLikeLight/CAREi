@@ -543,6 +543,14 @@ function DashboardScreen({
 
   const visits = [
     {
+      name: "Patricia Williams",
+      time: "08:00 – 09:00",
+      type: "Companionship",
+      status: "Completed",
+      statusColor: COLORS.green,
+      statusBg: "rgba(34,197,94,0.15)",
+    },
+    {
       name: "Grace Mensah",
       time: "10:00 – 11:30",
       type: "Personal Care",
@@ -557,14 +565,6 @@ function DashboardScreen({
       status: "Upcoming",
       statusColor: COLORS.amber,
       statusBg: "rgba(246,183,60,0.15)",
-    },
-    {
-      name: "Patricia Williams",
-      time: "16:30 – 17:30",
-      type: "Companionship",
-      status: "Completed",
-      statusColor: COLORS.green,
-      statusBg: "rgba(34,197,94,0.15)",
     },
   ];
 
@@ -1380,26 +1380,36 @@ function LiveVisitScreen({
                 <div style={{ marginBottom: 16 }}>
                   <div style={{ color: COLORS.g1, fontSize: 13, marginBottom: 8 }}>Severity</div>
                   <div style={{ display: "flex", gap: 8 }}>
-                    {["Low", "Medium", "High"].map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => setSeverity(s)}
-                        style={{
-                          flex: 1,
-                          padding: "8px 0",
-                          borderRadius: 8,
-                          border: `1px solid ${severity === s ? COLORS.amber : "rgba(255,255,255,0.15)"}`,
-                          background: severity === s ? "rgba(246,183,60,0.2)" : "transparent",
-                          color: severity === s ? COLORS.amber : COLORS.g2,
-                          fontWeight: severity === s ? 700 : 400,
-                          fontSize: 13,
-                          cursor: "pointer",
-                          fontFamily: "DM Sans, sans-serif",
-                        }}
-                      >
-                        {s}
-                      </button>
-                    ))}
+                    {(["Low", "Medium", "High"] as const).map((s) => {
+                      const severityColor =
+                        s === "Low" ? COLORS.green
+                        : s === "Medium" ? COLORS.amber
+                        : COLORS.red;
+                      const severityBg =
+                        s === "Low" ? "rgba(34,197,94,0.2)"
+                        : s === "Medium" ? "rgba(246,183,60,0.2)"
+                        : "rgba(255,90,95,0.2)";
+                      return (
+                        <button
+                          key={s}
+                          onClick={() => setSeverity(s)}
+                          style={{
+                            flex: 1,
+                            padding: "8px 0",
+                            borderRadius: 8,
+                            border: `1px solid ${severity === s ? severityColor : "rgba(255,255,255,0.15)"}`,
+                            background: severity === s ? severityBg : "transparent",
+                            color: severity === s ? severityColor : COLORS.g2,
+                            fontWeight: severity === s ? 700 : 400,
+                            fontSize: 13,
+                            cursor: "pointer",
+                            fontFamily: "DM Sans, sans-serif",
+                          }}
+                        >
+                          {s}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
                 <button

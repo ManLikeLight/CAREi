@@ -351,11 +351,11 @@ function OTPScreen({ onNext }: { onNext: () => void }) {
 
   function handleVerify() {
     const code = otp.join("");
-    if (code === "123456") {
+    if (code.length === 6) {
       setVerified(true);
       setError("");
     } else {
-      setError("Invalid code. Try 123456.");
+      setError("Please enter all 6 digits.");
     }
   }
 

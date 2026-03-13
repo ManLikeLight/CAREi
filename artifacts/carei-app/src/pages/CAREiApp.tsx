@@ -1,6 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import CAREiLogo from "@assets/IMG_4784_1773400741759.png";
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Screen =
@@ -242,11 +240,6 @@ function SplashScreen({ onNext }: { onNext: () => void }) {
       }}
     >
       <div style={{ textAlign: "center", marginBottom: 8 }}>
-        <img
-          src={CAREiLogo}
-          alt="CAREi logo"
-          style={{ width: 140, marginBottom: 16, borderRadius: 12 }}
-        />
         <div
           style={{
             fontFamily: "DM Serif Display, serif",

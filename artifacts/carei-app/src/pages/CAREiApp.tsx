@@ -2304,12 +2304,21 @@ function SOSOverlay({ onDismiss }: { onDismiss: () => void }) {
 // ─── Main App ──────────────────────────────────────────────────────────────────
 
 export default function CAREiApp() {
-  const [screen, setScreen] = useState<Screen>("splash");
+  const [screen, setScreen] = useState<Screen>(() => {
+    try {
+      const saved = sessionStorage.getItem("carei_screen") as Screen;
+      const valid: Screen[] = ["splash","otp","dashboard","visit","copilot","medication","summary","profile"];
+      return valid.includes(saved) ? saved : "splash";
+    } catch {
+      return "splash";
+    }
+  });
   const [showSOS, setShowSOS] = useState(false);
 
   function nav(s: Screen) {
     setScreen(s);
     setShowSOS(false);
+    try { sessionStorage.setItem("carei_screen", s); } catch {}
   }
 
   function renderScreen() {

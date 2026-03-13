@@ -38,6 +38,34 @@ artifacts-monorepo/
 
 Mobile-first React prototype for UK domiciliary care platform targeting CQC-regulated home care agencies.
 
+### Screens (15 total)
+
+| Screen | Key | Notes |
+|---|---|---|
+| Splash | `splash` | Brand entry |
+| OTP Login | `otp` | Any 6-digit code |
+| Dashboard | `dashboard` | Quick-action strip: Family, History, Admin |
+| Live Visit | `visit` | Timer, lone worker, tasks, body map, care plan, emergency contacts, signature capture |
+| Body Map | `bodymap` | SVG body outline, tap to mark pressure sores/bruising/marks |
+| AI Copilot | `copilot` | Anthropic claude-sonnet-4-6 with offline fallback |
+| Medication | `medication` | Per-med confirm/defer with allergy banner |
+| Summary | `summary` | Editable AI-generated handover + read receipt flow |
+| Family Portal | `family` | Live visit timeline + agency contact buttons |
+| Visit History | `visit-history` | Last 30 days of visits |
+| Care Plan | `care-plan` | Objectives, preferences, risks, review dates |
+| Emergency Contacts | `emergency` | Next of kin, GP, agency, 999/111 |
+| Profile | `profile` | Carer profile + SOS overlay |
+| Admin Teaser | `admin` | Manager metrics + carer strip + CQC meters (in phone frame) |
+| Admin Dashboard | `admin-dashboard` | **Full-page desktop view** — Carer Overview, Client Roster, CQC Audit Trail, Agency Alerts |
+
+### Key architectural notes
+- `AdminDashboard.tsx` is a separate file rendered outside the phone frame
+- Session storage persists current screen across reloads
+- Signature capture uses canvas `ref` with mouse + touch event handlers
+- Offline indicator tracks `navigator.onLine` via event listeners
+- Summary screen text is editable via `<textarea>` before submission
+- Handover read receipt is a 3-state flow: edit → read receipt → success
+
 ### Screens
 1. **Splash** — CAREi logo, teal gradient tagline, compliance badges
 2. **OTP Login** — Email + 6-digit OTP (pre-filled: sarah.johnson@adjoy.co.uk / 123456)

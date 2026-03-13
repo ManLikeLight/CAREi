@@ -1,0 +1,52 @@
+No — still 3 bytes over and still hunting. Let me just cut it cleanly right now.​​​​​​​​​​​​​​​​
+
+59,992 bytes. Clean. Now the Replit spec while you test:​​​​​​​​​​​​​​​​
+
+CAREi Replit Spec
+Paste this into Replit as your project brief:
+
+Project: CAREi — AI-Powered Domiciliary Care Management App (React Prototype)
+Build a mobile-first React single-page app prototype for a UK domiciliary care platform called CAREi, targeting CQC-regulated home care agencies. The app is rendered inside a phone frame (393×852px) centred on a dark navy background, with navigation pills above the frame to jump between screens.
+
+Design System
+	∙	Colours: Navy #1B2A49, Dark Navy #0F1D34, Teal #4FD1C5, Teal2 #38B2AC, Amber #F6B73C, Red #FF5A5F, Green #22C55E, and greyscale G0–G4 (#F8FAFC → #64748B)
+	∙	Fonts: DM Sans (body), DM Serif Display (logo/headers) — loaded from Google Fonts
+	∙	Phone frame: navy border, double-ring bezel, border-radius 52, box shadow
+	∙	All state in React hooks (useState, useEffect, useRef) — no class components
+	∙	Babel constraints (strict): no arrow functions, no optional chaining (?.), no nullish coalescing (??), no spread operators, no for...of, no let/const — use var only. No ES2019+ methods (trimEnd, replaceAll, flatMap etc.). Pure ASCII output only.
+
+Screen Flow
+Splash → OTP Login → Carer Dashboard → Live Visit → AI Copilot → Medication Confirmation → ContinuCare+ Summary → Profile
+Plus: SOSOverlay (modal, always accessible)
+
+Screen Details
+1. Splash — CAREi logo in DM Serif Display, teal gradient tagline (“Intelligent Care. Every Visit.”), CQC/GDPR/AI compliance badges, Log In button.
+2. OTP Login — Email input → “Send Code” → 6-digit OTP boxes (auto-advance on input, backspace support) → animated tick on verify → auto-navigate to Dashboard. Pre-filled: sarah.johnson@adjoy.co.uk, code 123456.
+3. Carer Dashboard — Greeting “Good morning, Sarah”, today’s stats (visits, hours, tasks), 3 visit cards with status badges (In Progress / Upcoming / Completed), “Ask AI” floating button.
+4. Live Visit (the centrepiece screen) — For client Grace Mensah, 83:
+	∙	Header bar (dark navy gradient): client name, visit type, Back button, SOS button
+	∙	Three control pills: ticking elapsed timer (MM:SS), VISIBLE/PRIVATE blur toggle, LONE worker toggle
+	∙	Lone worker banner: appears when LONE is active; turns red with “Check-in overdue!” alert after 25 minutes; “Check In” button resets the timer
+	∙	Progress bar: tasks done / total, updates live as tasks are ticked
+	∙	Client card: avatar initials, age, conditions (Hypertension, T2 Diabetes, Mild Cognitive Impairment), Penicillin allergy pill in red
+	∙	Task checklist: 5 tasks, tap to tick/untick with teal checkbox animation
+	∙	AI Copilot card: teal-on-navy card, taps into Copilot screen
+	∙	Incident Report card: amber-bordered, “Fall, med error, skin change” subtitle, CQC badge — taps open a bottom-sheet modal with 4 incident type tiles + severity selector (Low/Medium/High) + Submit → success state showing reference INC-2026-0312
+	∙	Privacy blur overlay: when PRIVATE is active, a full-screen blur/dark overlay covers the content with an eye icon and “Tap to Reveal” button
+	∙	Voice Notes section: “Visit Notes” label + Dictate button. When recording: animated waveform (4 bars, pulse CSS animation), red gradient button showing elapsed recording time. Uses window.SpeechRecognition || window.webkitSpeechRecognition with continuous=true, interimResults=true, lang="en-GB". Smart chips appear below textarea for “Mood”, “Appetite”, “Mobility” to auto-insert observations. Falls back gracefully if SpeechRecognition unavailable.
+	∙	End Visit & Confirm Meds CTA button at bottom
+5. AI Copilot — Chat UI. Pre-loaded greeting from AI. Quick-chip suggestions (“Paracetamol safe?”, “Fall risk?”, “What did she eat?”, “Medications”). Typing indicator (3 animated dots). Uses real Anthropic API (/v1/messages, model claude-sonnet-4-20250514) with Grace Mensah’s full care record as system context. Local fallback responses for offline/demo mode.
+6. Medication Confirmation — Per-medication confirm/flag workflow for Grace’s 3 meds (Amlodipine 5mg, Metformin 500mg, Atorvastatin 20mg). Penicillin allergy banner at top. Each med card: Confirm ✓ or Flag ⚠ buttons. All must be actioned before proceeding.
+7. ContinuCare+ Summary — AI-generated handover note (calls Anthropic API, local fallback: headline + 4 status dot items + next-visit note). “Submit Handover” → done state with animated tick.
+8. Profile — Carer details (Sarah Johnson, Adjoy Healthcare), DBS/GPS/AI-enabled tags, sign out.
+9. SOSOverlay — Step 1: confirmation modal (“Send SOS Alert?”). Step 2: full red-screen active alert with GPS coords, supervisor contact, 999 call button, dismiss.
+
+Client Data (hardcoded)
+Grace Mensah, 83, 10 Oak Avenue Reading RG1 4AT. Conditions: Hypertension, T2 Diabetes, Mild Cognitive Impairment. Allergy: Penicillin. GP: Dr Sandra Obi. Meds: Amlodipine 5mg, Metformin 500mg, Atorvastatin 20mg (all 10AM oral). Carer: Sarah Johnson, Adjoy Healthcare.
+
+Key Technical Notes
+	∙	Single .jsx file, export default function App()
+	∙	Visit timer and lone worker timer run via setInterval in useEffect, stored in useRef, cleaned up on screen change
+	∙	All regex must use constructor form new RegExp(...) or be simple enough not to confuse JSX parser
+	∙	No backdropFilter (use opaque overlay instead for iOS compatibility)
+	∙	No trimEnd() — use while loop or .replace() with simple string logic

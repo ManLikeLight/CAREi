@@ -892,7 +892,7 @@ function LiveVisitScreen({
     const SR =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) {
-      setNotes((n) => n + " [Voice recognition not available in this browser]");
+      setNotes((n) => (n ? n + "\n" : "") + "[Dictation requires Chrome or Edge — open the app in a full browser tab and allow microphone access, then try again.]");
       return;
     }
     const rec = new SR();
@@ -909,7 +909,14 @@ function LiveVisitScreen({
       if (final) setNotes((n) => n + final + " ");
       setInterim(inter);
     };
-    rec.onerror = () => setIsRecording(false);
+    rec.onerror = (e: any) => {
+      setIsRecording(false);
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        setNotes((n) => (n ? n + "\n" : "") + "[Microphone access denied — please allow microphone permission in your browser and try again.]");
+      } else if (e.error === "no-speech") {
+        setNotes((n) => (n ? n + "\n" : "") + "[No speech detected — please speak clearly and try again.]");
+      }
+    };
     rec.onend = () => setIsRecording(false);
     rec.start();
     recognitionRef.current = rec;

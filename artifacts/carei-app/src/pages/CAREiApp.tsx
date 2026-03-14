@@ -2907,14 +2907,7 @@ export default function CAREiApp() {
     return (
       <>
         <style>{globalStyles}</style>
-        <div style={{ minHeight: "100vh", background: "#050d1a", display: "flex", flexDirection: "column" }}>
-          <div style={{ padding: "10px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "#0F1D34", flexShrink: 0 }}>
-            <NavPills current={screen} onNav={nav} />
-          </div>
-          <div style={{ flex: 1, overflow: "hidden" }}>
-            <AdminDashboard onBack={() => nav("admin")} />
-          </div>
-        </div>
+        <AdminDashboard onBack={() => nav("admin")} />
       </>
     );
   }

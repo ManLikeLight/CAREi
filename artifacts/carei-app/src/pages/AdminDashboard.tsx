@@ -344,7 +344,8 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
   };
 
   return (
-    <div style={{ display: "flex", height: "100vh", background: "#050d1a", fontFamily: "DM Sans, sans-serif", color: C.g0 }}>
+    <div style={{ width: "100%", height: "100vh", overflowX: "auto", background: "#050d1a" }}>
+    <div style={{ display: "flex", height: "100%", minWidth: 960, fontFamily: "DM Sans, sans-serif", color: C.g0 }}>
       {/* Sidebar */}
       <div style={{ width: 220, background: C.dark, borderRight: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", flexShrink: 0 }}>
         <div style={{ padding: "24px 20px 16px" }}>
@@ -400,6 +401,7 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
           {section === "alerts" && <AgencyAlerts />}
         </div>
       </div>
+    </div>
     </div>
   );
 }

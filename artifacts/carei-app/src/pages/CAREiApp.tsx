@@ -17,7 +17,12 @@ type Screen =
   | "admin-dashboard"
   | "visit-history"
   | "care-plan"
-  | "emergency";
+  | "emergency"
+  | "today"
+  | "active-visit"
+  | "continucare-summary"
+  | "operations"
+  | "schedule";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -81,6 +86,45 @@ const OFFLINE_RESPONSES: Record<string, string> = {
     "Grace's current medications: Amlodipine 5mg (10AM oral) for hypertension, Metformin 500mg (10AM oral) for T2 Diabetes, Atorvastatin 20mg (10AM oral) for cholesterol. ALLERGY: Penicillin.",
 };
 
+const SCHEDULE_CLIENTS = [
+  {
+    id: "mary",
+    name: "Mary Johnson",
+    age: 82,
+    time: "09:00 – 10:00",
+    condition: "Dementia",
+    tags: ["Dementia", "Medication Required"],
+    meds: [
+      { name: "Aspirin", dose: "75mg" },
+      { name: "Donepezil", dose: "10mg" },
+    ],
+  },
+  {
+    id: "tom",
+    name: "Tom Adams",
+    age: 75,
+    time: "10:30 – 11:00",
+    condition: "Post Stroke",
+    tags: ["Post Stroke", "Mobility Support"],
+    meds: [
+      { name: "Aspirin", dose: "75mg" },
+      { name: "Lisinopril", dose: "10mg" },
+    ],
+  },
+  {
+    id: "aisha",
+    name: "Aisha Khan",
+    age: 69,
+    time: "12:00 – 13:00",
+    condition: "Diabetes",
+    tags: ["Diabetes", "Nutrition Monitoring"],
+    meds: [
+      { name: "Metformin", dose: "500mg" },
+      { name: "Lisinopril", dose: "10mg" },
+    ],
+  },
+];
+
 // ─── CSS Injected Globally ──────────────────────────────────────────────────────
 
 const globalStyles = `
@@ -138,6 +182,18 @@ const globalStyles = `
     cursor: pointer; transition: all 0.2s ease; flex-shrink: 0;
   }
   .task-check.checked { background: #4FD1C5; }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .slide-up { animation: slideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards; }
+
+  @keyframes sosPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,90,95,0.7); }
+    70% { box-shadow: 0 0 0 14px rgba(255,90,95,0); }
+  }
+  .sos-pulse { animation: sosPulse 1.4s ease-in-out infinite; }
 `;
 
 // ─── Helper Functions ──────────────────────────────────────────────────────────
@@ -189,12 +245,17 @@ function NavPills({
   const screens: { key: Screen; label: string }[] = [
     { key: "splash", label: "Splash" },
     { key: "otp", label: "Login" },
-    { key: "dashboard", label: "Dashboard" },
-    { key: "visit", label: "Live Visit" },
+    { key: "today", label: "Today's Care" },
+    { key: "active-visit", label: "Active Visit" },
+    { key: "continucare-summary", label: "Summary" },
+    { key: "operations", label: "Operations" },
+    { key: "schedule", label: "Schedule" },
+    { key: "dashboard", label: "Dashboard (old)" },
+    { key: "visit", label: "Live Visit (old)" },
     { key: "bodymap", label: "Body Map" },
     { key: "copilot", label: "AI Copilot" },
     { key: "medication", label: "Meds" },
-    { key: "summary", label: "Summary" },
+    { key: "summary", label: "Summary (old)" },
     { key: "family", label: "Family" },
     { key: "visit-history", label: "History" },
     { key: "care-plan", label: "Care Plan" },
@@ -2826,23 +2887,704 @@ function AdminTeaserScreen({ onBack, onOpenAdmin }: { onBack: () => void; onOpen
   );
 }
 
+// ─── New Screens ───────────────────────────────────────────────────────────────
+
+function TodayCareScreen({
+  visitStatuses,
+  onSelectClient,
+  onOperations,
+  onAssistant,
+  onSOS,
+  onProfile,
+}: {
+  visitStatuses: Record<string, string>;
+  onSelectClient: (id: string) => void;
+  onOperations: () => void;
+  onAssistant: () => void;
+  onSOS: () => void;
+  onProfile: () => void;
+}) {
+  const now = new Date();
+  const hour = now.getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const doneCount = Object.values(visitStatuses).filter((s) => s === "completed").length;
+
+  return (
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", position: "relative" }}>
+      {/* Header */}
+      <div style={{ padding: "20px 18px 12px", flexShrink: 0 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div style={{ color: COLORS.g2, fontSize: 12 }}>{greeting},</div>
+            <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 24, color: "#fff" }}>Today's Care</div>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <button onClick={onOperations} style={{ padding: "6px 12px", borderRadius: 99, border: "1px solid rgba(246,183,60,0.4)", background: "rgba(246,183,60,0.1)", color: COLORS.amber, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Switch to Operations</button>
+            <div onClick={onProfile} style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.darkNavy, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>SJ</div>
+          </div>
+        </div>
+        {/* Stats */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 16 }}>
+          {[
+            { label: "Visits", value: "3" },
+            { label: "Hours", value: "3.5" },
+            { label: "Done", value: String(doneCount) },
+          ].map((s) => (
+            <div key={s.label} style={{ background: "rgba(255,255,255,0.07)", borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
+              <div style={{ color: COLORS.teal, fontWeight: 700, fontSize: 20 }}>{s.value}</div>
+              <div style={{ color: COLORS.g2, fontSize: 10, marginTop: 2 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Visit cards */}
+      <div className="phone-scroll" style={{ flex: 1, padding: "0 14px 130px", display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ color: COLORS.g1, fontSize: 12, fontWeight: 600, marginBottom: 2 }}>Today's Schedule</div>
+        {SCHEDULE_CLIENTS.map((client) => {
+          const status = visitStatuses[client.id] || "pending";
+          const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
+            pending: { label: "Pending", color: COLORS.amber, bg: "rgba(246,183,60,0.15)" },
+            "in-progress": { label: "In Progress", color: COLORS.teal, bg: "rgba(79,209,197,0.15)" },
+            completed: { label: "Completed", color: COLORS.green, bg: "rgba(34,197,94,0.15)" },
+          };
+          const cfg = statusConfig[status] || statusConfig.pending;
+          return (
+            <div
+              key={client.id}
+              onClick={() => status !== "completed" ? onSelectClient(client.id) : undefined}
+              style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 16px", cursor: status !== "completed" ? "pointer" : "default", border: status === "in-progress" ? `1px solid rgba(79,209,197,0.35)` : "1px solid transparent", opacity: status === "completed" ? 0.7 : 1 }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <div style={{ width: 42, height: 42, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.darkNavy, fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
+                    {client.name.split(" ").map((n) => n[0]).join("")}
+                  </div>
+                  <div>
+                    <div style={{ color: "#fff", fontWeight: 600, fontSize: 14 }}>{client.name}</div>
+                    <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 1 }}>Age {client.age} · {client.time}</div>
+                  </div>
+                </div>
+                <Badge color={cfg.color} bg={cfg.bg}>{cfg.label}</Badge>
+              </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {client.tags.map((tag) => (
+                  <Badge key={tag} color={COLORS.teal} bg="rgba(79,209,197,0.1)">{tag}</Badge>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Floating CAREi Assistant button - bottom left */}
+      <button onClick={onAssistant} className="fade-in" style={{ position: "absolute", bottom: 88, left: 20, width: 54, height: 54, borderRadius: "50%", border: "none", background: "linear-gradient(135deg, #3B82F6, #1D4ED8)", color: "#fff", fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(59,130,246,0.5)", zIndex: 10 }} title="CAREi Assistant">✦</button>
+
+      {/* Floating SOS button - bottom right */}
+      <button onClick={onSOS} className="sos-pulse" style={{ position: "absolute", bottom: 88, right: 20, width: 54, height: 54, borderRadius: "50%", border: "none", background: COLORS.red, color: "#fff", fontSize: 13, fontWeight: 900, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }}>SOS</button>
+
+      {/* Bottom nav */}
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 78, background: "rgba(15,29,52,0.97)", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "space-around", padding: "0 8px" }}>
+        {[
+          { icon: "🏠", label: "Home", action: undefined as undefined | (() => void) },
+          { icon: "📅", label: "Schedule", action: onOperations },
+          { icon: "📋", label: "Reports", action: undefined },
+          { icon: "👤", label: "Profile", action: onProfile },
+        ].map((n) => (
+          <div key={n.label} onClick={n.action} style={{ display: "flex", flexDirection: "column", alignItems: "center", cursor: n.action ? "pointer" : "default", gap: 2, opacity: n.label === "Home" ? 1 : 0.5 }}>
+            <span style={{ fontSize: 20 }}>{n.icon}</span>
+            <span style={{ color: COLORS.g2, fontSize: 10 }}>{n.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ActiveVisitScreen({
+  client,
+  onComplete,
+  onBack,
+  onSOS,
+  onAssistant,
+  onBodyMap,
+  onCarePlan,
+  onEmergency,
+}: {
+  client: typeof SCHEDULE_CLIENTS[0];
+  onComplete: () => void;
+  onBack: () => void;
+  onSOS: () => void;
+  onAssistant: () => void;
+  onBodyMap: () => void;
+  onCarePlan: () => void;
+  onEmergency: () => void;
+}) {
+  const [activeTab, setActiveTab] = useState<"tasks" | "notes" | "medication" | "history">("tasks");
+  const [tasks, setTasks] = useState([false, false, false]);
+  const [notes, setNotes] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [medStatus, setMedStatus] = useState<Record<string, "taken" | "not-taken" | undefined>>({});
+  const [medReasons, setMedReasons] = useState<Record<string, string>>({});
+  const [showReasonFor, setShowReasonFor] = useState<string | null>(null);
+  const [isLone, setIsLone] = useState(false);
+  const [loneElapsed, setLoneElapsed] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const loneIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const visitIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const VISIT_TASKS = ["Prepare breakfast", "Assist with mobility", "Record mood"];
+  const CARE_HISTORY = [
+    { date: "14 Mar 2026", summary: "Client in good spirits. All medication administered. Breakfast completed without issue." },
+    { date: "12 Mar 2026", summary: "Mobility slightly reduced compared to previous visit. Flagged to supervisor. Meds taken on time." },
+    { date: "10 Mar 2026", summary: "Visit completed. Client engaged well with carer. No concerns raised." },
+  ];
+
+  useEffect(() => {
+    visitIntervalRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
+    return () => { if (visitIntervalRef.current) clearInterval(visitIntervalRef.current); };
+  }, []);
+
+  useEffect(() => {
+    const up = () => setIsOnline(true);
+    const dn = () => setIsOnline(false);
+    window.addEventListener("online", up);
+    window.addEventListener("offline", dn);
+    return () => { window.removeEventListener("online", up); window.removeEventListener("offline", dn); };
+  }, []);
+
+  useEffect(() => {
+    if (isLone) {
+      loneIntervalRef.current = setInterval(() => setLoneElapsed((e) => e + 1), 1000);
+    } else {
+      if (loneIntervalRef.current) clearInterval(loneIntervalRef.current);
+      setLoneElapsed(0);
+    }
+    return () => { if (loneIntervalRef.current) clearInterval(loneIntervalRef.current); };
+  }, [isLone]);
+
+  const loneOverdue = isLone && loneElapsed >= 25 * 60;
+  const allMedsAcknowledged = client.meds.every((m) => medStatus[m.name] !== undefined);
+
+  function handleMicClick() {
+    setIsRecording(true);
+    setTimeout(() => {
+      setNotes((n) => (n ? n + "\n" : "") + "Client ate breakfast. Appeared withdrawn. Mobility slightly reduced.");
+      setIsRecording(false);
+    }, 1500);
+  }
+
+  const TAB_LABELS: Record<string, string> = {
+    tasks: "Care Tasks",
+    notes: "Care Notes",
+    medication: "Medication",
+    history: "Care History",
+  };
+
+  return (
+    <div style={{ height: "100%", background: COLORS.darkNavy, display: "flex", flexDirection: "column", position: "relative" }}>
+      {/* Header */}
+      <div style={{ background: "rgba(15,29,52,0.98)", padding: "12px 16px", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0 }}>‹</button>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>Active Visit</div>
+            <div style={{ color: COLORS.g2, fontSize: 11, fontVariantNumeric: "tabular-nums" }}>⏱ {formatTime(elapsed)}</div>
+          </div>
+          <button onClick={onSOS} style={{ background: COLORS.red, border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, fontSize: 12, padding: "5px 10px", cursor: "pointer" }}>SOS</button>
+        </div>
+
+        {/* Client profile card */}
+        <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 10, padding: "10px 12px", background: "rgba(255,255,255,0.06)", borderRadius: 12 }}>
+          <div style={{ width: 44, height: 44, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.darkNavy, fontWeight: 700, fontSize: 16, flexShrink: 0 }}>
+            {client.name.split(" ").map((n) => n[0]).join("")}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{client.name}</div>
+            <div style={{ color: COLORS.g2, fontSize: 12 }}>Age {client.age} · {client.condition}</div>
+            <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 1 }}>{client.time}</div>
+          </div>
+          <button onClick={onAssistant} style={{ width: 34, height: 34, borderRadius: "50%", border: "none", background: "linear-gradient(135deg, #3B82F6, #1D4ED8)", color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} title="CAREi Assistant">✦</button>
+        </div>
+
+        {/* Lone worker control pill */}
+        <div style={{ marginTop: 8 }}>
+          <button onClick={() => setIsLone((l) => !l)} style={{ background: isLone ? "rgba(255,90,95,0.2)" : "rgba(255,255,255,0.1)", border: "none", borderRadius: 99, padding: "5px 14px", color: isLone ? COLORS.red : COLORS.g2, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+            {isLone ? "🔴 Lone Worker Active — tap to deactivate" : "Lone Worker — tap to activate"}
+          </button>
+        </div>
+      </div>
+
+      {/* Offline banner */}
+      {!isOnline && (
+        <div style={{ background: "rgba(246,183,60,0.9)", padding: "6px 16px", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          <span style={{ fontSize: 14 }}>📵</span>
+          <span style={{ color: "#1B2A49", fontWeight: 700, fontSize: 12 }}>Offline — data will sync when reconnected</span>
+        </div>
+      )}
+
+      {/* Lone worker banner — always visible when active, regardless of tab */}
+      {isLone && (
+        <div style={{ background: loneOverdue ? COLORS.red : "rgba(255,90,95,0.18)", padding: "8px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+          <div>
+            <div style={{ color: "#fff", fontSize: 12, fontWeight: 600 }}>{loneOverdue ? "⚠ Check-in overdue!" : "Lone Worker Active"}</div>
+            <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 11 }}>{formatTime(loneElapsed)} since last check-in</div>
+          </div>
+          <button onClick={() => setLoneElapsed(0)} style={{ background: "#fff", border: "none", borderRadius: 8, color: COLORS.red, fontWeight: 700, fontSize: 12, padding: "6px 12px", cursor: "pointer" }}>Check In ✓</button>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div style={{ display: "flex", borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
+        {(["tasks", "notes", "medication", "history"] as const).map((tab) => (
+          <button key={tab} onClick={() => setActiveTab(tab)} style={{ flex: 1, padding: "10px 4px", border: "none", background: "transparent", color: activeTab === tab ? COLORS.teal : COLORS.g3, fontSize: 10, fontWeight: 600, cursor: "pointer", borderBottom: `2px solid ${activeTab === tab ? COLORS.teal : "transparent"}`, fontFamily: "DM Sans, sans-serif" }}>
+            {TAB_LABELS[tab]}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      <div className="phone-scroll" style={{ flex: 1, padding: "12px 14px 96px" }}>
+
+        {/* Care Tasks */}
+        {activeTab === "tasks" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600, marginBottom: 2 }}>Care Tasks</div>
+            {VISIT_TASKS.map((task, i) => (
+              <div key={task} onClick={() => { const t = [...tasks]; t[i] = !t[i]; setTasks(t); }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "rgba(255,255,255,0.06)", borderRadius: 12, cursor: "pointer" }}>
+                <div className={`task-check ${tasks[i] ? "checked" : ""}`}>
+                  {tasks[i] && <svg width="12" height="9" viewBox="0 0 12 9"><polyline points="1,5 4,8 11,1" fill="none" stroke={COLORS.darkNavy} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                </div>
+                <span style={{ color: tasks[i] ? COLORS.g3 : COLORS.g1, fontSize: 13, textDecoration: tasks[i] ? "line-through" : "none" }}>{task}</span>
+              </div>
+            ))}
+            <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600, marginTop: 8, marginBottom: 2 }}>Client Records</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <div onClick={onBodyMap} style={{ background: "rgba(255,90,95,0.08)", borderRadius: 12, padding: "12px 14px", cursor: "pointer" }}>
+                <span style={{ fontSize: 18 }}>🫀</span>
+                <div style={{ color: COLORS.red, fontWeight: 600, fontSize: 12, marginTop: 4 }}>Body Map</div>
+              </div>
+              <div onClick={onCarePlan} style={{ background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: "12px 14px", cursor: "pointer" }}>
+                <span style={{ fontSize: 18 }}>📄</span>
+                <div style={{ color: COLORS.g1, fontWeight: 600, fontSize: 12, marginTop: 4 }}>Care Plan</div>
+              </div>
+              <div onClick={onEmergency} style={{ background: "rgba(255,90,95,0.08)", borderRadius: 12, padding: "12px 14px", cursor: "pointer", gridColumn: "span 2", display: "flex", gap: 10, alignItems: "center" }}>
+                <span style={{ fontSize: 18 }}>🚨</span>
+                <div style={{ color: COLORS.red, fontWeight: 600, fontSize: 12 }}>Emergency Contacts</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Care Notes */}
+        {activeTab === "notes" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600 }}>Care Notes</div>
+              <button onClick={handleMicClick} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 99, border: "none", background: isRecording ? `linear-gradient(90deg, ${COLORS.red}, #cc1a20)` : `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: isRecording ? "#fff" : COLORS.darkNavy, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                {isRecording ? "⏺ Listening…" : "🎤 Dictate"}
+              </button>
+            </div>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Tap Dictate or type care notes here…" rows={7} style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, resize: "none", outline: "none" }} />
+            <div style={{ display: "flex", gap: 6 }}>
+              {["Mood", "Appetite", "Mobility"].map((chip) => (
+                <button key={chip} onClick={() => setNotes((n) => n + (n ? " " : "") + chip + ": ")} style={{ padding: "4px 10px", borderRadius: 99, border: "1px solid rgba(79,209,197,0.3)", background: "rgba(79,209,197,0.08)", color: COLORS.teal, fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>+ {chip}</button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Medication */}
+        {activeTab === "medication" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600 }}>Scheduled Medications</div>
+            {client.meds.map((med) => (
+              <div key={med.name} style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: 14, border: medStatus[med.name] ? `1px solid ${medStatus[med.name] === "taken" ? COLORS.green : COLORS.amber}` : "1px solid transparent" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: medStatus[med.name] ? 0 : 10 }}>
+                  <div>
+                    <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{med.name} {med.dose}</div>
+                    <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 2 }}>Scheduled dose</div>
+                  </div>
+                  {medStatus[med.name] && (
+                    <Badge color={medStatus[med.name] === "taken" ? COLORS.green : COLORS.amber} bg={medStatus[med.name] === "taken" ? "rgba(34,197,94,0.15)" : "rgba(246,183,60,0.15)"}>
+                      {medStatus[med.name] === "taken" ? "✓ Taken" : "⚠ Not Taken"}
+                    </Badge>
+                  )}
+                </div>
+                {!medStatus[med.name] && (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => setMedStatus((s) => ({ ...s, [med.name]: "taken" }))} style={{ flex: 1, padding: "9px 0", borderRadius: 10, border: "1px solid rgba(34,197,94,0.4)", background: "rgba(34,197,94,0.1)", color: COLORS.green, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>✓ Taken</button>
+                    <button onClick={() => setShowReasonFor(med.name)} style={{ flex: 1, padding: "9px 0", borderRadius: 10, border: "1px solid rgba(246,183,60,0.4)", background: "rgba(246,183,60,0.1)", color: COLORS.amber, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>✗ Not Taken</button>
+                  </div>
+                )}
+                {showReasonFor === med.name && (
+                  <div style={{ marginTop: 10 }}>
+                    <input value={medReasons[med.name] || ""} onChange={(e) => setMedReasons((r) => ({ ...r, [med.name]: e.target.value }))} placeholder="Reason for not taking…" style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(246,183,60,0.3)", background: "rgba(255,255,255,0.05)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 12, outline: "none" }} />
+                    <button onClick={() => { setMedStatus((s) => ({ ...s, [med.name]: "not-taken" })); setShowReasonFor(null); }} style={{ marginTop: 8, width: "100%", padding: "8px 0", borderRadius: 8, border: "none", background: "rgba(246,183,60,0.2)", color: COLORS.amber, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Confirm Reason</button>
+                  </div>
+                )}
+              </div>
+            ))}
+            {!allMedsAcknowledged && (
+              <div style={{ background: "rgba(246,183,60,0.1)", borderRadius: 10, padding: "10px 14px", display: "flex", gap: 8, alignItems: "center" }}>
+                <span>⚠️</span>
+                <span style={{ color: COLORS.amber, fontSize: 12, lineHeight: 1.5 }}>All medications must be acknowledged before completing the visit.</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Care History */}
+        {activeTab === "history" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600 }}>Previous Visits</div>
+            {CARE_HISTORY.map((visit, i) => (
+              <div key={i} style={{ background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: "12px 14px" }}>
+                <div style={{ color: COLORS.teal, fontSize: 11, fontWeight: 600, marginBottom: 4 }}>{visit.date}</div>
+                <div style={{ color: COLORS.g1, fontSize: 13, lineHeight: 1.5 }}>{visit.summary}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Fixed Complete Visit button */}
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "14px 16px 24px", background: "rgba(15,29,52,0.97)", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+        <button
+          onClick={allMedsAcknowledged ? onComplete : () => setActiveTab("medication")}
+          style={{ width: "100%", padding: "15px 0", borderRadius: 14, border: "none", background: allMedsAcknowledged ? `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})` : "rgba(255,255,255,0.1)", color: allMedsAcknowledged ? COLORS.darkNavy : COLORS.g3, fontFamily: "DM Sans, sans-serif", fontSize: 15, fontWeight: 700, cursor: allMedsAcknowledged ? "pointer" : "not-allowed" }}
+        >
+          {allMedsAcknowledged ? "Complete Visit →" : `Confirm medications first (${Object.keys(medStatus).length}/${client.meds.length})`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CAREiAssistantModal({ onClose, clientName }: { onClose: () => void; clientName?: string }) {
+  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
+  const [loading, setLoading] = useState(false);
+
+  const suggestions = ["Mood trend", "Medication history", "Recent concerns"];
+
+  async function handleSend(text: string) {
+    if (!text.trim()) return;
+    setMessages((m) => [...m, { role: "user", content: text }]);
+    setInput("");
+    setLoading(true);
+    await new Promise((r) => setTimeout(r, 1000));
+    const contextName = clientName || "this client";
+    setMessages((m) => [...m, {
+      role: "assistant",
+      content: text.toLowerCase().includes("mood")
+        ? `Mood trend for ${contextName}: Yesterday recorded as neutral. Last week showed two positive days. Consider monitoring closely given recent withdrawal signs.`
+        : text.toLowerCase().includes("medication")
+        ? `Medication history: All scheduled medications taken on time over the past 7 days. No missed doses recorded. Last confirmed: yesterday at 10:00.`
+        : text.toLowerCase().includes("concern")
+        ? `Recent concerns logged: Mild mobility reduction noted 2 days ago. Supervisor informed. No escalation required at this time.`
+        : `Yesterday at 12:15, lunch was completed for ${contextName}. Mood recorded as neutral. No incidents logged.`,
+    }]);
+    setLoading(false);
+  }
+
+  return (
+    <div style={{ position: "absolute", inset: 0, zIndex: 90, background: "rgba(0,0,0,0.5)", display: "flex", flexDirection: "column", justifyContent: "flex-end" }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="slide-up" style={{ background: COLORS.navy, borderRadius: "22px 22px 0 0", padding: "16px 18px 32px", maxHeight: "78%", display: "flex", flexDirection: "column", gap: 12 }}>
+        {/* Handle */}
+        <div style={{ width: 40, height: 4, borderRadius: 99, background: "rgba(255,255,255,0.2)", margin: "0 auto 4px" }} />
+        {/* Title bar */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>✦ CAREi Assistant</div>
+            {clientName && <div style={{ color: COLORS.g2, fontSize: 12 }}>Context: {clientName}</div>}
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, color: COLORS.g2, fontSize: 13, padding: "6px 12px", cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>✕ Close</button>
+        </div>
+        {/* Messages */}
+        {messages.length > 0 && (
+          <div className="phone-scroll" style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 200, overflowY: "auto" }}>
+            {messages.map((m, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
+                <div style={{ maxWidth: "85%", background: m.role === "user" ? `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})` : "rgba(255,255,255,0.08)", borderRadius: 12, padding: "8px 12px", color: m.role === "user" ? COLORS.darkNavy : COLORS.g0, fontSize: 13, lineHeight: 1.5 }}>{m.content}</div>
+              </div>
+            ))}
+            {loading && (
+              <div style={{ display: "flex", gap: 4, padding: "8px 12px", background: "rgba(255,255,255,0.08)", borderRadius: 12, width: "fit-content" }}>
+                {[0, 1, 2].map((d) => <div key={d} className={`dot-${d + 1}`} style={{ width: 7, height: 7, borderRadius: "50%", background: COLORS.teal }} />)}
+              </div>
+            )}
+          </div>
+        )}
+        {/* Suggestion chips */}
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {suggestions.map((s) => (
+            <button key={s} onClick={() => handleSend(s)} style={{ padding: "6px 12px", borderRadius: 99, border: "1px solid rgba(59,130,246,0.4)", background: "rgba(59,130,246,0.1)", color: "#93C5FD", fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>{s}</button>
+          ))}
+        </div>
+        {/* Input */}
+        <div style={{ display: "flex", gap: 8 }}>
+          <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSend(input)} placeholder="Ask about this client…" style={{ flex: 1, padding: "11px 14px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.07)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, outline: "none" }} />
+          <button onClick={() => handleSend(input)} style={{ width: 44, height: 44, borderRadius: 12, border: "none", background: "linear-gradient(135deg, #3B82F6, #1D4ED8)", color: "#fff", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ContinuCareSummaryScreen({
+  client,
+  onDone,
+}: {
+  client: typeof SCHEDULE_CLIENTS[0];
+  onDone: () => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState({ observations: "", medication: "", riskSignals: "" });
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSummary({
+        observations: "Client consumed breakfast. Mild withdrawal noted during visit. Engaged with carer appropriately. Personal care completed fully.",
+        medication: client.meds.map((m) => `${m.name} ${m.dose} — taken ✓`).join("\n"),
+        riskSignals: "Slight reduction in mobility compared to previous visit. Monitor mood over next 48 hours. No immediate escalation required.",
+      });
+      setLoading(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (submitted) {
+    return (
+      <div style={{ height: "100%", background: COLORS.darkNavy, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20, padding: 32 }}>
+        <div className="fade-in" style={{ textAlign: "center", width: "100%" }}>
+          <svg width="72" height="72" viewBox="0 0 72 72">
+            <circle cx="36" cy="36" r="34" fill={COLORS.teal} />
+            <polyline points="20,37 30,47 52,24" fill="none" stroke={COLORS.darkNavy} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 22, marginTop: 16 }}>Shift Complete</div>
+          <div style={{ color: COLORS.teal, fontSize: 14, marginTop: 6 }}>ContinuCare+ Summary Submitted ✓</div>
+          <div style={{ marginTop: 12, background: "rgba(34,197,94,0.12)", borderRadius: 10, padding: "8px 16px", display: "inline-block" }}>
+            <span style={{ color: COLORS.green, fontWeight: 700, fontSize: 12 }}>CQC AUDIT TRAIL — COMPLETE</span>
+          </div>
+          <button onClick={onDone} style={{ marginTop: 24, padding: "14px 0", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "DM Sans, sans-serif", width: "100%", display: "block" }}>
+            Return to Today's Care
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ height: "100%", background: COLORS.darkNavy, display: "flex", flexDirection: "column" }}>
+      <div style={{ padding: "20px 18px 12px", flexShrink: 0 }}>
+        <Badge color={COLORS.teal} bg="rgba(79,209,197,0.15)">AI Generated ContinuCare+</Badge>
+        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 24, color: "#fff", marginTop: 8 }}>Shift Summary</div>
+        <div style={{ color: COLORS.g2, fontSize: 13, marginTop: 2 }}>{client.name} · {new Date().toLocaleDateString("en-GB")}</div>
+      </div>
+      <div className="phone-scroll" style={{ flex: 1, padding: "0 14px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
+        {loading ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ color: COLORS.teal, fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ display: "flex", gap: 3 }}>{[0, 1, 2].map((d) => <div key={d} className={`dot-${d + 1}`} style={{ width: 6, height: 6, borderRadius: "50%", background: COLORS.teal }} />)}</div>
+              Generating AI summary…
+            </div>
+            {[85, 70, 90, 60, 80].map((w, i) => <div key={i} style={{ height: 12, borderRadius: 6, background: "rgba(255,255,255,0.08)", width: `${w}%` }} />)}
+          </div>
+        ) : (
+          <>
+            {[
+              { title: "Observations", icon: "📝", content: summary.observations, color: COLORS.teal },
+              { title: "Medication", icon: "💊", content: summary.medication, color: COLORS.green },
+              { title: "Risk Signals", icon: "⚠️", content: summary.riskSignals, color: COLORS.amber },
+            ].map((section) => (
+              <div key={section.title} style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: 16 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                  <span style={{ fontSize: 16 }}>{section.icon}</span>
+                  <div style={{ color: section.color, fontWeight: 700, fontSize: 13 }}>{section.title}</div>
+                </div>
+                <div style={{ color: COLORS.g1, fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-line" }}>{section.content}</div>
+              </div>
+            ))}
+            <button onClick={() => setSubmitted(true)} style={{ width: "100%", padding: "16px 0", borderRadius: 14, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer", marginTop: 4 }}>
+              Submit & End Shift →
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function OperationsScreen({
+  visitStatuses,
+  onSchedule,
+  onBack,
+}: {
+  visitStatuses: Record<string, string>;
+  onSchedule: () => void;
+  onBack: () => void;
+}) {
+  const statusConfig: Record<string, { label: string; color: string }> = {
+    pending: { label: "Pending", color: COLORS.amber },
+    "in-progress": { label: "In Progress", color: COLORS.teal },
+    completed: { label: "Completed", color: COLORS.green },
+  };
+
+  return (
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column" }}>
+      {/* Header */}
+      <div style={{ padding: "20px 18px 16px", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ color: COLORS.g2, fontSize: 12 }}>Manager View</div>
+            <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 24, color: "#fff" }}>Operations</div>
+          </div>
+          <button onClick={onBack} style={{ padding: "6px 12px", borderRadius: 99, border: "1px solid rgba(79,209,197,0.4)", background: "rgba(79,209,197,0.1)", color: COLORS.teal, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>← Carer View</button>
+        </div>
+      </div>
+      <div className="phone-scroll" style={{ flex: 1, padding: "0 14px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+        {/* Analytics */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+          {[
+            { label: "Visits Today", value: "3", color: COLORS.teal },
+            { label: "Compliance", value: "94%", color: COLORS.green },
+            { label: "Escalations", value: "0", color: COLORS.amber },
+          ].map((s) => (
+            <div key={s.label} style={{ background: "rgba(255,255,255,0.07)", borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
+              <div style={{ color: s.color, fontWeight: 700, fontSize: 18 }}>{s.value}</div>
+              <div style={{ color: COLORS.g2, fontSize: 10, marginTop: 2 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+        {/* Live Visit Status */}
+        <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: 16 }}>
+          <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Live Visit Status</div>
+          {SCHEDULE_CLIENTS.map((client) => {
+            const status = visitStatuses[client.id] || "pending";
+            const cfg = statusConfig[status] || statusConfig.pending;
+            return (
+              <div key={client.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <div>
+                  <div style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>{client.name}</div>
+                  <div style={{ color: COLORS.g2, fontSize: 11 }}>{client.time}</div>
+                </div>
+                <Badge color={cfg.color} bg={`${cfg.color}22`}>{cfg.label}</Badge>
+              </div>
+            );
+          })}
+        </div>
+        {/* Alerts Panel */}
+        <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: 16 }}>
+          <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Alerts Panel</div>
+          {[
+            { label: "Missed Medications", value: 1, color: COLORS.red },
+            { label: "Low Mood Flags", value: 2, color: COLORS.amber },
+          ].map((alert) => (
+            <div key={alert.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+              <div style={{ color: COLORS.g1, fontSize: 13 }}>{alert.label}</div>
+              <div style={{ background: alert.color, color: "#fff", fontWeight: 700, fontSize: 12, borderRadius: 99, padding: "2px 10px" }}>{alert.value}</div>
+            </div>
+          ))}
+        </div>
+        {/* Manage Schedule */}
+        <button onClick={onSchedule} style={{ width: "100%", padding: "15px 0", borderRadius: 14, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+          📅 Manage Schedule →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ScheduleScreen({
+  assignedCarers,
+  onAssign,
+  onBack,
+}: {
+  assignedCarers: Record<string, string>;
+  onAssign: (clientId: string, carer: string) => void;
+  onBack: () => void;
+}) {
+  const CARERS = ["Sarah", "John", "Amina", "Unassigned"];
+
+  return (
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column" }}>
+      {/* Header */}
+      <div style={{ padding: "20px 18px 16px", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0 }}>‹</button>
+          <div>
+            <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 24, color: "#fff" }}>Schedule</div>
+            <div style={{ color: COLORS.g2, fontSize: 12 }}>Today's visits · Adjoy Healthcare</div>
+          </div>
+        </div>
+      </div>
+      <div className="phone-scroll" style={{ flex: 1, padding: "0 14px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
+        {SCHEDULE_CLIENTS.map((client) => {
+          const assigned = assignedCarers[client.id] || "Unassigned";
+          const isAssigned = assigned !== "Unassigned";
+          return (
+            <div key={client.id} style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: 16, border: `1px solid ${isAssigned ? "rgba(79,209,197,0.2)" : "rgba(246,183,60,0.2)"}` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                <div>
+                  <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{client.name}</div>
+                  <div style={{ color: COLORS.g2, fontSize: 12 }}>{client.time} · Age {client.age}</div>
+                </div>
+                <Badge color={isAssigned ? COLORS.teal : COLORS.amber} bg={isAssigned ? "rgba(79,209,197,0.12)" : "rgba(246,183,60,0.12)"}>
+                  {isAssigned ? "✓ Assigned" : "Unassigned"}
+                </Badge>
+              </div>
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <div style={{ color: COLORS.g2, fontSize: 12, whiteSpace: "nowrap" }}>Assign to:</div>
+                <select value={assigned} onChange={(e) => onAssign(client.id, e.target.value)} style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.08)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, outline: "none", cursor: "pointer" }}>
+                  {CARERS.map((c) => <option key={c} value={c} style={{ background: "#1B2A49" }}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+          );
+        })}
+        <div style={{ background: "rgba(79,209,197,0.08)", borderRadius: 12, padding: "12px 14px", border: "1px solid rgba(79,209,197,0.2)" }}>
+          <div style={{ color: COLORS.teal, fontSize: 12, fontWeight: 600, marginBottom: 4 }}>ℹ️ Scheduling note</div>
+          <div style={{ color: COLORS.g2, fontSize: 12, lineHeight: 1.5 }}>Assigning a carer will add the visit to their Today's Care view and trigger the care workflow.</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main App ──────────────────────────────────────────────────────────────────
 
 export default function CAREiApp() {
   const [screen, setScreen] = useState<Screen>(() => {
     try {
       const saved = sessionStorage.getItem("carei_screen") as Screen;
-      const valid: Screen[] = ["splash","otp","dashboard","visit","copilot","medication","summary","profile","family","bodymap","admin","admin-dashboard","visit-history","care-plan","emergency"];
+      const valid: Screen[] = ["splash","otp","dashboard","visit","copilot","medication","summary","profile","family","bodymap","admin","admin-dashboard","visit-history","care-plan","emergency","today","active-visit","continucare-summary","operations","schedule"];
       return valid.includes(saved) ? saved : "splash";
     } catch {
       return "splash";
     }
   });
   const [showSOS, setShowSOS] = useState(false);
+  const [showAssistant, setShowAssistant] = useState(false);
+  const [activeClientId, setActiveClientId] = useState<string>("mary");
+  const [visitStatuses, setVisitStatuses] = useState<Record<string, string>>({
+    mary: "pending",
+    tom: "in-progress",
+    aisha: "completed",
+  });
+  const [assignedCarers, setAssignedCarers] = useState<Record<string, string>>({
+    mary: "Sarah",
+    tom: "Sarah",
+    aisha: "Sarah",
+  });
+  const [visitReturnScreen, setVisitReturnScreen] = useState<Screen>("active-visit");
 
   function nav(s: Screen) {
     setScreen(s);
     setShowSOS(false);
+    setShowAssistant(false);
     try { sessionStorage.setItem("carei_screen", s); } catch {}
   }
 
@@ -2851,7 +3593,7 @@ export default function CAREiApp() {
       case "splash":
         return <SplashScreen onNext={() => nav("otp")} />;
       case "otp":
-        return <OTPScreen onNext={() => nav("dashboard")} />;
+        return <OTPScreen onNext={() => nav("today")} />;
       case "dashboard":
         return (
           <DashboardScreen
@@ -2871,9 +3613,9 @@ export default function CAREiApp() {
             onCopilot={() => nav("copilot")}
             onMeds={() => nav("medication")}
             onSOS={() => setShowSOS(true)}
-            onBodyMap={() => nav("bodymap")}
-            onEmergency={() => nav("emergency")}
-            onCarePlan={() => nav("care-plan")}
+            onBodyMap={() => { setVisitReturnScreen("visit"); nav("bodymap"); }}
+            onEmergency={() => { setVisitReturnScreen("visit"); nav("emergency"); }}
+            onCarePlan={() => { setVisitReturnScreen("visit"); nav("care-plan"); }}
           />
         );
       case "copilot":
@@ -2887,17 +3629,68 @@ export default function CAREiApp() {
       case "family":
         return <FamilyPortalScreen onBack={() => nav("dashboard")} />;
       case "bodymap":
-        return <BodyMapScreen onBack={() => nav("visit")} />;
+        return <BodyMapScreen onBack={() => nav(visitReturnScreen)} />;
       case "visit-history":
         return <VisitHistoryScreen onBack={() => nav("dashboard")} />;
       case "care-plan":
-        return <CarePlanScreen onBack={() => nav("visit")} />;
+        return <CarePlanScreen onBack={() => nav(visitReturnScreen)} />;
       case "emergency":
-        return <EmergencyContactsScreen onBack={() => nav("visit")} />;
+        return <EmergencyContactsScreen onBack={() => nav(visitReturnScreen)} />;
       case "admin":
         return <AdminTeaserScreen onBack={() => nav("dashboard")} onOpenAdmin={() => nav("admin-dashboard")} />;
       case "admin-dashboard":
         return null;
+      case "today":
+        return (
+          <TodayCareScreen
+            visitStatuses={visitStatuses}
+            onSelectClient={(id) => { setActiveClientId(id); setVisitStatuses((s) => ({ ...s, [id]: "in-progress" })); nav("active-visit"); }}
+            onOperations={() => nav("operations")}
+            onAssistant={() => setShowAssistant(true)}
+            onSOS={() => setShowSOS(true)}
+            onProfile={() => nav("profile")}
+          />
+        );
+      case "active-visit": {
+        const activeClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
+        return (
+          <ActiveVisitScreen
+            client={activeClient}
+            onComplete={() => nav("continucare-summary")}
+            onBack={() => nav("today")}
+            onSOS={() => setShowSOS(true)}
+            onAssistant={() => setShowAssistant(true)}
+            onBodyMap={() => { setVisitReturnScreen("active-visit"); nav("bodymap"); }}
+            onCarePlan={() => { setVisitReturnScreen("active-visit"); nav("care-plan"); }}
+            onEmergency={() => { setVisitReturnScreen("active-visit"); nav("emergency"); }}
+          />
+        );
+      }
+      case "continucare-summary": {
+        const summaryClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
+        return (
+          <ContinuCareSummaryScreen
+            client={summaryClient}
+            onDone={() => { setVisitStatuses((s) => ({ ...s, [summaryClient.id]: "completed" })); nav("today"); }}
+          />
+        );
+      }
+      case "operations":
+        return (
+          <OperationsScreen
+            visitStatuses={visitStatuses}
+            onSchedule={() => nav("schedule")}
+            onBack={() => nav("today")}
+          />
+        );
+      case "schedule":
+        return (
+          <ScheduleScreen
+            assignedCarers={assignedCarers}
+            onAssign={(id, carer) => setAssignedCarers((c) => ({ ...c, [id]: carer }))}
+            onBack={() => nav("operations")}
+          />
+        );
       default:
         return null;
     }
@@ -2964,6 +3757,12 @@ export default function CAREiApp() {
             <div style={{ width: "100%", height: "100%", position: "relative" }}>
               {renderScreen()}
               {showSOS && <SOSOverlay onDismiss={() => setShowSOS(false)} />}
+              {showAssistant && (
+                <CAREiAssistantModal
+                  onClose={() => setShowAssistant(false)}
+                  clientName={SCHEDULE_CLIENTS.find((c) => c.id === activeClientId)?.name}
+                />
+              )}
             </div>
           </div>
         </div>

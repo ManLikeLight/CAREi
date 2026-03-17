@@ -38,25 +38,44 @@ artifacts-monorepo/
 
 Mobile-first React prototype for UK domiciliary care platform targeting CQC-regulated home care agencies.
 
-### Screens (15 total)
+### Screens (20 total)
+
+**New flow (default after login):** Today's Care → Active Visit → ContinuCare Summary
 
 | Screen | Key | Notes |
 |---|---|---|
 | Splash | `splash` | Brand entry |
-| OTP Login | `otp` | Any 6-digit code |
-| Dashboard | `dashboard` | Quick-action strip: Family, History, Admin |
-| Live Visit | `visit` | Timer, lone worker, tasks, body map, care plan, emergency contacts, signature capture |
-| Body Map | `bodymap` | SVG body outline, tap to mark pressure sores/bruising/marks |
+| OTP Login | `otp` | Logs into **Today's Care** (new default) |
+| **Today's Care** | `today` | Visit schedule with status chips, CAREi Assistant FAB, SOS |
+| **Active Visit** | `active-visit` | Lone worker banner, tabs (Care Notes / Medications / Info), medication blocker on Complete Visit |
+| **ContinuCare Summary** | `continucare-summary` | AI visit handover; marks visit completed, returns to Today's Care |
+| **Operations** | `operations` | Compliance alerts, visit status overview, → Schedule |
+| **Schedule** | `schedule` | Morning/Afternoon/Evening slots with carer assignment |
+| Dashboard (legacy) | `dashboard` | Old quick-action strip |
+| Live Visit (legacy) | `visit` | Old timer + lone worker screen |
+| Body Map | `bodymap` | SVG body outline — back navigates to caller (active-visit or visit) |
 | AI Copilot | `copilot` | Anthropic claude-sonnet-4-6 with offline fallback |
 | Medication | `medication` | Per-med confirm/defer with allergy banner |
-| Summary | `summary` | Editable AI-generated handover + read receipt flow |
+| Summary (legacy) | `summary` | Old AI-generated handover |
 | Family Portal | `family` | Live visit timeline + agency contact buttons |
 | Visit History | `visit-history` | Last 30 days of visits |
-| Care Plan | `care-plan` | Objectives, preferences, risks, review dates |
-| Emergency Contacts | `emergency` | Next of kin, GP, agency, 999/111 |
+| Care Plan | `care-plan` | Objectives, preferences, risks — back navigates to caller |
+| Emergency Contacts | `emergency` | Next of kin, GP, agency, 999/111 — back navigates to caller |
 | Profile | `profile` | Carer profile + SOS overlay |
 | Admin Teaser | `admin` | Manager metrics + carer strip + CQC meters (in phone frame) |
 | Admin Dashboard | `admin-dashboard` | **Full-page desktop view** — Carer Overview, Client Roster, CQC Audit Trail, Agency Alerts |
+
+### Schedule Clients
+- **Mary Johnson** (82, Dementia) — Morning
+- **Tom Adams** (75, Post Stroke) — Afternoon
+- **Aisha Khan** (69, Diabetes) — Evening
+
+### State added
+- `visitStatuses` — `{mary, tom, aisha}` → `"pending" | "in-progress" | "completed"`
+- `activeClientId` — which SCHEDULE_CLIENTS entry is being visited
+- `assignedCarers` — carer name per client id
+- `showAssistant` — controls CAREiAssistantModal slide-up overlay
+- `visitReturnScreen` — tracks whether bodymap/care-plan/emergency should return to `"visit"` or `"active-visit"`
 
 ### Key architectural notes
 - `AdminDashboard.tsx` is a separate file rendered outside the phone frame

@@ -22,7 +22,8 @@ type Screen =
   | "active-visit"
   | "continucare-summary"
   | "operations"
-  | "schedule";
+  | "schedule"
+  | "rota";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -250,6 +251,7 @@ function NavPills({
     { key: "continucare-summary", label: "Summary" },
     { key: "operations", label: "Operations" },
     { key: "schedule", label: "Schedule" },
+    { key: "rota", label: "My Rota" },
     { key: "dashboard", label: "Dashboard (old)" },
     { key: "visit", label: "Live Visit (old)" },
     { key: "bodymap", label: "Body Map" },
@@ -2887,12 +2889,264 @@ function AdminTeaserScreen({ onBack, onOpenAdmin }: { onBack: () => void; onOpen
   );
 }
 
+// ─── Rota Screen ──────────────────────────────────────────────────────────────
+
+const WEEK_SHIFTS: { day: string; date: string; shifts: { time: string; client: string; type: string }[] }[] = [
+  { day: "Mon", date: "7 Apr", shifts: [{ time: "09:00–10:00", client: "Mary Johnson", type: "Morning" }, { time: "10:30–11:00", client: "Tom Adams", type: "Morning" }] },
+  { day: "Tue", date: "8 Apr", shifts: [{ time: "12:00–13:00", client: "Aisha Khan", type: "Afternoon" }] },
+  { day: "Wed", date: "9 Apr", shifts: [{ time: "09:00–10:00", client: "Mary Johnson", type: "Morning" }, { time: "10:30–11:00", client: "Tom Adams", type: "Morning" }, { time: "12:00–13:00", client: "Aisha Khan", type: "Afternoon" }] },
+  { day: "Thu", date: "10 Apr", shifts: [{ time: "09:00–10:00", client: "Mary Johnson", type: "Morning" }] },
+  { day: "Fri", date: "11 Apr", shifts: [{ time: "10:30–11:00", client: "Tom Adams", type: "Morning" }, { time: "12:00–13:00", client: "Aisha Khan", type: "Afternoon" }] },
+  { day: "Sat", date: "12 Apr", shifts: [] },
+  { day: "Sun", date: "13 Apr", shifts: [] },
+];
+
+const MONTH_WEEKS = [
+  { label: "Week 1 (7–13 Apr)", days: [2, 3, 3, 1, 2, 0, 0] },
+  { label: "Week 2 (14–20 Apr)", days: [2, 1, 3, 2, 2, 0, 0] },
+  { label: "Week 3 (21–27 Apr)", days: [3, 2, 3, 1, 2, 0, 0] },
+  { label: "Week 4 (28 Apr–4 May)", days: [2, 1, 3, 2, 1, 0, 0] },
+];
+
+const SWAP_CARERS = ["Alice Osei", "James Kwame", "Emma Brobbey", "Priya Nair"];
+
+function RotaScreen({ onBack }: { onBack: () => void }) {
+  const [view, setView] = useState<"week" | "month">("week");
+  const [swapShift, setSwapShift] = useState<{ day: string; time: string; client: string } | null>(null);
+  const [swapRequested, setSwapRequested] = useState<string | null>(null);
+  const [unavailDays, setUnavailDays] = useState<string[]>([]);
+  const [showUnavailForm, setShowUnavailForm] = useState(false);
+  const [unavailDate, setUnavailDate] = useState("");
+  const [unavailReason, setUnavailReason] = useState("Holiday");
+  const [swapSent, setSwapSent] = useState(false);
+
+  function requestSwap(carer: string) {
+    setSwapRequested(carer);
+    setSwapSent(true);
+    setTimeout(() => { setSwapShift(null); setSwapRequested(null); setSwapSent(false); }, 2000);
+  }
+
+  function flagUnavail() {
+    if (unavailDate) {
+      setUnavailDays((d) => [...d, unavailDate]);
+      setShowUnavailForm(false);
+      setUnavailDate("");
+    }
+  }
+
+  const totalShifts = WEEK_SHIFTS.reduce((sum, d) => sum + d.shifts.length, 0);
+  const totalHours = totalShifts * 1.5;
+
+  return (
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", position: "relative" }}>
+      {/* Header */}
+      <div style={{ padding: "20px 18px 12px", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+          <button onClick={onBack} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, width: 32, height: 32, color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>←</button>
+          <div>
+            <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff", lineHeight: 1.1 }}>My Rota</div>
+            <div style={{ color: COLORS.g2, fontSize: 11 }}>April 2026</div>
+          </div>
+        </div>
+        {/* Summary strip */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+          {[
+            { label: "Shifts this week", value: String(totalShifts) },
+            { label: "Hours this week", value: `${totalHours}h` },
+            { label: "Days off", value: "2" },
+          ].map((s) => (
+            <div key={s.label} style={{ background: "rgba(255,255,255,0.07)", borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
+              <div style={{ color: COLORS.teal, fontWeight: 700, fontSize: 18 }}>{s.value}</div>
+              <div style={{ color: COLORS.g2, fontSize: 9, marginTop: 2 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+        {/* Toggle */}
+        <div style={{ display: "flex", background: "rgba(255,255,255,0.07)", borderRadius: 10, padding: 3, marginTop: 12 }}>
+          {(["week", "month"] as const).map((v) => (
+            <button key={v} onClick={() => setView(v)} style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: "none", background: view === v ? COLORS.teal : "transparent", color: view === v ? COLORS.darkNavy : COLORS.g2, fontWeight: 700, fontSize: 12, cursor: "pointer", transition: "all 0.2s", fontFamily: "DM Sans, sans-serif" }}>
+              {v === "week" ? "This Week" : "This Month"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="phone-scroll" style={{ flex: 1, padding: "0 14px 120px", display: "flex", flexDirection: "column", gap: 8 }}>
+        {view === "week" ? (
+          <>
+            {WEEK_SHIFTS.map((day) => {
+              const isToday = day.day === "Wed";
+              const isUnavail = unavailDays.includes(day.date);
+              return (
+                <div key={day.day} style={{ borderRadius: 14, overflow: "hidden", border: isToday ? `1px solid rgba(79,209,197,0.4)` : "1px solid rgba(255,255,255,0.06)", background: isToday ? "rgba(79,209,197,0.05)" : "rgba(255,255,255,0.04)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px 8px" }}>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: isToday ? COLORS.teal : "rgba(255,255,255,0.1)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                        <span style={{ color: isToday ? COLORS.darkNavy : COLORS.g2, fontSize: 9, fontWeight: 700 }}>{day.day}</span>
+                        <span style={{ color: isToday ? COLORS.darkNavy : "#fff", fontSize: 13, fontWeight: 700, lineHeight: 1 }}>{day.date.split(" ")[0]}</span>
+                      </div>
+                      <div>
+                        <div style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>{day.date}</div>
+                        <div style={{ color: COLORS.g2, fontSize: 10 }}>
+                          {isUnavail ? "🔴 Unavailable" : day.shifts.length === 0 ? "Rest day" : `${day.shifts.length} shift${day.shifts.length > 1 ? "s" : ""}`}
+                        </div>
+                      </div>
+                    </div>
+                    {isToday && <Badge color={COLORS.teal} bg="rgba(79,209,197,0.15)">Today</Badge>}
+                    {!isUnavail && day.shifts.length > 0 && (
+                      <button onClick={() => { setUnavailDate(day.date); setShowUnavailForm(true); }} style={{ fontSize: 9, padding: "3px 8px", borderRadius: 99, border: `1px solid rgba(255,90,95,0.4)`, background: "rgba(255,90,95,0.1)", color: COLORS.red, cursor: "pointer", fontFamily: "DM Sans, sans-serif", fontWeight: 600 }}>Flag</button>
+                    )}
+                  </div>
+                  {day.shifts.length > 0 && !isUnavail && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 1, padding: "0 14px 10px" }}>
+                      {day.shifts.map((shift, i) => (
+                        <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: "rgba(255,255,255,0.05)", borderRadius: 8 }}>
+                          <div>
+                            <div style={{ color: "#fff", fontSize: 12, fontWeight: 500 }}>{shift.client}</div>
+                            <div style={{ color: COLORS.g2, fontSize: 10 }}>{shift.time} · {shift.type}</div>
+                          </div>
+                          <button onClick={() => setSwapShift({ day: day.day, time: shift.time, client: shift.client })} style={{ fontSize: 9, padding: "3px 8px", borderRadius: 99, border: `1px solid rgba(79,209,197,0.4)`, background: "rgba(79,209,197,0.1)", color: COLORS.teal, cursor: "pointer", fontFamily: "DM Sans, sans-serif", fontWeight: 600 }}>Swap</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </>
+        ) : (
+          <>
+            {MONTH_WEEKS.map((week) => (
+              <div key={week.label} style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "12px 14px" }}>
+                <div style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, marginBottom: 10 }}>{week.label}</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4 }}>
+                  {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
+                    <div key={i} style={{ textAlign: "center" }}>
+                      <div style={{ color: COLORS.g2, fontSize: 9, marginBottom: 4 }}>{d}</div>
+                      <div style={{ width: 30, height: 30, borderRadius: 8, background: week.days[i] > 0 ? "rgba(79,209,197,0.15)" : "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto", border: week.days[i] > 0 ? "1px solid rgba(79,209,197,0.3)" : "1px solid rgba(255,255,255,0.06)" }}>
+                        {week.days[i] > 0 ? (
+                          <span style={{ color: COLORS.teal, fontSize: 12, fontWeight: 700 }}>{week.days[i]}</span>
+                        ) : (
+                          <span style={{ color: COLORS.g2, fontSize: 9 }}>–</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "12px 14px" }}>
+              <div style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, marginBottom: 8 }}>Monthly Summary</div>
+              {[{ label: "Total shifts", value: "42" }, { label: "Total hours", value: "63h" }, { label: "Avg per day", value: "2.1" }].map((s) => (
+                <div key={s.label} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                  <span style={{ color: COLORS.g2, fontSize: 12 }}>{s.label}</span>
+                  <span style={{ color: "#fff", fontSize: 12, fontWeight: 600 }}>{s.value}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Flagged unavailability */}
+        {unavailDays.length > 0 && (
+          <div style={{ background: "rgba(255,90,95,0.08)", borderRadius: 14, padding: "12px 14px", border: "1px solid rgba(255,90,95,0.2)" }}>
+            <div style={{ color: COLORS.red, fontSize: 12, fontWeight: 700, marginBottom: 8 }}>Flagged Unavailability</div>
+            {unavailDays.map((d) => (
+              <div key={d} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <span style={{ color: COLORS.g1, fontSize: 12 }}>{d}</span>
+                <button onClick={() => setUnavailDays((ds) => ds.filter((x) => x !== d))} style={{ fontSize: 9, padding: "2px 8px", borderRadius: 99, border: "none", background: "rgba(255,90,95,0.2)", color: COLORS.red, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Remove</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Flag Unavailability bottom button */}
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "12px 14px 20px", background: "rgba(15,29,52,0.97)", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+        <button onClick={() => setShowUnavailForm(true)} style={{ width: "100%", padding: "13px 0", borderRadius: 12, border: `1px solid rgba(255,90,95,0.4)`, background: "rgba(255,90,95,0.1)", color: COLORS.red, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>+ Flag Unavailability</button>
+      </div>
+
+      {/* Swap Request Modal */}
+      {swapShift && (
+        <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", flexDirection: "column", justifyContent: "flex-end", zIndex: 50 }}>
+          <div style={{ background: COLORS.navy, borderRadius: "20px 20px 0 0", padding: 20, animation: "slideUp 0.3s ease" }}>
+            <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto 16px" }} />
+            <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 18, color: "#fff", marginBottom: 4 }}>Request Shift Swap</div>
+            <div style={{ color: COLORS.g2, fontSize: 12, marginBottom: 16 }}>{swapShift.day} · {swapShift.time} · {swapShift.client}</div>
+            {swapSent ? (
+              <div style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 12, padding: 16, textAlign: "center" }}>
+                <div style={{ fontSize: 24, marginBottom: 6 }}>✓</div>
+                <div style={{ color: COLORS.green, fontWeight: 700, fontSize: 14 }}>Swap request sent to {swapRequested}</div>
+                <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 4 }}>Awaiting confirmation from supervisor</div>
+              </div>
+            ) : (
+              <>
+                <div style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, marginBottom: 10 }}>Select a carer to request swap with:</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {SWAP_CARERS.map((carer) => (
+                    <button key={carer} onClick={() => requestSwap(carer)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 12, border: "1px solid rgba(79,209,197,0.25)", background: "rgba(79,209,197,0.07)", cursor: "pointer" }}>
+                      <div style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.darkNavy, fontWeight: 700, fontSize: 12, flexShrink: 0 }}>
+                        {carer.split(" ").map((n) => n[0]).join("")}
+                      </div>
+                      <span style={{ color: "#fff", fontWeight: 500, fontSize: 13, fontFamily: "DM Sans, sans-serif" }}>{carer}</span>
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => setSwapShift(null)} style={{ marginTop: 14, width: "100%", padding: "11px 0", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: COLORS.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Cancel</button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Flag Unavailability Modal */}
+      {showUnavailForm && (
+        <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", flexDirection: "column", justifyContent: "flex-end", zIndex: 50 }}>
+          <div style={{ background: COLORS.navy, borderRadius: "20px 20px 0 0", padding: 20, animation: "slideUp 0.3s ease" }}>
+            <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto 16px" }} />
+            <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 18, color: "#fff", marginBottom: 16 }}>Flag Unavailability</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 6 }}>Date</label>
+                <input
+                  type="date"
+                  value={unavailDate}
+                  onChange={(e) => setUnavailDate(e.target.value)}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.07)", color: "#fff", fontSize: 13, fontFamily: "DM Sans, sans-serif", boxSizing: "border-box" }}
+                />
+              </div>
+              <div>
+                <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 6 }}>Reason</label>
+                <select
+                  value={unavailReason}
+                  onChange={(e) => setUnavailReason(e.target.value)}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.15)", background: COLORS.navy, color: "#fff", fontSize: 13, fontFamily: "DM Sans, sans-serif", boxSizing: "border-box" }}
+                >
+                  {["Holiday", "Sick Leave", "Personal", "Medical Appointment", "Other"].map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+              <button onClick={() => setShowUnavailForm(false)} style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: COLORS.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Cancel</button>
+              <button onClick={flagUnavail} style={{ flex: 2, padding: "12px 0", borderRadius: 12, border: "none", background: COLORS.red, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Flag as Unavailable</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── New Screens ───────────────────────────────────────────────────────────────
 
 function TodayCareScreen({
   visitStatuses,
   onSelectClient,
   onOperations,
+  onRota,
   onAssistant,
   onSOS,
   onProfile,
@@ -2900,6 +3154,7 @@ function TodayCareScreen({
   visitStatuses: Record<string, string>;
   onSelectClient: (id: string) => void;
   onOperations: () => void;
+  onRota: () => void;
   onAssistant: () => void;
   onSOS: () => void;
   onProfile: () => void;
@@ -2987,8 +3242,8 @@ function TodayCareScreen({
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 78, background: "rgba(15,29,52,0.97)", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "space-around", padding: "0 8px" }}>
         {[
           { icon: "🏠", label: "Home", action: undefined as undefined | (() => void) },
-          { icon: "📅", label: "Schedule", action: onOperations },
-          { icon: "📋", label: "Reports", action: undefined },
+          { icon: "📅", label: "My Rota", action: onRota },
+          { icon: "⚙️", label: "Operations", action: onOperations },
           { icon: "👤", label: "Profile", action: onProfile },
         ].map((n) => (
           <div key={n.label} onClick={n.action} style={{ display: "flex", flexDirection: "column", alignItems: "center", cursor: n.action ? "pointer" : "default", gap: 2, opacity: n.label === "Home" ? 1 : 0.5 }}>
@@ -3560,7 +3815,7 @@ export default function CAREiApp() {
   const [screen, setScreen] = useState<Screen>(() => {
     try {
       const saved = sessionStorage.getItem("carei_screen") as Screen;
-      const valid: Screen[] = ["splash","otp","dashboard","visit","copilot","medication","summary","profile","family","bodymap","admin","admin-dashboard","visit-history","care-plan","emergency","today","active-visit","continucare-summary","operations","schedule"];
+      const valid: Screen[] = ["splash","otp","dashboard","visit","copilot","medication","summary","profile","family","bodymap","admin","admin-dashboard","visit-history","care-plan","emergency","today","active-visit","continucare-summary","operations","schedule","rota"];
       return valid.includes(saved) ? saved : "splash";
     } catch {
       return "splash";
@@ -3570,9 +3825,9 @@ export default function CAREiApp() {
   const [showAssistant, setShowAssistant] = useState(false);
   const [activeClientId, setActiveClientId] = useState<string>("mary");
   const [visitStatuses, setVisitStatuses] = useState<Record<string, string>>({
-    mary: "pending",
+    mary: "completed",
     tom: "in-progress",
-    aisha: "completed",
+    aisha: "pending",
   });
   const [assignedCarers, setAssignedCarers] = useState<Record<string, string>>({
     mary: "Sarah",
@@ -3646,6 +3901,7 @@ export default function CAREiApp() {
             visitStatuses={visitStatuses}
             onSelectClient={(id) => { setActiveClientId(id); setVisitStatuses((s) => ({ ...s, [id]: "in-progress" })); nav("active-visit"); }}
             onOperations={() => nav("operations")}
+            onRota={() => nav("rota")}
             onAssistant={() => setShowAssistant(true)}
             onSOS={() => setShowSOS(true)}
             onProfile={() => nav("profile")}
@@ -3691,6 +3947,8 @@ export default function CAREiApp() {
             onBack={() => nav("operations")}
           />
         );
+      case "rota":
+        return <RotaScreen onBack={() => nav("today")} />;
       default:
         return null;
     }

@@ -23,7 +23,8 @@ type Screen =
   | "continucare-summary"
   | "operations"
   | "schedule"
-  | "rota";
+  | "rota"
+  | "family-summary";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -259,6 +260,7 @@ function NavPills({
     { key: "medication", label: "Meds" },
     { key: "summary", label: "Summary (old)" },
     { key: "family", label: "Family" },
+    { key: "family-summary", label: "Family Summary" },
     { key: "visit-history", label: "History" },
     { key: "care-plan", label: "Care Plan" },
     { key: "emergency", label: "Emergency" },
@@ -2505,7 +2507,176 @@ function SOSOverlay({ onDismiss }: { onDismiss: () => void }) {
 
 // ─── Family Portal Screen ─────────────────────────────────────────────────────
 
-function FamilyPortalScreen({ onBack }: { onBack: () => void }) {
+function FamilySummaryScreen({ onBack }: { onBack: () => void }) {
+  const [messageSent, setMessageSent] = useState(false);
+  const [showMessage, setShowMessage] = useState(false);
+  const [messageText, setMessageText] = useState("");
+
+  const tasks = [
+    { icon: "🛁", label: "Personal care", detail: "Washing, dressing, oral hygiene", done: true },
+    { icon: "💊", label: "Morning medications given", detail: "Aspirin 75mg · Donepezil 10mg", done: true },
+    { icon: "🍵", label: "Breakfast", detail: "Porridge with honey and a cup of tea — good appetite", done: true },
+    { icon: "🚶", label: "Mobility support", detail: "Short walk to the living room with frame, no difficulty", done: true },
+    { icon: "🩺", label: "Health check", detail: "Blood pressure 138/84 mmHg — within normal range", done: true },
+    { icon: "🧩", label: "Activity", detail: "Enjoyed a short puzzle — 15 minutes, engaged well", done: true },
+  ];
+
+  const meds = [
+    { name: "Aspirin", dose: "75mg", time: "09:14", status: "given" },
+    { name: "Donepezil", dose: "10mg", time: "09:16", status: "given" },
+  ];
+
+  return (
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", position: "relative" }}>
+      {/* Header */}
+      <div style={{ padding: "18px 18px 0", flexShrink: 0 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0, marginBottom: 12 }}>‹</button>
+        {/* Visit complete banner */}
+        <div style={{ background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 16, padding: "14px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(34,197,94,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>✓</div>
+          <div>
+            <div style={{ color: COLORS.green, fontWeight: 700, fontSize: 15 }}>Today's visit is complete</div>
+            <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>9 April 2026 · 09:00 – 10:05</div>
+          </div>
+        </div>
+        {/* Carer & client */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+          <div>
+            <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>Mary's Day Summary</div>
+            <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>Carer: Sarah Johnson · 1hr 5min visit</div>
+          </div>
+          <div style={{ width: 42, height: 42, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.darkNavy, fontWeight: 700, fontSize: 14 }}>MJ</div>
+        </div>
+      </div>
+
+      <div className="phone-scroll" style={{ flex: 1, padding: "12px 18px 120px", display: "flex", flexDirection: "column", gap: 14 }}>
+
+        {/* What happened */}
+        <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, overflow: "hidden" }}>
+          <div style={{ padding: "12px 14px 8px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 13 }}>What happened today</div>
+          </div>
+          <div style={{ padding: "4px 0" }}>
+            {tasks.map((t, i) => (
+              <div key={i} style={{ display: "flex", gap: 12, padding: "10px 14px", alignItems: "flex-start", borderBottom: i < tasks.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+                <span style={{ fontSize: 18, lineHeight: 1.2, flexShrink: 0 }}>{t.icon}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: "#fff", fontSize: 13, fontWeight: 500 }}>{t.label}</div>
+                  <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 2 }}>{t.detail}</div>
+                </div>
+                <div style={{ width: 20, height: 20, borderRadius: "50%", background: "rgba(34,197,94,0.2)", border: "1px solid rgba(34,197,94,0.4)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
+                  <span style={{ color: COLORS.green, fontSize: 10, fontWeight: 900 }}>✓</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Medications */}
+        <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, overflow: "hidden" }}>
+          <div style={{ padding: "12px 14px 8px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 13 }}>Medications</div>
+            <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 2 }}>All medications given as prescribed</div>
+          </div>
+          {meds.map((m, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderBottom: i < meds.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+              <div>
+                <div style={{ color: "#fff", fontSize: 13, fontWeight: 500 }}>{m.name} <span style={{ color: COLORS.g2, fontWeight: 400 }}>{m.dose}</span></div>
+                <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 1 }}>Given at {m.time}</div>
+              </div>
+              <Badge color={COLORS.green} bg="rgba(34,197,94,0.12)">✓ Given</Badge>
+            </div>
+          ))}
+        </div>
+
+        {/* Carer's note */}
+        <div style={{ background: "rgba(79,209,197,0.07)", border: "1px solid rgba(79,209,197,0.2)", borderRadius: 14, padding: "14px 16px" }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.darkNavy, fontWeight: 700, fontSize: 11, flexShrink: 0 }}>SJ</div>
+            <div>
+              <div style={{ color: "#fff", fontWeight: 600, fontSize: 13 }}>Sarah's note</div>
+              <div style={{ color: COLORS.g2, fontSize: 11 }}>Written at 10:07</div>
+            </div>
+          </div>
+          <div style={{ color: COLORS.g0, fontSize: 13, lineHeight: 1.6, fontStyle: "italic" }}>
+            "Mary was in really good spirits this morning — she was chatting about her garden and seemed very alert. She had a healthy appetite and finished all her breakfast. She moved well with her frame and did a lovely little puzzle afterwards. A good visit overall."
+          </div>
+        </div>
+
+        {/* Concerns */}
+        <div style={{ background: "rgba(34,197,94,0.07)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 14, padding: "14px 16px", display: "flex", gap: 12, alignItems: "center" }}>
+          <span style={{ fontSize: 22, flexShrink: 0 }}>🟢</span>
+          <div>
+            <div style={{ color: COLORS.green, fontWeight: 700, fontSize: 13 }}>No concerns raised</div>
+            <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>Sarah reported nothing out of the ordinary today</div>
+          </div>
+        </div>
+
+        {/* Next visit */}
+        <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 16px" }}>
+          <div style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, marginBottom: 8 }}>NEXT VISIT</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ color: "#fff", fontSize: 14, fontWeight: 600 }}>Tomorrow morning</div>
+              <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>09:00 – 10:00 · Carer TBC</div>
+            </div>
+            <Badge color={COLORS.amber} bg="rgba(246,183,60,0.12)">Scheduled</Badge>
+          </div>
+        </div>
+
+        {/* CQC note */}
+        <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "8px 12px", background: "rgba(255,255,255,0.04)", borderRadius: 10 }}>
+          <span style={{ fontSize: 14 }}>🔒</span>
+          <span style={{ color: COLORS.g3, fontSize: 11 }}>This summary is securely stored in compliance with CQC and GDPR requirements</span>
+        </div>
+      </div>
+
+      {/* Footer actions */}
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "12px 18px 24px", background: "rgba(15,29,52,0.97)", borderTop: "1px solid rgba(255,255,255,0.07)", display: "flex", gap: 10 }}>
+        <button onClick={() => setShowMessage(true)} style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "1px solid rgba(79,209,197,0.3)", background: "rgba(79,209,197,0.1)", color: COLORS.teal, fontFamily: "DM Sans, sans-serif", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+          💬 Message Agency
+        </button>
+        <button style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+          📄 Download PDF
+        </button>
+      </div>
+
+      {/* Message modal */}
+      {showMessage && (
+        <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", flexDirection: "column", justifyContent: "flex-end", zIndex: 50 }}>
+          <div style={{ background: COLORS.navy, borderRadius: "20px 20px 0 0", padding: 20, animation: "slideUp 0.3s ease" }}>
+            <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto 16px" }} />
+            <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 18, color: "#fff", marginBottom: 14 }}>Message Adjoy Healthcare</div>
+            {messageSent ? (
+              <div style={{ background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 12, padding: 20, textAlign: "center" }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>✓</div>
+                <div style={{ color: COLORS.green, fontWeight: 700, fontSize: 14 }}>Message sent</div>
+                <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 4 }}>The team will respond within 2 hours</div>
+                <button onClick={() => { setShowMessage(false); setMessageSent(false); setMessageText(""); }} style={{ marginTop: 14, padding: "10px 24px", borderRadius: 10, border: "none", background: "rgba(255,255,255,0.1)", color: COLORS.g1, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Close</button>
+              </div>
+            ) : (
+              <>
+                <textarea
+                  value={messageText}
+                  onChange={(e) => setMessageText(e.target.value)}
+                  placeholder="Write your message to the Adjoy care team..."
+                  rows={4}
+                  style={{ width: "100%", padding: "12px 14px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.07)", color: "#fff", fontSize: 13, fontFamily: "DM Sans, sans-serif", resize: "none", boxSizing: "border-box", outline: "none" }}
+                />
+                <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+                  <button onClick={() => setShowMessage(false)} style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: COLORS.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Cancel</button>
+                  <button onClick={() => { if (messageText.trim()) setMessageSent(true); }} style={{ flex: 2, padding: "12px 0", borderRadius: 12, border: "none", background: messageText.trim() ? `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})` : "rgba(255,255,255,0.1)", color: messageText.trim() ? COLORS.darkNavy : COLORS.g3, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Send Message</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FamilyPortalScreen({ onBack, onSummary }: { onBack: () => void; onSummary: () => void }) {
   const events = [
     { time: "10:02", icon: "🚗", text: "Sarah arrived at Grace's home", done: true },
     { time: "10:05", icon: "🛁", text: "Personal care commenced", done: true },
@@ -2547,13 +2718,18 @@ function FamilyPortalScreen({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "14px 18px 24px", background: "rgba(15,29,52,0.97)", borderTop: "1px solid rgba(255,255,255,0.07)", display: "flex", gap: 10 }}>
-        <button style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "1px solid rgba(79,209,197,0.3)", background: "rgba(79,209,197,0.1)", color: COLORS.teal, fontFamily: "DM Sans, sans-serif", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-          💬 Message Agency
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "12px 18px 24px", background: "rgba(15,29,52,0.97)", borderTop: "1px solid rgba(255,255,255,0.07)", display: "flex", flexDirection: "column", gap: 8 }}>
+        <button onClick={onSummary} style={{ width: "100%", padding: "13px 0", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+          📋 View Today's Full Summary
         </button>
-        <button style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-          📞 Call Adjoy
-        </button>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button style={{ flex: 1, padding: "11px 0", borderRadius: 12, border: "1px solid rgba(79,209,197,0.3)", background: "rgba(79,209,197,0.1)", color: COLORS.teal, fontFamily: "DM Sans, sans-serif", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+            💬 Message Agency
+          </button>
+          <button style={{ flex: 1, padding: "11px 0", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: COLORS.g2, fontFamily: "DM Sans, sans-serif", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+            📞 Call Adjoy
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -3815,7 +3991,7 @@ export default function CAREiApp() {
   const [screen, setScreen] = useState<Screen>(() => {
     try {
       const saved = sessionStorage.getItem("carei_screen") as Screen;
-      const valid: Screen[] = ["splash","otp","dashboard","visit","copilot","medication","summary","profile","family","bodymap","admin","admin-dashboard","visit-history","care-plan","emergency","today","active-visit","continucare-summary","operations","schedule","rota"];
+      const valid: Screen[] = ["splash","otp","dashboard","visit","copilot","medication","summary","profile","family","bodymap","admin","admin-dashboard","visit-history","care-plan","emergency","today","active-visit","continucare-summary","operations","schedule","rota","family-summary"];
       return valid.includes(saved) ? saved : "splash";
     } catch {
       return "splash";
@@ -3882,7 +4058,9 @@ export default function CAREiApp() {
       case "profile":
         return <ProfileScreen onSignOut={() => nav("splash")} />;
       case "family":
-        return <FamilyPortalScreen onBack={() => nav("dashboard")} />;
+        return <FamilyPortalScreen onBack={() => nav("dashboard")} onSummary={() => nav("family-summary")} />;
+      case "family-summary":
+        return <FamilySummaryScreen onBack={() => nav("family")} />;
       case "bodymap":
         return <BodyMapScreen onBack={() => nav(visitReturnScreen)} />;
       case "visit-history":

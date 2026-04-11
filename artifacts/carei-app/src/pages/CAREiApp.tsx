@@ -24,7 +24,10 @@ type Screen =
   | "operations"
   | "schedule"
   | "rota"
-  | "family-summary";
+  | "family-summary"
+  | "manager-approvals"
+  | "incident-report"
+  | "handover";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -261,6 +264,9 @@ function NavPills({
     { key: "summary", label: "Summary (old)" },
     { key: "family", label: "Family" },
     { key: "family-summary", label: "Family Summary" },
+    { key: "manager-approvals", label: "Manager Approvals" },
+    { key: "incident-report", label: "Incident Report" },
+    { key: "handover", label: "Handover" },
     { key: "visit-history", label: "History" },
     { key: "care-plan", label: "Care Plan" },
     { key: "emergency", label: "Emergency" },
@@ -2507,10 +2513,35 @@ function SOSOverlay({ onDismiss }: { onDismiss: () => void }) {
 
 // ─── Family Portal Screen ─────────────────────────────────────────────────────
 
-function FamilySummaryScreen({ onBack }: { onBack: () => void }) {
+function FamilySummaryScreen({ onBack, approvalStatus, onRead }: { onBack: () => void; approvalStatus: "pending" | "approved"; onRead: () => void }) {
   const [messageSent, setMessageSent] = useState(false);
   const [showMessage, setShowMessage] = useState(false);
   const [messageText, setMessageText] = useState("");
+
+  useEffect(() => {
+    if (approvalStatus === "approved") onRead();
+  }, [approvalStatus]);
+
+  if (approvalStatus === "pending") {
+    return (
+      <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, gap: 20 }}>
+        <button onClick={onBack} style={{ position: "absolute", top: 18, left: 18, background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0 }}>‹</button>
+        <div style={{ width: 72, height: 72, borderRadius: "50%", background: "rgba(246,183,60,0.15)", border: "2px solid rgba(246,183,60,0.4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>⏳</div>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 20, marginBottom: 8 }}>Summary Pending Review</div>
+          <div style={{ color: COLORS.g2, fontSize: 13, lineHeight: 1.6 }}>Today's visit summary is being reviewed by the care manager before being made available to you. You'll receive a notification once it's ready.</div>
+        </div>
+        <div style={{ background: "rgba(246,183,60,0.08)", border: "1px solid rgba(246,183,60,0.25)", borderRadius: 14, padding: "14px 18px", width: "100%", textAlign: "center" }}>
+          <div style={{ color: COLORS.amber, fontWeight: 600, fontSize: 13 }}>Visit completed at 10:05</div>
+          <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 4 }}>Sarah Johnson · 9 April 2026</div>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <span style={{ fontSize: 14 }}>🔒</span>
+          <span style={{ color: COLORS.g3, fontSize: 11 }}>GDPR & CQC compliant — managed by Adjoy Healthcare</span>
+        </div>
+      </div>
+    );
+  }
 
   const tasks = [
     { icon: "🛁", label: "Personal care", detail: "Washing, dressing, oral hygiene", done: true },
@@ -3065,6 +3096,338 @@ function AdminTeaserScreen({ onBack, onOpenAdmin }: { onBack: () => void; onOpen
   );
 }
 
+// ─── Manager Approvals Screen ─────────────────────────────────────────────────
+
+function ManagerApprovalsScreen({
+  approvalStatus,
+  onApprove,
+  summaryReadAt,
+  onBack,
+}: {
+  approvalStatus: "pending" | "approved";
+  onApprove: () => void;
+  summaryReadAt: string | null;
+  onBack: () => void;
+}) {
+  const [approvedAt, setApprovedAt] = useState<string | null>(null);
+
+  function handleApprove() {
+    setApprovedAt(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }));
+    onApprove();
+  }
+
+  const isApproved = approvalStatus === "approved";
+
+  return (
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column" }}>
+      <div style={{ padding: "18px 18px 12px", flexShrink: 0 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0, marginBottom: 12 }}>‹</button>
+        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>Manager Approvals</div>
+        <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>Review and release family summaries</div>
+      </div>
+
+      <div className="phone-scroll" style={{ flex: 1, padding: "0 18px 30px", display: "flex", flexDirection: "column", gap: 14 }}>
+
+        {/* Status banner */}
+        <div style={{ background: isApproved ? "rgba(34,197,94,0.08)" : "rgba(246,183,60,0.08)", border: `1px solid ${isApproved ? "rgba(34,197,94,0.3)" : "rgba(246,183,60,0.3)"}`, borderRadius: 14, padding: "12px 16px", display: "flex", gap: 12, alignItems: "center" }}>
+          <span style={{ fontSize: 22, flexShrink: 0 }}>{isApproved ? "✅" : "⏳"}</span>
+          <div>
+            <div style={{ color: isApproved ? COLORS.green : COLORS.amber, fontWeight: 700, fontSize: 13 }}>
+              {isApproved ? "Summary released to family" : "Awaiting your approval"}
+            </div>
+            <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 2 }}>
+              {isApproved ? `Approved${approvedAt ? ` at ${approvedAt}` : ""}` : "Review the summary below before releasing to family"}
+            </div>
+          </div>
+        </div>
+
+        {/* Summary preview */}
+        <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, overflow: "hidden" }}>
+          <div style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 13 }}>Mary Johnson — 9 Apr 2026</div>
+            <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 2 }}>Carer: Sarah Johnson · Visit 09:00–10:05</div>
+          </div>
+          {[
+            { label: "Tasks completed", value: "6 / 6" },
+            { label: "Medications given", value: "2 / 2 — all as prescribed" },
+            { label: "Concerns raised", value: "None" },
+            { label: "Carer's note", value: '"Mary was in really good spirits…"' },
+          ].map((row) => (
+            <div key={row.label} style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+              <span style={{ color: COLORS.g2, fontSize: 12 }}>{row.label}</span>
+              <span style={{ color: COLORS.g1, fontSize: 12, fontWeight: 500, maxWidth: "55%", textAlign: "right" }}>{row.value}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Read receipt */}
+        <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "12px 14px" }}>
+          <div style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, marginBottom: 6 }}>READ RECEIPT</div>
+          {summaryReadAt ? (
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <span style={{ fontSize: 16 }}>👁</span>
+              <div>
+                <div style={{ color: COLORS.green, fontSize: 13, fontWeight: 600 }}>Summary viewed by family</div>
+                <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 2 }}>Opened at {summaryReadAt}</div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ color: COLORS.g3, fontSize: 12 }}>
+              {isApproved ? "Not yet opened by family" : "Awaiting approval before family can view"}
+            </div>
+          )}
+        </div>
+
+        {/* Checklist before approving */}
+        {!isApproved && (
+          <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "12px 14px" }}>
+            <div style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, marginBottom: 10 }}>APPROVAL CHECKLIST</div>
+            {[
+              "Carer's note is appropriate for family reading",
+              "No clinical concerns require a phone call first",
+              "Medication log is complete and accurate",
+              "No safeguarding issues flagged",
+            ].map((item, i) => (
+              <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 8 }}>
+                <div style={{ width: 18, height: 18, borderRadius: 4, background: "rgba(79,209,197,0.2)", border: "1px solid rgba(79,209,197,0.4)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+                  <span style={{ color: COLORS.teal, fontSize: 10 }}>✓</span>
+                </div>
+                <span style={{ color: COLORS.g1, fontSize: 12, lineHeight: 1.5 }}>{item}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Approve button */}
+        {!isApproved && (
+          <button onClick={handleApprove} style={{ width: "100%", padding: "15px 0", borderRadius: 14, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
+            ✓ Approve & Release to Family
+          </button>
+        )}
+        {isApproved && (
+          <div style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 14, padding: "14px 18px", textAlign: "center" }}>
+            <div style={{ color: COLORS.green, fontWeight: 700, fontSize: 14 }}>Released ✓</div>
+            <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 4 }}>Mary's family can now view today's summary in the Family Portal</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Incident Report Screen ────────────────────────────────────────────────────
+
+const INCIDENT_TYPES = ["Fall", "Skin integrity change", "Behavioural change", "Medication concern", "Safeguarding", "Other"];
+const INCIDENT_ACTIONS = ["Contacted supervisor", "Called 999", "Called GP", "Left written note", "No immediate action required"];
+
+function IncidentReportScreen({ onBack, onSubmit }: { onBack: () => void; onSubmit: () => void }) {
+  const [type, setType] = useState("");
+  const [severity, setSeverity] = useState<"low" | "medium" | "high" | "">("");
+  const [description, setDescription] = useState("");
+  const [action, setAction] = useState("");
+  const [notified, setNotified] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  const canSubmit = type && severity && description.trim().length > 10 && action;
+
+  if (submitted) {
+    return (
+      <div style={{ height: "100%", background: COLORS.darkNavy, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 32 }}>
+        <div style={{ width: 72, height: 72, borderRadius: "50%", background: "rgba(34,197,94,0.15)", border: "2px solid rgba(34,197,94,0.4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>✓</div>
+        <div style={{ color: "#fff", fontWeight: 700, fontSize: 20, textAlign: "center" }}>Incident Logged</div>
+        <div style={{ color: COLORS.g2, fontSize: 13, textAlign: "center", lineHeight: 1.6 }}>This report has been added to the CQC audit trail and your supervisor has been notified.</div>
+        <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: "12px 16px", width: "100%" }}>
+          <div style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, marginBottom: 6 }}>REFERENCE</div>
+          <div style={{ color: COLORS.teal, fontSize: 14, fontWeight: 700 }}>INC-{Math.floor(Math.random() * 9000 + 1000)}-2026</div>
+        </div>
+        <button onClick={onSubmit} style={{ width: "100%", padding: "14px 0", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Back to Visit</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column" }}>
+      <div style={{ padding: "18px 18px 12px", flexShrink: 0 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0, marginBottom: 10 }}>‹</button>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <span style={{ fontSize: 24 }}>⚠️</span>
+          <div>
+            <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 20, color: "#fff" }}>Report Incident</div>
+            <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 1 }}>This will be logged to the CQC audit trail</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="phone-scroll" style={{ flex: 1, padding: "0 18px 100px", display: "flex", flexDirection: "column", gap: 16 }}>
+
+        {/* Incident type */}
+        <div>
+          <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 8 }}>INCIDENT TYPE *</label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {INCIDENT_TYPES.map((t) => (
+              <button key={t} onClick={() => setType(t)} style={{ padding: "7px 12px", borderRadius: 99, border: `1px solid ${type === t ? COLORS.red : "rgba(255,255,255,0.15)"}`, background: type === t ? "rgba(255,90,95,0.15)" : "transparent", color: type === t ? COLORS.red : COLORS.g2, fontSize: 12, fontWeight: type === t ? 700 : 400, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>{t}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Severity */}
+        <div>
+          <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 8 }}>SEVERITY *</label>
+          <div style={{ display: "flex", gap: 8 }}>
+            {([["low", COLORS.green, "Low"], ["medium", COLORS.amber, "Medium"], ["high", COLORS.red, "High"]] as const).map(([val, col, lbl]) => (
+              <button key={val} onClick={() => setSeverity(val)} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1px solid ${severity === val ? col : "rgba(255,255,255,0.12)"}`, background: severity === val ? `${col}22` : "transparent", color: severity === val ? col : COLORS.g3, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>{lbl}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Description */}
+        <div>
+          <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 8 }}>DESCRIPTION * <span style={{ color: COLORS.g3, fontWeight: 400 }}>(what happened, exactly)</span></label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Describe what happened in your own words. Include time, location, and what the client was doing beforehand."
+            rows={4}
+            style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.05)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, resize: "none", outline: "none", boxSizing: "border-box" }}
+          />
+        </div>
+
+        {/* Action taken */}
+        <div>
+          <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 8 }}>IMMEDIATE ACTION TAKEN *</label>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {INCIDENT_ACTIONS.map((a) => (
+              <button key={a} onClick={() => setAction(a)} style={{ padding: "10px 14px", borderRadius: 10, border: `1px solid ${action === a ? COLORS.teal : "rgba(255,255,255,0.1)"}`, background: action === a ? "rgba(79,209,197,0.1)" : "rgba(255,255,255,0.04)", color: action === a ? COLORS.teal : COLORS.g2, textAlign: "left", fontSize: 13, fontWeight: action === a ? 600 : 400, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>{a}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Who was notified */}
+        <div>
+          <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 8 }}>WHO WAS NOTIFIED <span style={{ color: COLORS.g3, fontWeight: 400 }}>(optional)</span></label>
+          <input
+            value={notified}
+            onChange={(e) => setNotified(e.target.value)}
+            placeholder="e.g. Supervisor, next of kin, GP…"
+            style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.05)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, outline: "none", boxSizing: "border-box" }}
+          />
+        </div>
+      </div>
+
+      {/* Submit */}
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "12px 18px 24px", background: "rgba(15,29,52,0.97)", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+        <button
+          onClick={() => { if (canSubmit) setSubmitted(true); }}
+          style={{ width: "100%", padding: "14px 0", borderRadius: 12, border: "none", background: canSubmit ? COLORS.red : "rgba(255,255,255,0.08)", color: canSubmit ? "#fff" : COLORS.g3, fontFamily: "DM Sans, sans-serif", fontSize: 14, fontWeight: 700, cursor: canSubmit ? "pointer" : "not-allowed" }}
+        >
+          {canSubmit ? "Submit Incident Report" : "Complete required fields"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Handover Notes Screen ─────────────────────────────────────────────────────
+
+function HandoverScreen({ client, onSubmit }: { client: typeof SCHEDULE_CLIENTS[0]; onSubmit: () => void }) {
+  const [mood, setMood] = useState<number | null>(null);
+  const [appetite, setAppetite] = useState("");
+  const [mobility, setMobility] = useState("");
+  const [observations, setObservations] = useState("");
+  const [pendingTasks, setPendingTasks] = useState("");
+  const [concerns, setConcerns] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  const canSubmit = mood !== null && appetite && mobility;
+
+  const MOODS = ["😔", "😕", "😐", "🙂", "😊"];
+
+  if (submitted) {
+    return (
+      <div style={{ height: "100%", background: COLORS.darkNavy, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 32 }}>
+        <div style={{ fontSize: 48 }}>📋</div>
+        <div style={{ color: "#fff", fontWeight: 700, fontSize: 20, textAlign: "center" }}>Handover Saved</div>
+        <div style={{ color: COLORS.g2, fontSize: 13, textAlign: "center", lineHeight: 1.6 }}>Your notes are ready for the next carer visiting {client.name.split(" ")[0]}.</div>
+        <button onClick={onSubmit} style={{ width: "100%", padding: "14px 0", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Continue to Visit Summary →</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column" }}>
+      <div style={{ padding: "18px 18px 12px", flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 4 }}>
+          <span style={{ fontSize: 24 }}>📋</span>
+          <div>
+            <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 20, color: "#fff" }}>Handover Notes</div>
+            <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 1 }}>For the next carer visiting {client.name.split(" ")[0]}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="phone-scroll" style={{ flex: 1, padding: "0 18px 100px", display: "flex", flexDirection: "column", gap: 18 }}>
+
+        {/* Mood */}
+        <div>
+          <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 10 }}>HOW WAS {client.name.split(" ")[0].toUpperCase()}'S MOOD? *</label>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 6 }}>
+            {MOODS.map((emoji, i) => (
+              <button key={i} onClick={() => setMood(i)} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `2px solid ${mood === i ? COLORS.teal : "rgba(255,255,255,0.1)"}`, background: mood === i ? "rgba(79,209,197,0.15)" : "rgba(255,255,255,0.04)", fontSize: 22, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                <span>{emoji}</span>
+                <span style={{ color: COLORS.g3, fontSize: 9 }}>{["Very low", "Low", "Okay", "Good", "Great"][i]}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Appetite + Mobility */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div>
+            <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 8 }}>APPETITE *</label>
+            {["Good", "Fair", "Poor"].map((v) => (
+              <button key={v} onClick={() => setAppetite(v)} style={{ display: "block", width: "100%", marginBottom: 6, padding: "8px 0", borderRadius: 8, border: `1px solid ${appetite === v ? COLORS.teal : "rgba(255,255,255,0.1)"}`, background: appetite === v ? "rgba(79,209,197,0.1)" : "transparent", color: appetite === v ? COLORS.teal : COLORS.g2, fontSize: 12, fontWeight: appetite === v ? 700 : 400, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>{v}</button>
+            ))}
+          </div>
+          <div>
+            <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 8 }}>MOBILITY *</label>
+            {["Independent", "Needs support", "Limited"].map((v) => (
+              <button key={v} onClick={() => setMobility(v)} style={{ display: "block", width: "100%", marginBottom: 6, padding: "8px 0", borderRadius: 8, border: `1px solid ${mobility === v ? COLORS.teal : "rgba(255,255,255,0.1)"}`, background: mobility === v ? "rgba(79,209,197,0.1)" : "transparent", color: mobility === v ? COLORS.teal : COLORS.g2, fontSize: 12, fontWeight: mobility === v ? 700 : 400, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>{v}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Observations */}
+        <div>
+          <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 8 }}>KEY OBSERVATIONS <span style={{ color: COLORS.g3, fontWeight: 400 }}>(optional)</span></label>
+          <textarea value={observations} onChange={(e) => setObservations(e.target.value)} placeholder={`Anything the next carer should know about ${client.name.split(" ")[0]}…`} rows={3} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.05)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, resize: "none", outline: "none", boxSizing: "border-box" }} />
+        </div>
+
+        {/* Pending tasks */}
+        <div>
+          <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 8 }}>TASKS LEFT FOR NEXT CARER <span style={{ color: COLORS.g3, fontWeight: 400 }}>(optional)</span></label>
+          <textarea value={pendingTasks} onChange={(e) => setPendingTasks(e.target.value)} placeholder="e.g. Evening medication, call with daughter due at 6pm…" rows={2} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.05)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, resize: "none", outline: "none", boxSizing: "border-box" }} />
+        </div>
+
+        {/* Concerns */}
+        <div>
+          <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 8 }}>ANY CONCERNS TO FLAG? <span style={{ color: COLORS.g3, fontWeight: 400 }}>(optional)</span></label>
+          <textarea value={concerns} onChange={(e) => setConcerns(e.target.value)} placeholder="Leave blank if none. Include anything that needs supervisor attention." rows={2} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${concerns ? "rgba(246,183,60,0.35)" : "rgba(255,255,255,0.12)"}`, background: concerns ? "rgba(246,183,60,0.05)" : "rgba(255,255,255,0.05)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, resize: "none", outline: "none", boxSizing: "border-box" }} />
+        </div>
+      </div>
+
+      {/* Submit */}
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "12px 18px 24px", background: "rgba(15,29,52,0.97)", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+        <button
+          onClick={() => { if (canSubmit) setSubmitted(true); }}
+          style={{ width: "100%", padding: "14px 0", borderRadius: 12, border: "none", background: canSubmit ? `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})` : "rgba(255,255,255,0.08)", color: canSubmit ? COLORS.darkNavy : COLORS.g3, fontFamily: "DM Sans, sans-serif", fontSize: 14, fontWeight: 700, cursor: canSubmit ? "pointer" : "not-allowed" }}
+        >
+          {canSubmit ? "Save Handover & Continue →" : "Set mood, appetite and mobility first"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Rota Screen ──────────────────────────────────────────────────────────────
 
 const WEEK_SHIFTS: { day: string; date: string; shifts: { time: string; client: string; type: string }[] }[] = [
@@ -3441,6 +3804,7 @@ function ActiveVisitScreen({
   onBodyMap,
   onCarePlan,
   onEmergency,
+  onIncident,
 }: {
   client: typeof SCHEDULE_CLIENTS[0];
   onComplete: () => void;
@@ -3450,14 +3814,17 @@ function ActiveVisitScreen({
   onBodyMap: () => void;
   onCarePlan: () => void;
   onEmergency: () => void;
+  onIncident: () => void;
 }) {
   const [activeTab, setActiveTab] = useState<"tasks" | "notes" | "medication" | "history">("tasks");
   const [tasks, setTasks] = useState([false, false, false]);
   const [notes, setNotes] = useState("");
   const [isRecording, setIsRecording] = useState(false);
-  const [medStatus, setMedStatus] = useState<Record<string, "taken" | "not-taken" | undefined>>({});
-  const [medReasons, setMedReasons] = useState<Record<string, string>>({});
-  const [showReasonFor, setShowReasonFor] = useState<string | null>(null);
+  const [medStatus, setMedStatus] = useState<Record<string, "taken" | "refused" | undefined>>({});
+  const [showRefusalFor, setShowRefusalFor] = useState<string | null>(null);
+  const [refusalReason, setRefusalReason] = useState("");
+  const [refusalWhatSaid, setRefusalWhatSaid] = useState("");
+  const [refusalAction, setRefusalAction] = useState("");
   const [isLone, setIsLone] = useState(false);
   const [loneElapsed, setLoneElapsed] = useState(0);
   const [elapsed, setElapsed] = useState(0);
@@ -3604,6 +3971,13 @@ function ActiveVisitScreen({
                 <span style={{ fontSize: 18 }}>🚨</span>
                 <div style={{ color: COLORS.red, fontWeight: 600, fontSize: 12 }}>Emergency Contacts</div>
               </div>
+              <div onClick={onIncident} style={{ background: "rgba(246,183,60,0.08)", borderRadius: 12, padding: "12px 14px", cursor: "pointer", gridColumn: "span 2", display: "flex", gap: 10, alignItems: "center", border: "1px solid rgba(246,183,60,0.2)" }}>
+                <span style={{ fontSize: 18 }}>⚠️</span>
+                <div>
+                  <div style={{ color: COLORS.amber, fontWeight: 600, fontSize: 12 }}>Report Incident</div>
+                  <div style={{ color: COLORS.g3, fontSize: 10, marginTop: 1 }}>Falls, skin changes, safeguarding</div>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -3639,20 +4013,14 @@ function ActiveVisitScreen({
                   </div>
                   {medStatus[med.name] && (
                     <Badge color={medStatus[med.name] === "taken" ? COLORS.green : COLORS.amber} bg={medStatus[med.name] === "taken" ? "rgba(34,197,94,0.15)" : "rgba(246,183,60,0.15)"}>
-                      {medStatus[med.name] === "taken" ? "✓ Taken" : "⚠ Not Taken"}
+                      {medStatus[med.name] === "taken" ? "✓ Taken" : "⚠ Refused — Logged"}
                     </Badge>
                   )}
                 </div>
                 {!medStatus[med.name] && (
                   <div style={{ display: "flex", gap: 8 }}>
                     <button onClick={() => setMedStatus((s) => ({ ...s, [med.name]: "taken" }))} style={{ flex: 1, padding: "9px 0", borderRadius: 10, border: "1px solid rgba(34,197,94,0.4)", background: "rgba(34,197,94,0.1)", color: COLORS.green, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>✓ Taken</button>
-                    <button onClick={() => setShowReasonFor(med.name)} style={{ flex: 1, padding: "9px 0", borderRadius: 10, border: "1px solid rgba(246,183,60,0.4)", background: "rgba(246,183,60,0.1)", color: COLORS.amber, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>✗ Not Taken</button>
-                  </div>
-                )}
-                {showReasonFor === med.name && (
-                  <div style={{ marginTop: 10 }}>
-                    <input value={medReasons[med.name] || ""} onChange={(e) => setMedReasons((r) => ({ ...r, [med.name]: e.target.value }))} placeholder="Reason for not taking…" style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(246,183,60,0.3)", background: "rgba(255,255,255,0.05)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 12, outline: "none" }} />
-                    <button onClick={() => { setMedStatus((s) => ({ ...s, [med.name]: "not-taken" })); setShowReasonFor(null); }} style={{ marginTop: 8, width: "100%", padding: "8px 0", borderRadius: 8, border: "none", background: "rgba(246,183,60,0.2)", color: COLORS.amber, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Confirm Reason</button>
+                    <button onClick={() => { setShowRefusalFor(med.name); setRefusalReason(""); setRefusalWhatSaid(""); setRefusalAction(""); }} style={{ flex: 1, padding: "9px 0", borderRadius: 10, border: "1px solid rgba(246,183,60,0.4)", background: "rgba(246,183,60,0.1)", color: COLORS.amber, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>✗ Refused</button>
                   </div>
                 )}
               </div>
@@ -3689,6 +4057,43 @@ function ActiveVisitScreen({
           {allMedsAcknowledged ? "Complete Visit →" : `Confirm medications first (${Object.keys(medStatus).length}/${client.meds.length})`}
         </button>
       </div>
+
+      {/* Medication Refusal Modal */}
+      {showRefusalFor && (
+        <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.65)", display: "flex", flexDirection: "column", justifyContent: "flex-end", zIndex: 50 }}>
+          <div style={{ background: COLORS.navy, borderRadius: "20px 20px 0 0", padding: 20, animation: "slideUp 0.3s ease" }}>
+            <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto 16px" }} />
+            <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 18, color: "#fff", marginBottom: 4 }}>Medication Refusal Log</div>
+            <div style={{ color: COLORS.amber, fontSize: 12, marginBottom: 16 }}>{showRefusalFor} — This will be logged to the CQC audit trail</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 6 }}>REASON *</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {["Client refused", "Asleep", "Unable to swallow", "Nausea / vomiting", "Other"].map((r) => (
+                    <button key={r} onClick={() => setRefusalReason(r)} style={{ padding: "5px 10px", borderRadius: 99, border: `1px solid ${refusalReason === r ? COLORS.amber : "rgba(255,255,255,0.12)"}`, background: refusalReason === r ? "rgba(246,183,60,0.15)" : "transparent", color: refusalReason === r ? COLORS.amber : COLORS.g2, fontSize: 11, fontWeight: refusalReason === r ? 700 : 400, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>{r}</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 6 }}>WHAT DID THE CLIENT SAY? <span style={{ color: COLORS.g3, fontWeight: 400 }}>(optional)</span></label>
+                <input value={refusalWhatSaid} onChange={(e) => setRefusalWhatSaid(e.target.value)} placeholder="e.g. 'I don't want it today'…" style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.05)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+              </div>
+              <div>
+                <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 6 }}>ACTION TAKEN *</label>
+                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  {["Contacted supervisor", "Left note for next carer", "Will offer at next dose", "No action required"].map((a) => (
+                    <button key={a} onClick={() => setRefusalAction(a)} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${refusalAction === a ? COLORS.teal : "rgba(255,255,255,0.1)"}`, background: refusalAction === a ? "rgba(79,209,197,0.1)" : "transparent", color: refusalAction === a ? COLORS.teal : COLORS.g2, textAlign: "left", fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif", fontWeight: refusalAction === a ? 600 : 400 }}>{a}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+              <button onClick={() => setShowRefusalFor(null)} style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: COLORS.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Cancel</button>
+              <button onClick={() => { if (refusalReason && refusalAction) { setMedStatus((s) => ({ ...s, [showRefusalFor!]: "refused" })); setShowRefusalFor(null); } }} style={{ flex: 2, padding: "11px 0", borderRadius: 10, border: "none", background: refusalReason && refusalAction ? COLORS.amber : "rgba(255,255,255,0.08)", color: refusalReason && refusalAction ? COLORS.darkNavy : COLORS.g3, fontSize: 13, fontWeight: 700, cursor: refusalReason && refusalAction ? "pointer" : "not-allowed", fontFamily: "DM Sans, sans-serif" }}>Log Refusal</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -3991,7 +4396,7 @@ export default function CAREiApp() {
   const [screen, setScreen] = useState<Screen>(() => {
     try {
       const saved = sessionStorage.getItem("carei_screen") as Screen;
-      const valid: Screen[] = ["splash","otp","dashboard","visit","copilot","medication","summary","profile","family","bodymap","admin","admin-dashboard","visit-history","care-plan","emergency","today","active-visit","continucare-summary","operations","schedule","rota","family-summary"];
+      const valid: Screen[] = ["splash","otp","dashboard","visit","copilot","medication","summary","profile","family","bodymap","admin","admin-dashboard","visit-history","care-plan","emergency","today","active-visit","continucare-summary","operations","schedule","rota","family-summary","manager-approvals","incident-report","handover"];
       return valid.includes(saved) ? saved : "splash";
     } catch {
       return "splash";
@@ -4011,6 +4416,25 @@ export default function CAREiApp() {
     aisha: "Sarah",
   });
   const [visitReturnScreen, setVisitReturnScreen] = useState<Screen>("active-visit");
+  const [summaryApproval, setSummaryApproval] = useState<"pending" | "approved">("pending");
+  const [summaryReadAt, setSummaryReadAt] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [queuedCount, setQueuedCount] = useState(0);
+
+  useEffect(() => {
+    const up = () => { setIsOffline(false); setQueuedCount(0); };
+    const dn = () => { setIsOffline(true); };
+    window.addEventListener("online", up);
+    window.addEventListener("offline", dn);
+    return () => { window.removeEventListener("online", up); window.removeEventListener("offline", dn); };
+  }, []);
+
+  useEffect(() => {
+    if (isOffline) {
+      const t = setTimeout(() => setQueuedCount((n) => n + 1), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [isOffline, queuedCount]);
 
   function nav(s: Screen) {
     setScreen(s);
@@ -4060,7 +4484,22 @@ export default function CAREiApp() {
       case "family":
         return <FamilyPortalScreen onBack={() => nav("dashboard")} onSummary={() => nav("family-summary")} />;
       case "family-summary":
-        return <FamilySummaryScreen onBack={() => nav("family")} />;
+        return (
+          <FamilySummaryScreen
+            onBack={() => nav("family")}
+            approvalStatus={summaryApproval}
+            onRead={() => { if (!summaryReadAt) setSummaryReadAt(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })); }}
+          />
+        );
+      case "manager-approvals":
+        return (
+          <ManagerApprovalsScreen
+            approvalStatus={summaryApproval}
+            onApprove={() => setSummaryApproval("approved")}
+            summaryReadAt={summaryReadAt}
+            onBack={() => nav("today")}
+          />
+        );
       case "bodymap":
         return <BodyMapScreen onBack={() => nav(visitReturnScreen)} />;
       case "visit-history":
@@ -4090,16 +4529,23 @@ export default function CAREiApp() {
         return (
           <ActiveVisitScreen
             client={activeClient}
-            onComplete={() => nav("continucare-summary")}
+            onComplete={() => nav("handover")}
             onBack={() => nav("today")}
             onSOS={() => setShowSOS(true)}
             onAssistant={() => setShowAssistant(true)}
             onBodyMap={() => { setVisitReturnScreen("active-visit"); nav("bodymap"); }}
             onCarePlan={() => { setVisitReturnScreen("active-visit"); nav("care-plan"); }}
             onEmergency={() => { setVisitReturnScreen("active-visit"); nav("emergency"); }}
+            onIncident={() => nav("incident-report")}
           />
         );
       }
+      case "handover": {
+        const handoverClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
+        return <HandoverScreen client={handoverClient} onSubmit={() => nav("continucare-summary")} />;
+      }
+      case "incident-report":
+        return <IncidentReportScreen onBack={() => nav("active-visit")} onSubmit={() => nav("active-visit")} />;
       case "continucare-summary": {
         const summaryClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
         return (
@@ -4190,6 +4636,14 @@ export default function CAREiApp() {
           />
 
           <div style={{ width: "100%", height: "100%", paddingTop: 24, overflow: "hidden" }}>
+            {/* Global offline banner */}
+            {isOffline && screen !== "admin-dashboard" && (
+              <div style={{ position: "absolute", top: 24, left: 0, right: 0, zIndex: 100, background: "rgba(246,183,60,0.95)", padding: "6px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 14 }}>📵</span>
+                <span style={{ color: COLORS.darkNavy, fontWeight: 700, fontSize: 12, flex: 1 }}>Offline — data will sync on reconnect</span>
+                {queuedCount > 0 && <span style={{ background: COLORS.darkNavy, color: COLORS.amber, borderRadius: 99, fontSize: 10, fontWeight: 700, padding: "2px 8px" }}>{queuedCount} queued</span>}
+              </div>
+            )}
             <div style={{ width: "100%", height: "100%", position: "relative" }}>
               {renderScreen()}
               {showSOS && <SOSOverlay onDismiss={() => setShowSOS(false)} />}

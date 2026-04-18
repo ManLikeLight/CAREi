@@ -2918,7 +2918,7 @@ function FamilyPortalScreen({ onBack, onSummary }: { onBack: () => void; onSumma
 
 type BodyMark = { zone: string; type: string; color: string };
 
-function BodyMapScreen({ onBack }: { onBack: () => void }) {
+function BodyMapScreen({ clientName, onBack }: { clientName: string; onBack: () => void }) {
   const [view, setView] = useState<"front" | "back">("front");
   const [markType, setMarkType] = useState("Pressure Sore");
   const [marks, setMarks] = useState<BodyMark[]>([]);
@@ -2988,7 +2988,7 @@ function BodyMapScreen({ onBack }: { onBack: () => void }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 20, color: "#fff" }}>Skin Integrity Map</div>
-            <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>Tap a body zone to mark it · Grace Mensah</div>
+            <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>Tap a body zone to mark it · {clientName}</div>
           </div>
           <Badge color={COLORS.red} bg="rgba(255,90,95,0.12)">CQC</Badge>
         </div>
@@ -3055,20 +3055,21 @@ function BodyMapScreen({ onBack }: { onBack: () => void }) {
 
 // ─── Visit History Screen ─────────────────────────────────────────────────────
 
-function VisitHistoryScreen({ onBack }: { onBack: () => void }) {
+function VisitHistoryScreen({ clientName, onBack }: { clientName: string; onBack: () => void }) {
+  const firstName = clientName.split(" ")[0];
   const history = [
-    { date: "12 Mar 2026", time: "10:00–11:30", carer: "Sarah Johnson", tasks: "Personal care, Meds, Breakfast", note: "Grace in good spirits. No concerns." },
+    { date: "12 Mar 2026", time: "10:00–11:30", carer: "Sarah Johnson", tasks: "Personal care, Meds, Breakfast", note: `${firstName} in good spirits. No concerns.` },
     { date: "11 Mar 2026", time: "10:00–11:15", carer: "Amy Mitchell",  tasks: "Personal care, Meds",           note: "Client tired, ate half breakfast. BP 146/90." },
     { date: "10 Mar 2026", time: "10:15–11:45", carer: "Sarah Johnson", tasks: "Personal care, Meds, Physio",   note: "Physio exercises completed. Skin intact." },
     { date: "09 Mar 2026", time: "10:00–11:00", carer: "Kemi Adeyemi",  tasks: "Personal care, Meds",           note: "No concerns noted." },
-    { date: "08 Mar 2026", time: "10:00–11:30", carer: "Sarah Johnson", tasks: "Personal care, Meds, Activity",  note: "Grace completed crossword. Good mood." },
+    { date: "08 Mar 2026", time: "10:00–11:30", carer: "Sarah Johnson", tasks: "Personal care, Meds, Activity",  note: `${firstName} engaged well. Good mood.` },
   ];
   return (
     <div style={{ height: "100%", background: COLORS.darkNavy, display: "flex", flexDirection: "column" }}>
       <div style={{ padding: "20px 18px 12px", flexShrink: 0 }}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0, marginBottom: 12 }}>‹</button>
         <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>Visit History</div>
-        <div style={{ color: COLORS.g2, fontSize: 13, marginTop: 4 }}>Grace Mensah · Last 30 days</div>
+        <div style={{ color: COLORS.g2, fontSize: 13, marginTop: 4 }}>{clientName} · Last 30 days</div>
       </div>
       <div className="phone-scroll" style={{ flex: 1, padding: "0 16px 24px", display: "flex", flexDirection: "column", gap: 10 }}>
         {history.map((v, i) => (
@@ -3091,162 +3092,174 @@ function VisitHistoryScreen({ onBack }: { onBack: () => void }) {
 
 // ─── Care Plan Screen ─────────────────────────────────────────────────────────
 
-function CarePlanScreen({ onBack }: { onBack: () => void }) {
-  const standardSections = [
-    {
-      title: "Support Framework",
-      icon: "🧭",
-      color: COLORS.teal,
-      items: [
-        "Person-Centred Approach — all care is planned around Grace's preferences, strengths and goals",
-        "Positive Behaviour Support (PBS) — proactive strategies to prevent distress before it escalates",
-        "Trauma-Informed Care — be mindful that past experiences may influence reactions",
-        "PACE approach — Playful, Accepting, Curious, Empathic in all interactions",
-      ],
-    },
-    {
-      title: "Level of Support",
-      icon: "🤝",
-      color: COLORS.teal,
-      items: [
-        "Personal care: Full physical assistance required (washing, dressing, grooming)",
-        "Mobility: Prompting and physical support — always use walking frame",
-        "Medication: Supervised administration — carer must be present throughout",
-        "Nutrition: Meal preparation and verbal encouragement to eat and drink",
-        "Orientation: Regular verbal prompts — Grace may not always know the date/time",
-        "Emotional: Reassurance and calm presence — do not rush Grace at any point",
-      ],
-    },
-    {
-      title: "Communication Passport",
-      icon: "💬",
-      color: "#a78bfa",
-      items: [
-        "Speak slowly and clearly — short sentences, one instruction at a time",
-        "Always introduce yourself by name at the start of each visit",
-        "Grace responds well to her first name — never 'love', 'dear' or 'sweetie'",
-        "Give Grace time to respond — do not finish her sentences",
-        "Use visual cues and gentle gestures where words are not understood",
-        "If Grace is confused, calmly re-orient rather than arguing or correcting",
-        "Grace may repeat questions — answer patiently each time as if it is the first",
-        "Preferred topics: family, her garden, Radio 4 programmes, crosswords",
-      ],
-    },
-    {
-      title: "Care Objectives",
-      icon: "🎯",
-      color: COLORS.teal,
-      items: [
+function buildCarePlan(client: typeof SCHEDULE_CLIENTS[0]) {
+  const n = client.name.split(" ")[0];
+  const isHe = client.id === "tom";
+  const pronoun = isHe ? "he" : "she";
+  const possessive = isHe ? "his" : "her";
+
+  const byCondition: Record<string, {
+    objectives: string[];
+    preventive: string[];
+    risks: string[];
+    postMed: string[];
+    pbsCalmSigns: string[];
+    pbsCalmActions: string[];
+    pbsAnxiousSigns: string[];
+    pbsAnxiousActions: string[];
+    pbsRiskSigns: string[];
+    pbsRiskActions: string[];
+    lastReview: string[];
+  }> = {
+    mary: {
+      objectives: [
         "Maintain personal hygiene and dignity at all times",
         "Support safe mobility with walking frame at all times",
-        "Administer medications as prescribed — Metformin AFTER meals only",
+        "Administer medications as prescribed",
         "Monitor nutrition and fluid intake — encourage 6–8 glasses of water daily",
-        "Promote social engagement and mental wellbeing",
+        "Promote cognitive engagement — crosswords, music, familiar routines",
+        "Monitor for signs of pain or discomfort that Mary may not verbalise",
       ],
-    },
-    {
-      title: "Preferences & Routines",
-      icon: "🌿",
-      color: COLORS.green,
-      items: [
-        "Morning visits before 11am — Grace is most alert in the morning",
-        "Tea with two sugars, no milk — always offer at the start of the visit",
-        "Enjoys crosswords and Radio 4 — offer as activity after personal care",
-        "Requires verbal prompts for washing — she can participate with guidance",
-        "Prefers female carers — document if male carer attends and note Grace's response",
-        "Dislikes rushed visits — build in extra time if Grace is slow to cooperate",
+      preventive: [
+        "Falls: Remove trip hazards before starting each task; ensure non-slip footwear",
+        "Falls: Walking frame must remain within reach at all times — never move it away",
+        "Wandering: Ensure exit doors are secured; note any exit-seeking behaviour",
+        "Dehydration: Offer fluids every 20–30 mins — Mary may not ask independently",
+        "Routine: Use the same sequence of tasks each visit — familiarity reduces anxiety",
+        "Skin integrity: Check for pressure marks or bruising at each visit",
       ],
-    },
-    {
-      title: "Preventive Strategies",
-      icon: "🛡️",
-      color: COLORS.amber,
-      items: [
-        "Falls: Remove trip hazards before starting any task, ensure footwear is non-slip",
-        "Falls: Walking frame must be within reach at all times — never move it out of sight",
-        "Diabetes: Ensure Grace has eaten before administering Metformin — check meal plate",
-        "Diabetes: Monitor for signs of low blood sugar — sweating, shaking, confusion",
-        "Skin integrity: Check for any redness, pressure marks or wounds at each visit",
-        "Dehydration: Offer fluids regularly — Grace may not ask independently",
-        "Infection: Report any change in urine colour, confusion spike, or raised temperature",
-        "Cognitive decline: Use same routines each visit — familiarity reduces anxiety",
+      risks: [
+        "HIGH FALL RISK — walking frame at all times, never leave Mary standing unassisted",
+        "Dementia — may not recognise staff; introduce yourself at every visit",
+        "Exit seeking — monitor during visits; escalate immediately if Mary leaves unsupervised",
+        "Medication compliance — verify each dose is swallowed, document refusals",
+        "Aspirin with food only — never on empty stomach",
+        "Donepezil after breakfast — monitor for nausea or sleep disturbance",
       ],
-    },
-    {
-      title: "Risks & Precautions",
-      icon: "⚠️",
-      color: COLORS.red,
-      items: [
-        "HIGH FALL RISK — use walking frame at all times, never leave Grace standing unassisted",
-        "ALLERGY: Penicillin — do not administer under any circumstances",
-        "Mild cognitive impairment — use simple, calm instructions only",
-        "High blood pressure — monitor regularly, report readings above 150/90",
-        "Metformin must be given AFTER meals — never on empty stomach",
-        "Monitor for 20–30 mins after any medication is administered",
+      postMed: [
+        "After Aspirin: Give with food; observe for stomach discomfort for 20 mins",
+        "After Donepezil: Give after breakfast; monitor for nausea or sleep disturbance",
+        "If Mary refuses medication: do not force — document refusal, reason, and notify office",
+        "If any adverse reaction: call 999 immediately, then notify the care office",
       ],
+      pbsCalmSigns: ["Smiling, relaxed, engaging in conversation", "Cooperating with personal care without resistance", "Asking for tea or familiar music", "Recognising or responding warmly to the carer"],
+      pbsCalmActions: ["Continue with the planned care routine calmly", "Offer choices wherever possible — 'Would you like tea first or a wash?'", `Engage ${n} in ${possessive} preferred topics — music, family, crosswords`, "Praise cooperation genuinely and warmly"],
+      pbsAnxiousSigns: ["Repeated questioning — 'Where am I?', 'Who are you?'", "Pacing or trying to get up repeatedly", `Refusing tasks ${pronoun} usually accepts`, "Tearfulness, calling out or verbal expressions of fear"],
+      pbsAnxiousActions: ["Pause the task — do not push through resistance", `Speak softly, use ${n}'s name: '${n}, I'm here to help you, you're safe'`, "Offer a warm drink and sit beside her calmly", `Try a familiar distraction — ${possessive} favourite music or a photo of family`, "Document the episode and what helped in the visit notes"],
+      pbsRiskSigns: ["Hitting, scratching or grabbing at staff", "Shouting, swearing or screaming", "Spitting or biting", "Attempting to leave the property urgently"],
+      pbsRiskActions: [`Do NOT restrain — step back and create a safe distance`, `Stay calm — speak slowly: '${n}, I'm not going to hurt you, I'm here to help'`, `This is the dementia, not ${n} — do not take behaviour personally`, "Request backup: call a colleague or the office immediately", "Document fully in CAREi and complete an Incident Report", "If injury occurs: seek first aid, complete Datix, notify manager"],
+      lastReview: ["Reviewed: 01 March 2026 by Dr A. Patel", "Next review: 01 June 2026", "Care package: 1 hr × 5 days per week", "Framework: PBS + Person-Centred + Dementia Care Mapping"],
     },
-    {
-      title: "Post-Medication Monitoring",
-      icon: "💊",
-      color: COLORS.teal,
-      items: [
-        "After Amlodipine: Observe for dizziness or lightheadedness for 20 mins — keep Grace seated",
-        "After Metformin: Monitor for nausea, stomach discomfort or vomiting for 30 mins",
-        "After Atorvastatin: Ask Grace if she has any muscle pain or unusual weakness",
-        "Document time of administration and any observations in the visit notes",
-        "If Grace refuses medication: do not force — record refusal and reason, notify office",
-        "If any adverse reaction: call 999 immediately, then notify the office",
+    tom: {
+      objectives: [
+        "Support safe transfers and mobility — hoist required for all bed/chair transfers",
+        "Maintain personal hygiene and dignity throughout",
+        "Administer medications as prescribed with food",
+        "Monitor for signs of stroke recurrence — FAST assessment if concerned",
+        "Encourage stroke rehabilitation exercises as per physio plan",
+        "Monitor blood pressure and document at each visit",
       ],
-    },
-    {
-      title: "Last Review",
-      icon: "📋",
-      color: COLORS.g2,
-      items: [
-        "Reviewed: 01 March 2026 by Dr Sandra Obi",
-        "Next review: 01 June 2026",
-        "Care package: 1.5 hrs × 5 days per week",
-        "Framework: PBS + Person-Centred. Safety intervention: Adjoy Healthcare protocol",
+      preventive: [
+        "Transfers: Always use the hoist — never attempt manual lifts alone",
+        "Falls: Ensure pathways are clear; Tom has weakness on the affected side",
+        "Stroke recurrence: Know the FAST signs — Face drooping, Arm weakness, Speech difficulty, Time to call 999",
+        "Dysphagia: If Tom has swallowing difficulties, report immediately — never rush food or drink",
+        "Skin integrity: Check pressure areas after transfers, especially hips and sacrum",
+        "Blood pressure: Record reading every visit; report above 140/90 to the office",
       ],
+      risks: [
+        "HOIST REQUIRED for all transfers — never attempt manual lift alone",
+        "Post-stroke weakness on affected side — support that side during all movement",
+        "Communication difficulties (aphasia) — allow extra time, do not rush Tom",
+        "Blood pressure monitoring — report readings above 140/90 immediately",
+        "Aspirin with morning meal only",
+        "Lisinopril with food — monitor blood pressure after administration",
+      ],
+      postMed: [
+        "After Aspirin: Give with morning meal; check for stomach discomfort",
+        "After Lisinopril: Monitor blood pressure for 20 mins; report readings above 140/90",
+        "If Tom refuses medication: do not force — document refusal, reason, and notify office",
+        "If any adverse reaction: call 999 immediately, then notify the care office",
+      ],
+      pbsCalmSigns: ["Engaging in conversation or attempting to communicate", "Cooperating with personal care and transfers", "Good eye contact, relaxed posture", "Attempting physio exercises willingly"],
+      pbsCalmActions: ["Continue with the care routine at Tom's pace", "Allow extra time for communication — do not finish his sentences", `Acknowledge ${possessive} effort and progress genuinely`, "Engage Tom in conversation about his interests between tasks"],
+      pbsAnxiousSigns: ["Visible frustration at being unable to communicate clearly", "Withdrawal — closing eyes, turning away, refusing interaction", "Increased agitation during personal care", "Refusing transfers or physio exercises"],
+      pbsAnxiousActions: ["Pause — never force a transfer or task when Tom is distressed", `Use calm, simple language: '${n}, we can take our time, there's no rush'`, "Offer Tom control — 'Are you ready? Tell me when'", "Try a brief distraction — music or a short break before trying again", "Document the episode and what helped"],
+      pbsRiskSigns: ["Grabbing or pushing staff during transfers or care", "Shouting or verbal outbursts from frustration", "Refusing to cooperate with essential tasks over multiple visits", "Extreme distress during personal care"],
+      pbsRiskActions: ["Step back and give Tom space — do not react to physical behaviour", `Stay calm: '${n}, I hear you. Let's stop for a moment'`, "Do not attempt transfers without cooperation — call for backup", "This is post-stroke frustration — not aggression; never retaliate", "Document fully in CAREi and complete an Incident Report", "If injury occurs: seek first aid, complete Datix, notify manager"],
+      lastReview: ["Reviewed: 15 February 2026 by Dr M. Clarke", "Next review: 15 May 2026", "Care package: 30 mins × 5 days per week", "Framework: PBS + Person-Centred + Stroke Rehabilitation Approach"],
     },
+    aisha: {
+      objectives: [
+        "Monitor blood sugar levels and document at each visit",
+        "Ensure Metformin is administered AFTER meals — confirm client has eaten first",
+        "Monitor nutrition — low-sugar, balanced meals; encourage 6–8 glasses of water",
+        "Inspect feet at each visit — report any redness, numbness or wounds immediately",
+        "Promote independence while providing verbal prompting and encouragement",
+        "Be alert for signs of hypoglycaemia at all times",
+      ],
+      preventive: [
+        "Hypoglycaemia: Know the signs — sweating, shaking, pale skin, confusion, rapid pulse",
+        "Hypoglycaemia: Always ensure Aisha has eaten before administering Metformin",
+        "Foot care: Inspect for cuts, blisters, redness or swelling at every visit — diabetes increases infection risk",
+        "Hydration: Encourage 6–8 glasses of water — dehydration worsens blood sugar control",
+        "Ketoacidosis: Report any excessive thirst, frequent urination or fruity breath immediately",
+        "Allergy: SULFONAMIDES — check all medication labels carefully before administration",
+      ],
+      risks: [
+        "ALLERGY: Sulfonamides — do not administer under any circumstances",
+        "Metformin MUST be given AFTER meals — never on empty stomach",
+        "HIGH HYPOGLYCAEMIA RISK — monitor for sweating, shaking, confusion before and after meals",
+        "Diabetic foot risk — inspect feet every visit; report any wounds or redness immediately",
+        "Lisinopril with food — monitor blood pressure after administration",
+        "Aisha values her privacy — always explain what you are doing before you do it",
+      ],
+      postMed: [
+        "After Metformin: Monitor for nausea or stomach discomfort for 30 mins — ensure Aisha has eaten first",
+        "After Lisinopril: Monitor blood pressure for 20 mins; report readings above 140/90",
+        "If Aisha refuses medication: do not force — document refusal, reason, and notify office",
+        "If any adverse reaction or suspected hypo: call 999 immediately, then notify the care office",
+      ],
+      pbsCalmSigns: ["Engaged and communicating confidently", "Eating and drinking well, cooperative with care", "Managing tasks semi-independently with verbal prompts", "Relaxed, good eye contact, responding positively"],
+      pbsCalmActions: ["Continue with the care routine — offer choices and respect Aisha's preferences", "Always explain each step before doing it — Aisha values being in control", `Engage ${n} in conversation — ${pronoun} may be bilingual; adapt to ${possessive} language preference`, "Praise cooperation and independence positively"],
+      pbsAnxiousSigns: ["Sweating, shaking, pale skin or trembling — possible hypoglycaemia", "Appearing confused, disorientated or slow to respond", "Refusing food when blood sugar may be low", "Withdrawal — quiet, not engaging, avoiding eye contact"],
+      pbsAnxiousActions: ["PRIORITY: Check blood sugar if equipment available — report low reading immediately", `Offer a small fast-acting sugar source (glucose gel, fruit juice) if hypo is suspected`, `Stay calm: '${n}, I'm going to help you. Can you tell me how you feel?'`, "If blood sugar is critically low or Aisha loses consciousness: call 999 immediately", "Document blood sugar readings and any symptoms in the visit notes"],
+      pbsRiskSigns: ["Confusion or disorientation not resolving with sugar intervention", "Loss of responsiveness or reduced consciousness", "Aggressive or unusual behaviour caused by very low blood sugar", "Vomiting, extreme weakness or collapse"],
+      pbsRiskActions: ["Call 999 immediately — do not delay for any reason", "Place Aisha in the recovery position if unconscious and breathing", "Do NOT give food or drink to an unconscious person", "Notify the care office and next of kin immediately", "Remain with Aisha until emergency services arrive", "Document the full episode in CAREi and complete an Incident Report"],
+      lastReview: ["Reviewed: 10 March 2026 by Dr F. Hassan", "Next review: 10 June 2026", "Care package: 1 hr × 5 days per week", "Framework: PBS + Person-Centred + Diabetes Care Protocol"],
+    },
+  };
+
+  const d = byCondition[client.id] || byCondition.mary;
+
+  const standardSections = [
+    { title: "Support Framework", icon: "🧭", color: COLORS.teal, items: client.framework.split(" · ").map(f => `${f} — embedded throughout all care interactions`) },
+    { title: "Level of Support", icon: "🤝", color: COLORS.teal, items: [client.supportLevel, ...d.objectives.slice(0, 2)] },
+    { title: "Communication Passport", icon: "💬", color: "#a78bfa", items: client.communication.split(". ").filter(Boolean).map(s => s.trim().replace(/\.$/, "") + ".") },
+    { title: "Care Objectives", icon: "🎯", color: COLORS.teal, items: d.objectives },
+    { title: "Preventive Strategies", icon: "🛡️", color: COLORS.amber, items: d.preventive },
+    { title: "Risks & Precautions", icon: "⚠️", color: COLORS.red, items: d.risks },
+    { title: "Post-Medication Monitoring", icon: "💊", color: COLORS.teal, items: d.postMed },
+    { title: "Last Review", icon: "📋", color: COLORS.g2, items: d.lastReview },
   ];
 
   const pbsStates = [
-    {
-      label: "Grace is Calm / Happy",
-      color: COLORS.green,
-      bg: "rgba(34,197,94,0.1)",
-      border: "rgba(34,197,94,0.25)",
-      emoji: "😊",
-      signs: ["Smiling or relaxed facial expression", "Engaging in conversation", "Cooperating with personal care", "Asking for tea or the radio"],
-      staffActions: ["Continue with the planned care routine", "Offer choice and control wherever possible", "Engage in her preferred topics of conversation", "Praise cooperation warmly but naturally"],
-    },
-    {
-      label: "Grace is Anxious / Distressed",
-      color: COLORS.amber,
-      bg: "rgba(246,183,60,0.1)",
-      border: "rgba(246,183,60,0.25)",
-      emoji: "😟",
-      signs: ["Repeated questioning or calling out", "Wringing hands or pacing", "Refusing tasks she usually accepts", "Tearfulness or verbal expressions of fear"],
-      staffActions: ["Pause the task — do not push through", "Speak softly and use Grace's name", "Offer a warm drink and sit with her", "Try a familiar distraction — Radio 4 or conversation about family", "Document the episode and what helped"],
-    },
-    {
-      label: "Grace displays Risk Behaviour",
-      color: COLORS.red,
-      bg: "rgba(255,90,95,0.1)",
-      border: "rgba(255,90,95,0.3)",
-      emoji: "⚠️",
-      signs: ["Hitting, scratching or grabbing at staff", "Shouting or swearing", "Spitting or biting", "Attempting to leave the property"],
-      staffActions: ["Do NOT restrain — step back and create safe distance", "Stay calm — speak in a low, slow voice ('Grace, I'm here to help you')", "Do not take behaviour personally — this is the condition, not Grace", "Request backup: call a colleague or the office immediately", "Document the incident fully in CAREi and complete an Incident Report", "If injury occurs: seek first aid, complete a Datix/incident report, notify manager"],
-    },
+    { label: `${n} is Calm / Happy`, color: COLORS.green, bg: "rgba(34,197,94,0.1)", border: "rgba(34,197,94,0.25)", emoji: "😊", signs: d.pbsCalmSigns, staffActions: d.pbsCalmActions },
+    { label: `${n} is Anxious / Distressed`, color: COLORS.amber, bg: "rgba(246,183,60,0.1)", border: "rgba(246,183,60,0.25)", emoji: "😟", signs: d.pbsAnxiousSigns, staffActions: d.pbsAnxiousActions },
+    { label: `${n} displays Risk Behaviour`, color: COLORS.red, bg: "rgba(255,90,95,0.1)", border: "rgba(255,90,95,0.3)", emoji: "⚠️", signs: d.pbsRiskSigns, staffActions: d.pbsRiskActions },
   ];
 
+  return { standardSections, pbsStates };
+}
+
+function CarePlanScreen({ client, onBack }: { client: typeof SCHEDULE_CLIENTS[0]; onBack: () => void }) {
+  const { standardSections, pbsStates } = buildCarePlan(client);
   return (
     <div style={{ height: "100%", background: COLORS.darkNavy, display: "flex", flexDirection: "column" }}>
       <div style={{ padding: "20px 18px 12px", flexShrink: 0 }}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0, marginBottom: 12 }}>‹</button>
         <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>Care Plan</div>
-        <div style={{ color: COLORS.g2, fontSize: 13, marginTop: 4 }}>Grace Mensah · Person-Centred Care Package</div>
+        <div style={{ color: COLORS.g2, fontSize: 13, marginTop: 4 }}>{client.name} · Person-Centred Care Package</div>
       </div>
       <div className="phone-scroll" style={{ flex: 1, padding: "0 16px 24px", display: "flex", flexDirection: "column", gap: 12 }}>
         {standardSections.map(s => (
@@ -3263,7 +3276,6 @@ function CarePlanScreen({ onBack }: { onBack: () => void }) {
             ))}
           </div>
         ))}
-
         {/* PBS Support Plan */}
         <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 16px", borderLeft: "3px solid #a78bfa" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
@@ -3296,7 +3308,6 @@ function CarePlanScreen({ onBack }: { onBack: () => void }) {
             ))}
           </div>
         </div>
-
         {/* Safety Intervention */}
         <div style={{ background: "rgba(255,90,95,0.08)", borderRadius: 14, padding: "14px 16px", borderLeft: `3px solid ${COLORS.red}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
@@ -4819,12 +4830,18 @@ export default function CAREiApp() {
             onBack={() => nav("today")}
           />
         );
-      case "bodymap":
-        return <BodyMapScreen onBack={() => nav(visitReturnScreen)} />;
-      case "visit-history":
-        return <VisitHistoryScreen onBack={() => nav("today")} />;
-      case "care-plan":
-        return <CarePlanScreen onBack={() => nav(visitReturnScreen)} />;
+      case "bodymap": {
+        const bClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
+        return <BodyMapScreen clientName={bClient.name} onBack={() => nav(visitReturnScreen)} />;
+      }
+      case "visit-history": {
+        const vhClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
+        return <VisitHistoryScreen clientName={vhClient.name} onBack={() => nav("today")} />;
+      }
+      case "care-plan": {
+        const cpClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
+        return <CarePlanScreen client={cpClient} onBack={() => nav(visitReturnScreen)} />;
+      }
       case "emergency":
         return <EmergencyContactsScreen onBack={() => nav(visitReturnScreen)} />;
       case "admin":

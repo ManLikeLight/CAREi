@@ -6,6 +6,7 @@ type Screen =
   | "otp"
   | "splash"
   | "today"
+  | "client-overview"
   | "active-visit"
   | "medication"
   | "handover"
@@ -93,36 +94,63 @@ const SCHEDULE_CLIENTS = [
     id: "mary",
     name: "Mary Johnson",
     age: 82,
+    address: "4 Birch Close, Reading RG2 7LN",
     time: "09:00 – 10:00",
     condition: "Dementia",
     tags: ["Dementia", "Medication Required"],
+    emoji: "👩🏼",
+    gp: "Dr A. Patel · Earley Surgery",
+    allergy: "None known",
+    supportLevel: "Full physical assistance + 1-to-1 supervision throughout",
+    framework: "Person-Centred · PBS · Dementia Care Mapping (DCM)",
+    communication: "Use simple words and short sentences. Validate feelings — never argue or correct. Approach from the front, maintain eye contact. Mary may not recognise you — introduce yourself each visit.",
+    mobilityNote: "Walking frame required at all times — high fall risk",
+    medNote: "Donepezil 10mg after breakfast · Aspirin 75mg with food",
     meds: [
-      { name: "Aspirin", dose: "75mg" },
-      { name: "Donepezil", dose: "10mg" },
+      { name: "Aspirin", dose: "75mg", adminNote: "Give with food. Monitor for stomach discomfort." },
+      { name: "Donepezil", dose: "10mg", adminNote: "Give after breakfast. Monitor for nausea or sleep disturbance." },
     ],
   },
   {
     id: "tom",
     name: "Tom Adams",
     age: 75,
+    address: "12 Elm Street, Reading RG1 2BT",
     time: "10:30 – 11:00",
     condition: "Post Stroke",
     tags: ["Post Stroke", "Mobility Support"],
+    emoji: "👨🏾",
+    gp: "Dr M. Clarke · Castle Hill Surgery",
+    allergy: "None known",
+    supportLevel: "Physical assistance with personal care and transfers. Mobility support throughout.",
+    framework: "Person-Centred · Stroke Rehabilitation Approach · PACE",
+    communication: "Speak slowly and clearly — Tom may have word-finding difficulties. Allow extra time to respond. Do not finish his sentences. Use gestures where helpful.",
+    mobilityNote: "Hoist required for transfers — never attempt manual lift alone",
+    medNote: "Aspirin 75mg and Lisinopril 10mg with morning meal",
     meds: [
-      { name: "Aspirin", dose: "75mg" },
-      { name: "Lisinopril", dose: "10mg" },
+      { name: "Aspirin", dose: "75mg", adminNote: "Give with morning meal. Monitor for dizziness." },
+      { name: "Lisinopril", dose: "10mg", adminNote: "Give with food. Monitor blood pressure. Report readings above 140/90." },
     ],
   },
   {
     id: "aisha",
     name: "Aisha Khan",
     age: 69,
+    address: "8 Maple Drive, Reading RG4 5PQ",
     time: "12:00 – 13:00",
     condition: "Diabetes",
     tags: ["Diabetes", "Nutrition Monitoring"],
+    emoji: "👩🏽",
+    gp: "Dr F. Hassan · Woodley Health Centre",
+    allergy: "Sulfonamides — do not administer",
+    supportLevel: "Verbal prompts and encouragement. Assistance with nutrition monitoring and medication.",
+    framework: "Person-Centred · Diabetes Care Protocol · Trauma-Informed Care",
+    communication: "Aisha speaks English and Urdu. Use simple language and offer choices. She is private — always explain what you are doing before doing it.",
+    mobilityNote: "Independent walking — monitor for dizziness (hypoglycaemia risk)",
+    medNote: "Metformin 500mg AFTER meals — never on empty stomach",
     meds: [
-      { name: "Metformin", dose: "500mg" },
-      { name: "Lisinopril", dose: "10mg" },
+      { name: "Metformin", dose: "500mg", adminNote: "⚠ Give AFTER meals only — never on an empty stomach. Monitor for nausea for 30 mins after." },
+      { name: "Lisinopril", dose: "10mg", adminNote: "Give with food. Monitor blood pressure and report readings above 140/90." },
     ],
   },
 ];
@@ -246,8 +274,8 @@ function NavPills({
 }) {
   const screens: { key: Screen; label: string }[] = [
     { key: "otp", label: "Login" },
-    { key: "splash", label: "Client Overview" },
     { key: "today", label: "Today's Care" },
+    { key: "client-overview", label: "Client Overview" },
     { key: "active-visit", label: "Active Visit" },
     { key: "medication", label: "Medications" },
     { key: "handover", label: "Handover" },
@@ -382,6 +410,115 @@ function SplashScreen({ onNext }: { onNext: () => void }) {
           style={{ width: "100%", padding: "15px 0", borderRadius: 14, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 16, fontWeight: 700, cursor: "pointer", letterSpacing: 0.3 }}
         >
           Log In to CAREi
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Client Overview Screen ────────────────────────────────────────────────────
+
+function ClientOverviewScreen({
+  client,
+  onStartVisit,
+  onBack,
+}: {
+  client: typeof SCHEDULE_CLIENTS[0];
+  onStartVisit: () => void;
+  onBack: () => void;
+}) {
+  const isAllergyRisk = client.allergy && client.allergy !== "None known";
+  const isMetformin = client.meds.some((m) => m.name === "Metformin");
+
+  return (
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column" }}>
+      {/* Header */}
+      <div style={{ padding: "18px 18px 0", flexShrink: 0 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0, marginBottom: 10 }}>‹</button>
+        <div style={{ color: COLORS.teal, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>Client Brief — Before You Start</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+          <div style={{ width: 50, height: 50, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <span style={{ fontSize: 24 }}>{client.emoji}</span>
+          </div>
+          <div>
+            <div style={{ fontFamily: "DM Serif Display, serif", color: "#fff", fontSize: 20 }}>{client.name}</div>
+            <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>{client.age} years · {client.address}</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+          {client.tags.map((t) => (
+            <span key={t} style={{ background: "rgba(255,255,255,0.08)", color: COLORS.g1, fontSize: 11, borderRadius: 99, padding: "3px 9px", fontWeight: 600 }}>{t}</span>
+          ))}
+          <span style={{ background: "rgba(79,209,197,0.12)", color: COLORS.teal, fontSize: 11, borderRadius: 99, padding: "3px 9px", fontWeight: 600 }}>⏰ {client.time}</span>
+        </div>
+      </div>
+
+      {/* Allergy warning if relevant */}
+      {isAllergyRisk && (
+        <div style={{ margin: "0 16px 10px", background: "rgba(255,90,95,0.12)", border: "1px solid rgba(255,90,95,0.35)", borderRadius: 12, padding: "10px 14px", display: "flex", gap: 10, alignItems: "flex-start", flexShrink: 0 }}>
+          <span style={{ fontSize: 16 }}>⚠️</span>
+          <div>
+            <div style={{ color: COLORS.red, fontWeight: 700, fontSize: 13 }}>ALLERGY: {client.allergy}</div>
+            <div style={{ color: "rgba(255,90,95,0.8)", fontSize: 11, marginTop: 2 }}>Do not administer this medication under any circumstances</div>
+          </div>
+        </div>
+      )}
+
+      {/* Key info card */}
+      <div className="phone-scroll" style={{ flex: 1, padding: "0 16px 12px", display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 16px", borderLeft: `3px solid ${COLORS.teal}` }}>
+          {[
+            { icon: "🩺", label: "GP", value: client.gp },
+            { icon: "🤝", label: "Support level", value: client.supportLevel },
+            { icon: "🧭", label: "Framework", value: client.framework },
+            { icon: "🚶", label: "Mobility", value: client.mobilityNote },
+          ].map((row) => (
+            <div key={row.label} style={{ display: "flex", gap: 8, marginBottom: 10, alignItems: "flex-start" }}>
+              <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>{row.icon}</span>
+              <div>
+                <span style={{ color: COLORS.g3, fontSize: 11, fontWeight: 600 }}>{row.label}: </span>
+                <span style={{ color: COLORS.g1, fontSize: 13 }}>{row.value}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Communication Passport */}
+        <div style={{ background: "rgba(167,139,250,0.08)", borderRadius: 14, padding: "14px 16px", borderLeft: "3px solid #a78bfa" }}>
+          <div style={{ display: "flex", gap: 7, alignItems: "center", marginBottom: 8 }}>
+            <span style={{ fontSize: 14 }}>💬</span>
+            <div style={{ color: "#a78bfa", fontWeight: 700, fontSize: 13 }}>Communication Passport</div>
+          </div>
+          <div style={{ color: COLORS.g1, fontSize: 13, lineHeight: 1.6 }}>{client.communication}</div>
+        </div>
+
+        {/* Medications */}
+        <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 16px", borderLeft: `3px solid ${COLORS.amber}` }}>
+          <div style={{ display: "flex", gap: 7, alignItems: "center", marginBottom: 10 }}>
+            <span style={{ fontSize: 14 }}>💊</span>
+            <div style={{ color: COLORS.amber, fontWeight: 700, fontSize: 13 }}>Medications Due</div>
+          </div>
+          {client.meds.map((m) => (
+            <div key={m.name} style={{ marginBottom: 10 }}>
+              <div style={{ color: m.name === "Metformin" ? COLORS.amber : "#fff", fontWeight: 700, fontSize: 13 }}>{m.name} {m.dose} {m.name === "Metformin" ? "⚠" : ""}</div>
+              {m.adminNote && <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 3, lineHeight: 1.4 }}>{m.adminNote}</div>}
+            </div>
+          ))}
+          {isMetformin && (
+            <div style={{ background: "rgba(246,183,60,0.12)", borderRadius: 8, padding: "7px 10px", marginTop: 4 }}>
+              <span style={{ color: COLORS.amber, fontSize: 12, fontWeight: 700 }}>⚠ Metformin must be given AFTER meals — confirm client has eaten first</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Start Visit CTA */}
+      <div style={{ padding: "12px 16px 20px", flexShrink: 0 }}>
+        <button
+          onClick={onStartVisit}
+          style={{ width: "100%", padding: "15px 0", borderRadius: 14, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 16, fontWeight: 700, cursor: "pointer", letterSpacing: 0.3 }}
+        >
+          Start Visit →
         </button>
       </div>
     </div>
@@ -4604,7 +4741,7 @@ export default function CAREiApp() {
   const [screen, setScreen] = useState<Screen>(() => {
     try {
       const saved = sessionStorage.getItem("carei_screen") as Screen;
-      const valid: Screen[] = ["otp","splash","today","active-visit","medication","handover","continucare-summary","care-plan","bodymap","emergency","visit-history","incident-report","rota","operations","schedule","family","family-summary","manager-approvals","copilot","profile","admin","admin-dashboard"];
+      const valid: Screen[] = ["otp","splash","today","client-overview","active-visit","medication","handover","continucare-summary","care-plan","bodymap","emergency","visit-history","incident-report","rota","operations","schedule","family","family-summary","manager-approvals","copilot","profile","admin","admin-dashboard"];
       return valid.includes(saved) ? saved : "splash";
     } catch {
       return "splash";
@@ -4698,7 +4835,7 @@ export default function CAREiApp() {
         return (
           <TodayCareScreen
             visitStatuses={visitStatuses}
-            onSelectClient={(id) => { setActiveClientId(id); setVisitStatuses((s) => ({ ...s, [id]: "in-progress" })); nav("active-visit"); }}
+            onSelectClient={(id) => { setActiveClientId(id); nav("client-overview"); }}
             onOperations={() => nav("operations")}
             onRota={() => nav("rota")}
             onAssistant={() => setShowAssistant(true)}
@@ -4706,6 +4843,16 @@ export default function CAREiApp() {
             onProfile={() => nav("profile")}
           />
         );
+      case "client-overview": {
+        const overviewClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
+        return (
+          <ClientOverviewScreen
+            client={overviewClient}
+            onBack={() => nav("today")}
+            onStartVisit={() => { setVisitStatuses((s) => ({ ...s, [overviewClient.id]: "in-progress" })); nav("active-visit"); }}
+          />
+        );
+      }
       case "active-visit": {
         const activeClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
         return (

@@ -59,9 +59,9 @@ const CLIENT = {
   allergy: "Penicillin",
   gp: "Dr Sandra Obi",
   meds: [
-    { name: "Amlodipine", dose: "5mg", time: "10AM", route: "Oral" },
-    { name: "Metformin", dose: "500mg", time: "10AM", route: "Oral" },
-    { name: "Atorvastatin", dose: "20mg", time: "10AM", route: "Oral" },
+    { name: "Amlodipine", dose: "5mg", time: "10AM", route: "Oral", adminNote: "Give with a full glass of water. Monitor for dizziness for 20 mins after." },
+    { name: "Metformin", dose: "500mg", time: "10AM", route: "Oral", adminNote: "⚠ Give AFTER meals — never on an empty stomach. Monitor for nausea/vomiting for 30 mins after administration." },
+    { name: "Atorvastatin", dose: "20mg", time: "10AM", route: "Oral", adminNote: "Give at same time each day. Monitor for any muscle pain or weakness after administration." },
   ],
 };
 
@@ -88,7 +88,7 @@ const OFFLINE_RESPONSES: Record<string, string> = {
   "What did she eat?":
     "No meal data recorded yet for today's visit. Document meals in the visit notes once breakfast has been prepared and served.",
   Medications:
-    "Grace's current medications: Amlodipine 5mg (10AM oral) for hypertension, Metformin 500mg (10AM oral) for T2 Diabetes, Atorvastatin 20mg (10AM oral) for cholesterol. ALLERGY: Penicillin.",
+    "Grace's current medications: Amlodipine 5mg (10AM oral) for hypertension, Metformin 500mg (10AM oral, AFTER meals) for T2 Diabetes, Atorvastatin 20mg (10AM oral) for cholesterol. ALLERGY: Penicillin. Always monitor for 20–30 mins after administration.",
 };
 
 const SCHEDULE_CLIENTS = [
@@ -313,82 +313,83 @@ function NavPills({
 
 function SplashScreen({ onNext }: { onNext: () => void }) {
   return (
-    <div
-      style={{
-        height: "100%",
-        background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 32,
-        gap: 24,
-      }}
-    >
-      <div style={{ textAlign: "center", marginBottom: 8 }}>
-        <div
-          style={{
-            fontFamily: "DM Serif Display, serif",
-            fontSize: 40,
-            color: "#fff",
-            letterSpacing: 1,
-          }}
-        >
-          CAREi
-        </div>
-        <div
-          style={{
-            fontSize: 15,
-            fontWeight: 400,
-            background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`,
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            marginTop: 6,
-          }}
-        >
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", overflowY: "auto" }}>
+      {/* Header */}
+      <div style={{ padding: "28px 24px 0", textAlign: "center", flexShrink: 0 }}>
+        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 32, color: "#fff", letterSpacing: 1 }}>CAREi</div>
+        <div style={{ fontSize: 13, fontWeight: 400, background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", marginTop: 3 }}>
           Intelligent Care. Every Visit.
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-        {["CQC Regulated", "GDPR Compliant", "AI Powered"].map((b) => (
-          <Badge key={b} color={COLORS.teal} bg="rgba(79,209,197,0.15)">
-            {b}
-          </Badge>
+      {/* Today's Visit Banner */}
+      <div style={{ margin: "18px 16px 0", background: "rgba(79,209,197,0.08)", border: "1px solid rgba(79,209,197,0.2)", borderRadius: 16, padding: "14px 16px", flexShrink: 0 }}>
+        <div style={{ color: COLORS.teal, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 }}>Today's Client — At a Glance</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+          <div style={{ width: 46, height: 46, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <span style={{ fontSize: 22 }}>👩🏾</span>
+          </div>
+          <div>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>Grace Mensah</div>
+            <div style={{ color: COLORS.g2, fontSize: 12 }}>83 years · 10 Oak Avenue, Reading RG1 4AT</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+          {["Hypertension", "T2 Diabetes", "Mild Cognitive Impairment"].map(c => (
+            <span key={c} style={{ background: "rgba(255,255,255,0.08)", color: COLORS.g1, fontSize: 11, borderRadius: 99, padding: "3px 9px", fontWeight: 600 }}>{c}</span>
+          ))}
+        </div>
+        {/* Key info rows */}
+        {[
+          { icon: "🩺", label: "GP", value: "Dr Sandra Obi · Caversham Surgery" },
+          { icon: "⚠️", label: "Allergy", value: "PENICILLIN — do not administer" },
+          { icon: "🤝", label: "Support level", value: "Full physical assistance + verbal prompts" },
+          { icon: "🧭", label: "Framework", value: "Person-Centred · PBS · PACE · Trauma-Informed" },
+          { icon: "💬", label: "Communication", value: "Use first name, short sentences, one step at a time" },
+          { icon: "🚶", label: "Mobility", value: "Walking frame at all times — high fall risk" },
+        ].map(row => (
+          <div key={row.label} style={{ display: "flex", gap: 8, marginBottom: 7, alignItems: "flex-start" }}>
+            <span style={{ fontSize: 13, flexShrink: 0, marginTop: 1 }}>{row.icon}</span>
+            <div>
+              <span style={{ color: COLORS.g3, fontSize: 11, fontWeight: 600 }}>{row.label}: </span>
+              <span style={{ color: row.label === "Allergy" ? COLORS.red : COLORS.g1, fontSize: 12, fontWeight: row.label === "Allergy" ? 700 : 400 }}>{row.value}</span>
+            </div>
+          </div>
         ))}
       </div>
 
-      <div
-        style={{
-          color: COLORS.g2,
-          fontSize: 13,
-          textAlign: "center",
-          lineHeight: 1.6,
-          maxWidth: 260,
-        }}
-      >
-        Supporting UK domiciliary care teams with AI-assisted visit management.
+      {/* Medication summary */}
+      <div style={{ margin: "12px 16px 0", background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "12px 14px", flexShrink: 0 }}>
+        <div style={{ color: COLORS.g2, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.7, marginBottom: 8 }}>Medications Due Today</div>
+        {[
+          { name: "Amlodipine 5mg", note: "10AM oral · monitor for dizziness 20 min after" },
+          { name: "Metformin 500mg", note: "10AM oral · AFTER meals only — monitor 30 min after", warn: true },
+          { name: "Atorvastatin 20mg", note: "10AM oral · monitor for muscle pain after" },
+        ].map(m => (
+          <div key={m.name} style={{ display: "flex", gap: 8, marginBottom: 7, alignItems: "flex-start" }}>
+            <span style={{ fontSize: 13, flexShrink: 0, marginTop: 1 }}>💊</span>
+            <div>
+              <span style={{ color: m.warn ? COLORS.amber : "#fff", fontSize: 12, fontWeight: 700 }}>{m.name} </span>
+              <span style={{ color: COLORS.g2, fontSize: 11 }}>{m.note}</span>
+            </div>
+          </div>
+        ))}
       </div>
 
-      <button
-        onClick={onNext}
-        style={{
-          marginTop: 8,
-          width: "100%",
-          padding: "16px 0",
-          borderRadius: 14,
-          border: "none",
-          background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`,
-          color: COLORS.darkNavy,
-          fontFamily: "DM Sans, sans-serif",
-          fontSize: 16,
-          fontWeight: 700,
-          cursor: "pointer",
-          letterSpacing: 0.3,
-        }}
-      >
-        Log In
-      </button>
+      {/* Badges + CTA */}
+      <div style={{ padding: "16px 16px 24px", flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", justifyContent: "center", marginBottom: 14 }}>
+          {["CQC Regulated", "GDPR Compliant", "AI Powered"].map((b) => (
+            <Badge key={b} color={COLORS.teal} bg="rgba(79,209,197,0.12)">{b}</Badge>
+          ))}
+        </div>
+        <button
+          onClick={onNext}
+          style={{ width: "100%", padding: "15px 0", borderRadius: 14, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 16, fontWeight: 700, cursor: "pointer", letterSpacing: 0.3 }}
+        >
+          Log In to CAREi
+        </button>
+      </div>
     </div>
   );
 }
@@ -1964,7 +1965,7 @@ function MedicationScreen({ onNext }: { onNext: () => void }) {
                 : "1px solid transparent",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
               <div>
                 <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>
                   {med.name} {med.dose}
@@ -1986,6 +1987,12 @@ function MedicationScreen({ onNext }: { onNext: () => void }) {
                 </Badge>
               )}
             </div>
+            {med.adminNote && (
+              <div style={{ background: med.name === "Metformin" ? "rgba(246,183,60,0.12)" : "rgba(79,209,197,0.08)", border: `1px solid ${med.name === "Metformin" ? "rgba(246,183,60,0.3)" : "rgba(79,209,197,0.15)"}`, borderRadius: 8, padding: "7px 10px", marginBottom: 10, display: "flex", gap: 7, alignItems: "flex-start" }}>
+                <span style={{ fontSize: 12, flexShrink: 0, marginTop: 1 }}>ℹ️</span>
+                <span style={{ color: med.name === "Metformin" ? COLORS.amber : COLORS.teal, fontSize: 12, lineHeight: 1.4, fontWeight: med.name === "Metformin" ? 700 : 400 }}>{med.adminNote}</span>
+              </div>
+            )}
             {!medStatus[med.name] && (
               <div style={{ display: "flex", gap: 8 }}>
                 <button
@@ -2027,6 +2034,16 @@ function MedicationScreen({ onNext }: { onNext: () => void }) {
           </div>
         ))}
 
+        {allActioned && (
+          <div style={{ background: "rgba(79,209,197,0.08)", border: "1px solid rgba(79,209,197,0.2)", borderRadius: 12, padding: "12px 14px", display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <span style={{ fontSize: 16, flexShrink: 0 }}>⏱️</span>
+            <div>
+              <div style={{ color: COLORS.teal, fontWeight: 700, fontSize: 13, marginBottom: 3 }}>Post-Medication Monitoring</div>
+              <div style={{ color: COLORS.g1, fontSize: 12, lineHeight: 1.5 }}>Please stay with Grace and monitor for at least 20–30 minutes after administration. Check for dizziness (Amlodipine), nausea (Metformin) or muscle pain (Atorvastatin). Document any adverse reactions immediately.</div>
+            </div>
+          </div>
+        )}
+
         <button
           onClick={onNext}
           disabled={!allActioned}
@@ -2066,7 +2083,7 @@ function SummaryScreen({ onDone }: { onDone: () => void }) {
 • Mobility: Mobilising with frame, steady on feet
 • Skin: No new pressure areas or concerns observed
 
-Next visit: Monitor blood sugar levels. Ensure Metformin is taken with food. Check in with Dr Sandra Obi if confusion increases.`;
+Next visit: Monitor blood sugar levels. Ensure Metformin is given AFTER meals — never on an empty stomach. Check in with Dr Sandra Obi if confusion increases.`;
 
   useEffect(() => {
     async function generateSummary() {
@@ -2944,34 +2961,231 @@ function VisitHistoryScreen({ onBack }: { onBack: () => void }) {
 // ─── Care Plan Screen ─────────────────────────────────────────────────────────
 
 function CarePlanScreen({ onBack }: { onBack: () => void }) {
-  const sections = [
-    { title: "Care Objectives", icon: "🎯", items: ["Maintain personal hygiene and dignity", "Support safe mobility with walking frame", "Administer medications as prescribed", "Monitor nutrition and fluid intake", "Promote social engagement and mental wellbeing"] },
-    { title: "Preferences & Routines", icon: "🌿", items: ["Prefers morning visits before 11am", "Likes tea with two sugars, no milk", "Enjoys crosswords and Radio 4", "Requires verbal prompts for washing", "Prefers female carers"] },
-    { title: "Risks & Precautions", icon: "⚠️", items: ["Fall risk — use walking frame at all times", "ALLERGY: Penicillin — do not administer", "Mild cognitive impairment — simple instructions", "High blood pressure — monitor regularly", "Diabetic — ensure meals taken with Metformin"] },
-    { title: "Last Review", icon: "📋", items: ["Reviewed: 01 March 2026 by Dr Sandra Obi", "Next review: 01 June 2026", "Care package: 1.5 hrs × 5 days per week"] },
+  const standardSections = [
+    {
+      title: "Support Framework",
+      icon: "🧭",
+      color: COLORS.teal,
+      items: [
+        "Person-Centred Approach — all care is planned around Grace's preferences, strengths and goals",
+        "Positive Behaviour Support (PBS) — proactive strategies to prevent distress before it escalates",
+        "Trauma-Informed Care — be mindful that past experiences may influence reactions",
+        "PACE approach — Playful, Accepting, Curious, Empathic in all interactions",
+      ],
+    },
+    {
+      title: "Level of Support",
+      icon: "🤝",
+      color: COLORS.teal,
+      items: [
+        "Personal care: Full physical assistance required (washing, dressing, grooming)",
+        "Mobility: Prompting and physical support — always use walking frame",
+        "Medication: Supervised administration — carer must be present throughout",
+        "Nutrition: Meal preparation and verbal encouragement to eat and drink",
+        "Orientation: Regular verbal prompts — Grace may not always know the date/time",
+        "Emotional: Reassurance and calm presence — do not rush Grace at any point",
+      ],
+    },
+    {
+      title: "Communication Passport",
+      icon: "💬",
+      color: "#a78bfa",
+      items: [
+        "Speak slowly and clearly — short sentences, one instruction at a time",
+        "Always introduce yourself by name at the start of each visit",
+        "Grace responds well to her first name — never 'love', 'dear' or 'sweetie'",
+        "Give Grace time to respond — do not finish her sentences",
+        "Use visual cues and gentle gestures where words are not understood",
+        "If Grace is confused, calmly re-orient rather than arguing or correcting",
+        "Grace may repeat questions — answer patiently each time as if it is the first",
+        "Preferred topics: family, her garden, Radio 4 programmes, crosswords",
+      ],
+    },
+    {
+      title: "Care Objectives",
+      icon: "🎯",
+      color: COLORS.teal,
+      items: [
+        "Maintain personal hygiene and dignity at all times",
+        "Support safe mobility with walking frame at all times",
+        "Administer medications as prescribed — Metformin AFTER meals only",
+        "Monitor nutrition and fluid intake — encourage 6–8 glasses of water daily",
+        "Promote social engagement and mental wellbeing",
+      ],
+    },
+    {
+      title: "Preferences & Routines",
+      icon: "🌿",
+      color: COLORS.green,
+      items: [
+        "Morning visits before 11am — Grace is most alert in the morning",
+        "Tea with two sugars, no milk — always offer at the start of the visit",
+        "Enjoys crosswords and Radio 4 — offer as activity after personal care",
+        "Requires verbal prompts for washing — she can participate with guidance",
+        "Prefers female carers — document if male carer attends and note Grace's response",
+        "Dislikes rushed visits — build in extra time if Grace is slow to cooperate",
+      ],
+    },
+    {
+      title: "Preventive Strategies",
+      icon: "🛡️",
+      color: COLORS.amber,
+      items: [
+        "Falls: Remove trip hazards before starting any task, ensure footwear is non-slip",
+        "Falls: Walking frame must be within reach at all times — never move it out of sight",
+        "Diabetes: Ensure Grace has eaten before administering Metformin — check meal plate",
+        "Diabetes: Monitor for signs of low blood sugar — sweating, shaking, confusion",
+        "Skin integrity: Check for any redness, pressure marks or wounds at each visit",
+        "Dehydration: Offer fluids regularly — Grace may not ask independently",
+        "Infection: Report any change in urine colour, confusion spike, or raised temperature",
+        "Cognitive decline: Use same routines each visit — familiarity reduces anxiety",
+      ],
+    },
+    {
+      title: "Risks & Precautions",
+      icon: "⚠️",
+      color: COLORS.red,
+      items: [
+        "HIGH FALL RISK — use walking frame at all times, never leave Grace standing unassisted",
+        "ALLERGY: Penicillin — do not administer under any circumstances",
+        "Mild cognitive impairment — use simple, calm instructions only",
+        "High blood pressure — monitor regularly, report readings above 150/90",
+        "Metformin must be given AFTER meals — never on empty stomach",
+        "Monitor for 20–30 mins after any medication is administered",
+      ],
+    },
+    {
+      title: "Post-Medication Monitoring",
+      icon: "💊",
+      color: COLORS.teal,
+      items: [
+        "After Amlodipine: Observe for dizziness or lightheadedness for 20 mins — keep Grace seated",
+        "After Metformin: Monitor for nausea, stomach discomfort or vomiting for 30 mins",
+        "After Atorvastatin: Ask Grace if she has any muscle pain or unusual weakness",
+        "Document time of administration and any observations in the visit notes",
+        "If Grace refuses medication: do not force — record refusal and reason, notify office",
+        "If any adverse reaction: call 999 immediately, then notify the office",
+      ],
+    },
+    {
+      title: "Last Review",
+      icon: "📋",
+      color: COLORS.g2,
+      items: [
+        "Reviewed: 01 March 2026 by Dr Sandra Obi",
+        "Next review: 01 June 2026",
+        "Care package: 1.5 hrs × 5 days per week",
+        "Framework: PBS + Person-Centred. Safety intervention: Adjoy Healthcare protocol",
+      ],
+    },
   ];
+
+  const pbsStates = [
+    {
+      label: "Grace is Calm / Happy",
+      color: COLORS.green,
+      bg: "rgba(34,197,94,0.1)",
+      border: "rgba(34,197,94,0.25)",
+      emoji: "😊",
+      signs: ["Smiling or relaxed facial expression", "Engaging in conversation", "Cooperating with personal care", "Asking for tea or the radio"],
+      staffActions: ["Continue with the planned care routine", "Offer choice and control wherever possible", "Engage in her preferred topics of conversation", "Praise cooperation warmly but naturally"],
+    },
+    {
+      label: "Grace is Anxious / Distressed",
+      color: COLORS.amber,
+      bg: "rgba(246,183,60,0.1)",
+      border: "rgba(246,183,60,0.25)",
+      emoji: "😟",
+      signs: ["Repeated questioning or calling out", "Wringing hands or pacing", "Refusing tasks she usually accepts", "Tearfulness or verbal expressions of fear"],
+      staffActions: ["Pause the task — do not push through", "Speak softly and use Grace's name", "Offer a warm drink and sit with her", "Try a familiar distraction — Radio 4 or conversation about family", "Document the episode and what helped"],
+    },
+    {
+      label: "Grace displays Risk Behaviour",
+      color: COLORS.red,
+      bg: "rgba(255,90,95,0.1)",
+      border: "rgba(255,90,95,0.3)",
+      emoji: "⚠️",
+      signs: ["Hitting, scratching or grabbing at staff", "Shouting or swearing", "Spitting or biting", "Attempting to leave the property"],
+      staffActions: ["Do NOT restrain — step back and create safe distance", "Stay calm — speak in a low, slow voice ('Grace, I'm here to help you')", "Do not take behaviour personally — this is the condition, not Grace", "Request backup: call a colleague or the office immediately", "Document the incident fully in CAREi and complete an Incident Report", "If injury occurs: seek first aid, complete a Datix/incident report, notify manager"],
+    },
+  ];
+
   return (
     <div style={{ height: "100%", background: COLORS.darkNavy, display: "flex", flexDirection: "column" }}>
       <div style={{ padding: "20px 18px 12px", flexShrink: 0 }}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0, marginBottom: 12 }}>‹</button>
         <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>Care Plan</div>
-        <div style={{ color: COLORS.g2, fontSize: 13, marginTop: 4 }}>Grace Mensah · Personal Care Package</div>
+        <div style={{ color: COLORS.g2, fontSize: 13, marginTop: 4 }}>Grace Mensah · Person-Centred Care Package</div>
       </div>
       <div className="phone-scroll" style={{ flex: 1, padding: "0 16px 24px", display: "flex", flexDirection: "column", gap: 12 }}>
-        {sections.map(s => (
-          <div key={s.title} style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 16px" }}>
+        {standardSections.map(s => (
+          <div key={s.title} style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 16px", borderLeft: `3px solid ${s.color}` }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
               <span style={{ fontSize: 18 }}>{s.icon}</span>
               <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{s.title}</div>
             </div>
             {s.items.map((item, i) => (
               <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-start" }}>
-                <div style={{ width: 4, height: 4, borderRadius: "50%", background: COLORS.teal, marginTop: 6, flexShrink: 0 }} />
+                <div style={{ width: 4, height: 4, borderRadius: "50%", background: s.color, marginTop: 6, flexShrink: 0 }} />
                 <span style={{ color: COLORS.g1, fontSize: 13, lineHeight: 1.5 }}>{item}</span>
               </div>
             ))}
           </div>
         ))}
+
+        {/* PBS Support Plan */}
+        <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 16px", borderLeft: "3px solid #a78bfa" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <span style={{ fontSize: 18 }}>🧩</span>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>PBS Support Plan</div>
+          </div>
+          <div style={{ color: COLORS.g3, fontSize: 11, marginBottom: 14 }}>Positive Behaviour Support — what to do in each state</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {pbsStates.map(state => (
+              <div key={state.label} style={{ background: state.bg, borderRadius: 12, padding: "12px 14px", border: `1px solid ${state.border}` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                  <span style={{ fontSize: 18 }}>{state.emoji}</span>
+                  <div style={{ color: state.color, fontWeight: 700, fontSize: 13 }}>{state.label}</div>
+                </div>
+                <div style={{ color: COLORS.g3, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 5 }}>Signs to look for</div>
+                {state.signs.map((s, i) => (
+                  <div key={i} style={{ display: "flex", gap: 7, marginBottom: 4, alignItems: "flex-start" }}>
+                    <div style={{ width: 3, height: 3, borderRadius: "50%", background: state.color, marginTop: 6, flexShrink: 0 }} />
+                    <span style={{ color: COLORS.g1, fontSize: 12, lineHeight: 1.5 }}>{s}</span>
+                  </div>
+                ))}
+                <div style={{ color: COLORS.g3, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, margin: "10px 0 5px" }}>What staff should do</div>
+                {state.staffActions.map((a, i) => (
+                  <div key={i} style={{ display: "flex", gap: 7, marginBottom: 4, alignItems: "flex-start" }}>
+                    <span style={{ color: state.color, fontSize: 12, flexShrink: 0, fontWeight: 700 }}>→</span>
+                    <span style={{ color: COLORS.g1, fontSize: 12, lineHeight: 1.5 }}>{a}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Safety Intervention */}
+        <div style={{ background: "rgba(255,90,95,0.08)", borderRadius: 14, padding: "14px 16px", borderLeft: `3px solid ${COLORS.red}` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <span style={{ fontSize: 18 }}>🦺</span>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>Safety Intervention Guidance</div>
+          </div>
+          {[
+            "If a service user hits or kicks you: step back immediately, do NOT retaliate or restrain. De-escalate using calm voice and safe distancing.",
+            "If you are injured: prioritise your safety — leave the room if necessary, call for help or dial 999.",
+            "If a service user has fallen: do NOT attempt to lift them alone. Call 999 if injured, keep them warm and calm, contact the office.",
+            "All incidents must be reported immediately via the Incident Report in CAREi and a full Datix completed within 24 hours.",
+            "Adjoy Healthcare operates a zero-tolerance policy to staff injury — always report, always document.",
+            "Safety intervention training is mandatory — speak to your manager if you have not completed MAPA/breakaway training.",
+          ].map((item, i) => (
+            <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-start" }}>
+              <div style={{ width: 4, height: 4, borderRadius: "50%", background: COLORS.red, marginTop: 6, flexShrink: 0 }} />
+              <span style={{ color: COLORS.g1, fontSize: 13, lineHeight: 1.5 }}>{item}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

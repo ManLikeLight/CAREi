@@ -3,31 +3,28 @@ import AdminDashboard from "./AdminDashboard";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Screen =
-  | "splash"
   | "otp"
-  | "dashboard"
-  | "visit"
-  | "copilot"
-  | "medication"
-  | "summary"
-  | "profile"
-  | "family"
-  | "bodymap"
-  | "admin"
-  | "admin-dashboard"
-  | "visit-history"
-  | "care-plan"
-  | "emergency"
+  | "splash"
   | "today"
   | "active-visit"
+  | "medication"
+  | "handover"
   | "continucare-summary"
+  | "care-plan"
+  | "bodymap"
+  | "emergency"
+  | "visit-history"
+  | "incident-report"
+  | "rota"
   | "operations"
   | "schedule"
-  | "rota"
+  | "family"
   | "family-summary"
   | "manager-approvals"
-  | "incident-report"
-  | "handover";
+  | "copilot"
+  | "profile"
+  | "admin"
+  | "admin-dashboard";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -248,28 +245,25 @@ function NavPills({
   onNav: (s: Screen) => void;
 }) {
   const screens: { key: Screen; label: string }[] = [
-    { key: "splash", label: "Splash" },
     { key: "otp", label: "Login" },
+    { key: "splash", label: "Client Overview" },
     { key: "today", label: "Today's Care" },
     { key: "active-visit", label: "Active Visit" },
-    { key: "continucare-summary", label: "Summary" },
+    { key: "medication", label: "Medications" },
+    { key: "handover", label: "Handover" },
+    { key: "continucare-summary", label: "Visit Summary" },
+    { key: "care-plan", label: "Care Plan" },
+    { key: "bodymap", label: "Body Map" },
+    { key: "emergency", label: "Emergency" },
+    { key: "visit-history", label: "Visit History" },
+    { key: "incident-report", label: "Incident Report" },
+    { key: "rota", label: "My Rota" },
     { key: "operations", label: "Operations" },
     { key: "schedule", label: "Schedule" },
-    { key: "rota", label: "My Rota" },
-    { key: "dashboard", label: "Dashboard (old)" },
-    { key: "visit", label: "Live Visit (old)" },
-    { key: "bodymap", label: "Body Map" },
-    { key: "copilot", label: "AI Copilot" },
-    { key: "medication", label: "Meds" },
-    { key: "summary", label: "Summary (old)" },
-    { key: "family", label: "Family" },
+    { key: "family", label: "Family Portal" },
     { key: "family-summary", label: "Family Summary" },
     { key: "manager-approvals", label: "Manager Approvals" },
-    { key: "incident-report", label: "Incident Report" },
-    { key: "handover", label: "Handover" },
-    { key: "visit-history", label: "History" },
-    { key: "care-plan", label: "Care Plan" },
-    { key: "emergency", label: "Emergency" },
+    { key: "copilot", label: "AI Copilot" },
     { key: "profile", label: "Profile" },
     { key: "admin", label: "Admin" },
     { key: "admin-dashboard", label: "Admin Dashboard" },
@@ -4610,7 +4604,7 @@ export default function CAREiApp() {
   const [screen, setScreen] = useState<Screen>(() => {
     try {
       const saved = sessionStorage.getItem("carei_screen") as Screen;
-      const valid: Screen[] = ["splash","otp","dashboard","visit","copilot","medication","summary","profile","family","bodymap","admin","admin-dashboard","visit-history","care-plan","emergency","today","active-visit","continucare-summary","operations","schedule","rota","family-summary","manager-approvals","incident-report","handover"];
+      const valid: Screen[] = ["otp","splash","today","active-visit","medication","handover","continucare-summary","care-plan","bodymap","emergency","visit-history","incident-report","rota","operations","schedule","family","family-summary","manager-approvals","copilot","profile","admin","admin-dashboard"];
       return valid.includes(saved) ? saved : "splash";
     } catch {
       return "splash";
@@ -4663,40 +4657,14 @@ export default function CAREiApp() {
         return <SplashScreen onNext={() => nav("otp")} />;
       case "otp":
         return <OTPScreen onNext={() => nav("today")} />;
-      case "dashboard":
-        return (
-          <DashboardScreen
-            onVisit={() => nav("visit")}
-            onCopilot={() => nav("copilot")}
-            onSOS={() => setShowSOS(true)}
-            onFamily={() => nav("family")}
-            onAdmin={() => nav("admin")}
-            onHistory={() => nav("visit-history")}
-            onProfile={() => nav("profile")}
-          />
-        );
-      case "visit":
-        return (
-          <LiveVisitScreen
-            onBack={() => nav("dashboard")}
-            onCopilot={() => nav("copilot")}
-            onMeds={() => nav("medication")}
-            onSOS={() => setShowSOS(true)}
-            onBodyMap={() => { setVisitReturnScreen("visit"); nav("bodymap"); }}
-            onEmergency={() => { setVisitReturnScreen("visit"); nav("emergency"); }}
-            onCarePlan={() => { setVisitReturnScreen("visit"); nav("care-plan"); }}
-          />
-        );
       case "copilot":
-        return <CopilotScreen onBack={() => nav("visit")} />;
+        return <CopilotScreen onBack={() => nav("today")} />;
       case "medication":
-        return <MedicationScreen onNext={() => nav("summary")} />;
-      case "summary":
-        return <SummaryScreen onDone={() => nav("dashboard")} />;
+        return <MedicationScreen onNext={() => nav("today")} />;
       case "profile":
-        return <ProfileScreen onSignOut={() => nav("splash")} />;
+        return <ProfileScreen onSignOut={() => nav("otp")} />;
       case "family":
-        return <FamilyPortalScreen onBack={() => nav("dashboard")} onSummary={() => nav("family-summary")} />;
+        return <FamilyPortalScreen onBack={() => nav("today")} onSummary={() => nav("family-summary")} />;
       case "family-summary":
         return (
           <FamilySummaryScreen
@@ -4717,13 +4685,13 @@ export default function CAREiApp() {
       case "bodymap":
         return <BodyMapScreen onBack={() => nav(visitReturnScreen)} />;
       case "visit-history":
-        return <VisitHistoryScreen onBack={() => nav("dashboard")} />;
+        return <VisitHistoryScreen onBack={() => nav("today")} />;
       case "care-plan":
         return <CarePlanScreen onBack={() => nav(visitReturnScreen)} />;
       case "emergency":
         return <EmergencyContactsScreen onBack={() => nav(visitReturnScreen)} />;
       case "admin":
-        return <AdminTeaserScreen onBack={() => nav("dashboard")} onOpenAdmin={() => nav("admin-dashboard")} />;
+        return <AdminTeaserScreen onBack={() => nav("today")} onOpenAdmin={() => nav("admin-dashboard")} />;
       case "admin-dashboard":
         return null;
       case "today":

@@ -4752,10 +4752,10 @@ export default function CAREiApp() {
   const [screen, setScreen] = useState<Screen>(() => {
     try {
       const saved = sessionStorage.getItem("carei_screen") as Screen;
-      const valid: Screen[] = ["otp","splash","today","client-overview","active-visit","medication","handover","continucare-summary","care-plan","bodymap","emergency","visit-history","incident-report","rota","operations","schedule","family","family-summary","manager-approvals","copilot","profile","admin","admin-dashboard"];
-      return valid.includes(saved) ? saved : "splash";
+      const valid: Screen[] = ["today","client-overview","active-visit","medication","handover","continucare-summary","care-plan","bodymap","emergency","visit-history","incident-report","rota","operations","schedule","family","family-summary","manager-approvals","copilot","profile","admin","admin-dashboard"];
+      return valid.includes(saved) ? saved : "otp";
     } catch {
-      return "splash";
+      return "otp";
     }
   });
   const [showSOS, setShowSOS] = useState(false);

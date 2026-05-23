@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "Ck8wGhgXYjczitry4jxm9"
+uri = "file://CAREi_source.txt"
+type = "text"
+title = "CAREi — Full Source Code"

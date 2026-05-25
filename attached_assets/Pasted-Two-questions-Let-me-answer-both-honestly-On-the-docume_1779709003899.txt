@@ -1,0 +1,41 @@
+Two questions. Let me answer both honestly.
+
+On the documents — are they premium?
+
+They are comprehensive and technically accurate. But if you are submitting these to Innovate UK, NHS bodies, or sophisticated angel investors doing due diligence, there are three things that would elevate them to genuinely premium:
+
+One. A proper Table of Contents. Currently they jump straight into content. A TOC with page numbers is standard in professional technical documents and makes reviewers trust the document immediately.
+
+Two. A version history table. SRS and PRD documents at investment grade have a revision log showing v1.0, v2.0, what changed and why. It signals maturity and process.
+
+Three. The SRS is missing a formal Appendix with a data flow diagram or system context diagram. A visual showing how data moves from carer input through the API to the Claude model and back is standard in technical due diligence packs.
+
+I can rebuild both with these additions. It would take another pass but the output would be genuinely investment-grade.
+
+On features for MVP — honest assessment from the code:
+
+Here are the ones I think matter most, ranked by impact vs build effort:
+
+1. Blood pressure and vital signs logging (high impact, low effort)
+The prototype already mentions blood pressure checks in the task list and shows a BP reading in the Family Portal timeline (142/88 mmHg). Tom Adams has a specific requirement to report readings above 140/90 to his GP. But there is no structured BP input anywhere. A simple numeric input field on the Care Notes tab or as a dedicated card in Active Visit would close a genuine CQC evidence gap and is something no DSCR currently does at the carer layer.
+
+2. Medication clock-out timer with monitoring confirmation (high impact, medium effort)
+The prototype has admin notes saying “monitor for 20 to 30 minutes after administration” for every medication. But there is no mechanism to enforce or record that monitoring. A simple timer that starts after medication confirmation and asks the carer to confirm they observed the client for the specified period would turn a note into an auditable event. This is exactly the kind of feature that impresses CQC inspectors and differentiates CAREi from paper MAR charts.
+
+3. Fluid and nutrition intake logging (medium impact, low effort)
+The care plan for Mary Johnson specifically states “encourage 6 to 8 glasses of water daily.” Aisha Khan has hydration monitoring as a risk factor. But there is nowhere to record it. A simple fluid intake counter on the Care Notes tab would take one day to build and would surface in the ContinuCare+ summary automatically.
+
+4. Skin integrity photo capture (high impact, medium effort)
+The Body Map screen is excellent but it only records mark type and zone. In practice CQC expects a photo alongside the body map for any pressure sore or skin integrity concern. Adding a camera capture button to the Body Map save flow that stores a timestamped image against the body map record would make it genuinely inspection-ready rather than just useful.
+
+5. Carer-to-carer handover read receipt on the mobile app (high impact, low effort)
+The prototype shows a handover read receipt concept in the legacy SummaryScreen. But in the multi-client workflow the next carer never actually confirms they read the previous handover before starting a visit. A simple “I have read this handover” confirmation on the Client Overview screen before Start Visit would close the chain-of-custody loop and give you a fully auditable handover trail from submission to acknowledgement.
+
+6. Supervisor notification log (medium impact, low effort)
+Currently when a medication is flagged or an SOS fires, the system says the supervisor is notified. But there is no record of whether that notification was acknowledged or what action was taken. A simple acknowledgement field that the supervisor fills in from the manager dashboard would complete the audit trail.
+
+The one I would prioritise above all others for the MVP:
+
+The medication monitoring timer. It is the single biggest gap between CAREi’s prototype and what a CQC inspector would actually want to see evidence of. Every medication has a monitoring window. No existing system records whether it was observed. That feature alone is a genuine differentiator that you can put in every investor conversation and every agency pitch.
+
+Shall I rebuild the documents with the TOC and version history, and also update the SRS and PRD feature sections to include these six recommended additions?

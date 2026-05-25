@@ -6,3 +6,9 @@ id = "Ck8wGhgXYjczitry4jxm9"
 uri = "file://CAREi_source.txt"
 type = "text"
 title = "CAREi — Full Source Code"
+
+[[outputs]]
+id = "jIpR80BIOvOjJf_TmvlM8"
+uri = "file://CAREi-Source-Code.md"
+type = "text"
+title = "CAREi-Source-Code.md"

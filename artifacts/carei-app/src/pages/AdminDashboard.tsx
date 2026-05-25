@@ -282,20 +282,22 @@ function CQCAuditTrail() {
 
 function AgencyAlerts() {
   const [filter, setFilter] = useState<AlertFilter>("All");
-  const [ackState, setAckState] = useState<Record<number, { open: boolean; text: string; done: boolean; time: string }>>({});
+  const [ackState, setAckState] = useState<Record<number, { open: boolean; text: string; done: boolean; time: string; openedAt: number; responseTime: string }>>({});
 
   const filtered = ALERTS.filter(a =>
     filter === "All" ? true : filter === "Critical" ? a.sev === "Critical" : a.type === "AI Flag"
   );
 
   function openAck(id: number) {
-    setAckState(s => ({ ...s, [id]: { open: true, text: s[id]?.text ?? "", done: false, time: "" } }));
+    setAckState(s => ({ ...s, [id]: { open: true, text: s[id]?.text ?? "", done: false, time: "", openedAt: Date.now(), responseTime: "" } }));
   }
   function submitAck(id: number) {
     const text = ackState[id]?.text?.trim();
     if (!text) return;
     const time = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-    setAckState(s => ({ ...s, [id]: { open: false, text, done: true, time } }));
+    const elapsed = Math.round((Date.now() - (ackState[id]?.openedAt ?? Date.now())) / 1000);
+    const responseTime = elapsed < 60 ? `${elapsed}s` : `${Math.floor(elapsed / 60)} min ${elapsed % 60}s`;
+    setAckState(s => ({ ...s, [id]: { open: false, text, done: true, time, openedAt: s[id]?.openedAt ?? Date.now(), responseTime } }));
   }
 
   return (
@@ -328,7 +330,14 @@ function AgencyAlerts() {
               {/* Feature 6 — Supervisor Acknowledgement Log */}
               {ack?.done ? (
                 <div style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 8, padding: "10px 14px" }}>
-                  <div style={{ color: C.green, fontWeight: 700, fontSize: 12, marginBottom: 4 }}>✓ Acknowledged — {ack.time}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                    <div style={{ color: C.green, fontWeight: 700, fontSize: 12 }}>✓ Acknowledged — {ack.time}</div>
+                    {ack.responseTime && (
+                      <span style={{ marginLeft: "auto", background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 99, padding: "2px 8px", color: C.green, fontSize: 11, fontWeight: 600 }}>
+                        ⏱ Responded in {ack.responseTime}
+                      </span>
+                    )}
+                  </div>
                   <div style={{ color: C.g2, fontSize: 12, lineHeight: 1.5 }}><span style={{ color: C.g3 }}>Action taken: </span>{ack.text}</div>
                 </div>
               ) : ack?.open ? (

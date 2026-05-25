@@ -106,6 +106,18 @@ const SCHEDULE_CLIENTS = [
     communication: "Use simple words and short sentences. Validate feelings — never argue or correct. Approach from the front, maintain eye contact. Mary may not recognise you — introduce yourself each visit.",
     mobilityNote: "Walking frame required at all times — high fall risk",
     medNote: "Donepezil 10mg after breakfast · Aspirin 75mg with food",
+    vitalSignsRequired: false,
+    vitalSignsThreshold: "",
+    lastHandoverBullets: [
+      "Mary was calm and cooperative throughout — no exit-seeking behaviour noted. Personal care completed fully.",
+      "No changes since last visit — routine and medication both as planned. Ate a full breakfast.",
+      "Watch for: agitation around mealtimes — offer familiar music as a calming distraction before continuing.",
+    ],
+    contextualCues: [
+      { trigger: "Prepare breakfast", content: "Encourage fluid alongside meal — Mary requires 6–8 glasses daily. Offer water or juice first before starting breakfast. Aspirin must be given WITH food." },
+      { trigger: "Assist with mobility", content: "Walking frame must remain within reach at all times. Mary is HIGH FALL RISK — never leave her standing unassisted. Remove trip hazards before starting movement." },
+      { trigger: "Record mood", content: "Use the PBS framework: Green (calm/engaging), Amber (repetitive questioning/pacing), Red (physical behaviour). Document what helped in the notes." },
+    ],
     meds: [
       { name: "Aspirin", dose: "75mg", adminNote: "Give with food. Monitor for stomach discomfort." },
       { name: "Donepezil", dose: "10mg", adminNote: "Give after breakfast. Monitor for nausea or sleep disturbance." },
@@ -127,6 +139,18 @@ const SCHEDULE_CLIENTS = [
     communication: "Speak slowly and clearly — Tom may have word-finding difficulties. Allow extra time to respond. Do not finish his sentences. Use gestures where helpful.",
     mobilityNote: "Hoist required for transfers — never attempt manual lift alone",
     medNote: "Aspirin 75mg and Lisinopril 10mg with morning meal",
+    vitalSignsRequired: true,
+    vitalSignsThreshold: "Report to supervisor if BP above 140/90 mmHg — call office immediately",
+    lastHandoverBullets: [
+      "Tom completed transfers safely with hoist — cooperated well. BP 138/86 — within normal range.",
+      "Change since last visit: appetite slightly reduced — ate approximately half of breakfast.",
+      "Watch for: any difficulty swallowing — do not rush food or drink; report immediately if observed.",
+    ],
+    contextualCues: [
+      { trigger: "Prepare breakfast", content: "Aspirin and Lisinopril must be given WITH this meal — confirm Tom has eaten before administering. Record BP 20 mins after Lisinopril." },
+      { trigger: "Assist with mobility", content: "Hoist required for ALL transfers — never attempt manual lift alone. Support Tom's affected side throughout. Allow him extra time — do not rush." },
+      { trigger: "Record mood", content: "Allow extra time for Tom to communicate — post-stroke aphasia means he needs processing time. Do not finish his sentences. Note any visible frustration or withdrawal." },
+    ],
     meds: [
       { name: "Aspirin", dose: "75mg", adminNote: "Give with morning meal. Monitor for dizziness." },
       { name: "Lisinopril", dose: "10mg", adminNote: "Give with food. Monitor blood pressure. Report readings above 140/90." },
@@ -148,6 +172,18 @@ const SCHEDULE_CLIENTS = [
     communication: "Aisha speaks English and Urdu. Use simple language and offer choices. She is private — always explain what you are doing before doing it.",
     mobilityNote: "Independent walking — monitor for dizziness (hypoglycaemia risk)",
     medNote: "Metformin 500mg AFTER meals — never on empty stomach",
+    vitalSignsRequired: false,
+    vitalSignsThreshold: "",
+    lastHandoverBullets: [
+      "Aisha in good spirits — engaged positively with carer. Blood sugar 7.2 mmol/L before Metformin.",
+      "No changes since last visit — foot inspection normal, no redness, wounds or swelling noted.",
+      "Watch for: signs of hypoglycaemia before and after meals — sweating, shaking, confusion, pale skin.",
+    ],
+    contextualCues: [
+      { trigger: "Prepare breakfast", content: "Confirm Aisha has eaten BEFORE giving Metformin — never administer on an empty stomach. Monitor for nausea for 30 mins after. Encourage water with meal." },
+      { trigger: "Assist with mobility", content: "Monitor for dizziness before and after movement — hypoglycaemia risk. If Aisha appears unsteady or confused, sit her down and check blood sugar immediately." },
+      { trigger: "Record mood", content: "Always explain each step before doing it — Aisha values being in control of her care. Note any signs of withdrawal or reduced engagement; these may indicate low blood sugar." },
+    ],
     meds: [
       { name: "Metformin", dose: "500mg", adminNote: "⚠ Give AFTER meals only — never on an empty stomach. Monitor for nausea for 30 mins after." },
       { name: "Lisinopril", dose: "10mg", adminNote: "Give with food. Monitor blood pressure and report readings above 140/90." },
@@ -515,29 +551,36 @@ function ClientOverviewScreen({
         </div>
       </div>
 
-      {/* Feature 5 — Handover Read Receipt */}
+      {/* Smart Handover Briefing */}
       <div style={{ padding: "0 16px 10px", flexShrink: 0 }}>
         <div style={{ background: handoverRead ? "rgba(34,197,94,0.08)" : "rgba(255,255,255,0.05)", borderRadius: 14, padding: "13px 14px", border: `1px solid ${handoverRead ? "rgba(34,197,94,0.25)" : "rgba(255,255,255,0.1)"}` }}>
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: handoverRead ? 0 : 10 }}>
-            <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>📋</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ color: handoverRead ? COLORS.green : COLORS.g1, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>
-                {handoverRead ? "✓ Handover confirmed as read" : "Previous Handover Note"}
+          {handoverRead ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 20 }}>✅</span>
+              <div>
+                <div style={{ color: COLORS.green, fontWeight: 700, fontSize: 13 }}>Briefing confirmed — you're ready to start</div>
+                <div style={{ color: COLORS.g3, fontSize: 11, marginTop: 2 }}>Confirmed at {new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</div>
               </div>
-              {!handoverRead && (
-                <div style={{ color: COLORS.g2, fontSize: 12, lineHeight: 1.5 }}>
-                  {firstName} was in {client.id === "aisha" ? "reasonable" : "good"} spirits at the last visit. Personal care completed.{" "}
-                  {client.id === "mary" ? "No exit-seeking behaviour noted. Ate a full breakfast." : client.id === "tom" ? "Transfers completed safely with hoist. BP 138/86 — within range." : "Blood sugar 7.2 mmol/L before Metformin. Foot inspection normal."}
-                  {" "}Next carer to continue routine as planned.
-                </div>
-              )}
-              {handoverRead && <div style={{ color: COLORS.g3, fontSize: 11 }}>Confirmed at {new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</div>}
             </div>
-          </div>
-          {!handoverRead && (
-            <button onClick={() => setHandoverRead(true)} style={{ width: "100%", padding: "9px 0", borderRadius: 10, border: "1px solid rgba(79,209,197,0.3)", background: "rgba(79,209,197,0.08)", color: COLORS.teal, fontFamily: "DM Sans, sans-serif", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-              ✓ I confirm I have read this handover
-            </button>
+          ) : (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <span style={{ fontSize: 14 }}>📋</span>
+                <div style={{ color: COLORS.g1, fontWeight: 700, fontSize: 13 }}>Last Visit — Key Points</div>
+                <span style={{ marginLeft: "auto", color: COLORS.g3, fontSize: 10, fontStyle: "italic" }}>~10 sec read</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+                {(client.lastHandoverBullets as string[]).map((bullet, i) => (
+                  <div key={i} style={{ display: "flex", gap: 9, alignItems: "flex-start" }}>
+                    <div style={{ width: 7, height: 7, borderRadius: "50%", background: i === 0 ? COLORS.teal : i === 1 ? COLORS.green : COLORS.amber, flexShrink: 0, marginTop: 4 }} />
+                    <span style={{ color: COLORS.g1, fontSize: 12, lineHeight: 1.5 }}>{bullet}</span>
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => setHandoverRead(true)} style={{ width: "100%", padding: "9px 0", borderRadius: 10, border: "1px solid rgba(79,209,197,0.3)", background: "rgba(79,209,197,0.08)", color: COLORS.teal, fontFamily: "DM Sans, sans-serif", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                ✓ I've seen this — start visit
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -2070,6 +2113,8 @@ function MedicationScreen({ onNext }: { onNext: () => void }) {
   const [medStatus, setMedStatus] = useState<Record<string, string>>({});
   const [monitoringElapsed, setMonitoringElapsed] = useState(0);
   const [monitoringConfirmed, setMonitoringConfirmed] = useState(false);
+  const [showEarlyExitModal, setShowEarlyExitModal] = useState(false);
+  const [earlyExitReason, setEarlyExitReason] = useState("");
   const monitorWindowMins = 30;
   const monitorRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -2248,27 +2293,63 @@ function MedicationScreen({ onNext }: { onNext: () => void }) {
         )}
 
         <button
-          onClick={onNext}
-          disabled={!allActioned || !monitoringConfirmed}
+          onClick={() => {
+            if (!allActioned) return;
+            if (!monitoringConfirmed && monitoringElapsed < monitorWindowMins * 60) {
+              setShowEarlyExitModal(true);
+            } else {
+              onNext();
+            }
+          }}
+          disabled={!allActioned}
           style={{
             width: "100%",
             padding: "16px 0",
             borderRadius: 14,
             border: "none",
-            background: allActioned && monitoringConfirmed
+            background: allActioned
               ? `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`
               : "rgba(255,255,255,0.1)",
-            color: allActioned && monitoringConfirmed ? COLORS.darkNavy : COLORS.g3,
+            color: allActioned ? COLORS.darkNavy : COLORS.g3,
             fontFamily: "DM Sans, sans-serif",
             fontSize: 15,
             fontWeight: 700,
-            cursor: allActioned && monitoringConfirmed ? "pointer" : "not-allowed",
+            cursor: allActioned ? "pointer" : "not-allowed",
             marginTop: 8,
           }}
         >
-          {!allActioned ? `Action all medications (${Object.keys(medStatus).length}/${CLIENT.meds.length})` : !monitoringConfirmed ? "Complete monitoring window first" : "Continue to Summary →"}
+          {!allActioned ? `Action all medications (${Object.keys(medStatus).length}/${CLIENT.meds.length})` : "Continue to Summary →"}
         </button>
       </div>
+
+      {/* Early Exit Soft-Gate Modal */}
+      {showEarlyExitModal && (
+        <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.65)", display: "flex", flexDirection: "column", justifyContent: "flex-end", zIndex: 60 }}>
+          <div style={{ background: COLORS.navy, borderRadius: "20px 20px 0 0", padding: 20 }}>
+            <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto 16px" }} />
+            <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 18, color: "#fff", marginBottom: 4 }}>Monitoring window still open</div>
+            <div style={{ color: COLORS.amber, fontSize: 13, marginBottom: 6 }}>
+              {monitorWindowMins - Math.floor(monitoringElapsed / 60)} min {60 - (monitoringElapsed % 60)}s remaining — early exit will be logged
+            </div>
+            <div style={{ color: COLORS.g2, fontSize: 12, marginBottom: 14, lineHeight: 1.5 }}>
+              You can proceed early if there is a clinical or operational reason. Select a reason to continue:
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
+              {["Next client appointment due", "Client is settled and a responsible adult is present", "Supervisor has been informed and agreed", "No concerns observed — low-risk situation"].map((r) => (
+                <button key={r} onClick={() => setEarlyExitReason(r)} style={{ padding: "9px 14px", borderRadius: 10, border: `1px solid ${earlyExitReason === r ? COLORS.amber : "rgba(255,255,255,0.1)"}`, background: earlyExitReason === r ? "rgba(246,183,60,0.15)" : "transparent", color: earlyExitReason === r ? COLORS.amber : COLORS.g2, textAlign: "left", fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif", fontWeight: earlyExitReason === r ? 600 : 400 }}>{r}</button>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => { setShowEarlyExitModal(false); setEarlyExitReason(""); }} style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: COLORS.g1, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Wait — stay with client</button>
+              <button
+                onClick={() => { if (earlyExitReason) { setMonitoringConfirmed(true); setShowEarlyExitModal(false); onNext(); } }}
+                style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "none", background: earlyExitReason ? COLORS.amber : "rgba(255,255,255,0.08)", color: earlyExitReason ? COLORS.darkNavy : COLORS.g3, fontSize: 13, fontWeight: 700, cursor: earlyExitReason ? "pointer" : "not-allowed", fontFamily: "DM Sans, sans-serif" }}>
+                {earlyExitReason ? "Proceed — log reason" : "Select a reason first"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -4171,6 +4252,26 @@ function TodayCareScreen({
   const hour = now.getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const doneCount = Object.values(visitStatuses).filter((s) => s === "completed").length;
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
+
+  function playBriefing(c: typeof SCHEDULE_CLIENTS[0], e: React.MouseEvent) {
+    e.stopPropagation();
+    if (speakingId === c.id) {
+      window.speechSynthesis.cancel();
+      setSpeakingId(null);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const bullets = (c.lastHandoverBullets as string[]).join(". ");
+    const text = `Handover briefing for ${c.name}. ${bullets}`;
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang = "en-GB";
+    utt.rate = 0.92;
+    utt.onend = () => setSpeakingId(null);
+    utt.onerror = () => setSpeakingId(null);
+    window.speechSynthesis.speak(utt);
+    setSpeakingId(c.id);
+  }
 
   return (
     <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", position: "relative" }}>
@@ -4230,10 +4331,20 @@ function TodayCareScreen({
                 </div>
                 <Badge color={cfg.color} bg={cfg.bg}>{cfg.label}</Badge>
               </div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {client.tags.map((tag) => (
-                  <Badge key={tag} color={COLORS.teal} bg="rgba(79,209,197,0.1)">{tag}</Badge>
-                ))}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {client.tags.map((tag) => (
+                    <Badge key={tag} color={COLORS.teal} bg="rgba(79,209,197,0.1)">{tag}</Badge>
+                  ))}
+                </div>
+                {status !== "completed" && (
+                  <button
+                    onClick={(e) => playBriefing(client, e)}
+                    style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 99, border: `1px solid ${speakingId === client.id ? "rgba(79,209,197,0.5)" : "rgba(255,255,255,0.12)"}`, background: speakingId === client.id ? "rgba(79,209,197,0.15)" : "rgba(255,255,255,0.05)", color: speakingId === client.id ? COLORS.teal : COLORS.g3, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "DM Sans, sans-serif", flexShrink: 0 }}
+                  >
+                    {speakingId === client.id ? "⏹ Stop" : "🔊 Listen"}
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -4273,7 +4384,6 @@ function ActiveVisitScreen({
   onBodyMap,
   onCarePlan,
   onEmergency,
-  onIncident,
 }: {
   client: typeof SCHEDULE_CLIENTS[0];
   onComplete: () => void;
@@ -4283,12 +4393,11 @@ function ActiveVisitScreen({
   onBodyMap: () => void;
   onCarePlan: () => void;
   onEmergency: () => void;
-  onIncident: () => void;
 }) {
-  const [activeTab, setActiveTab] = useState<"tasks" | "notes" | "medication" | "history">("tasks");
   const [tasks, setTasks] = useState([false, false, false]);
   const [notes, setNotes] = useState("");
   const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
   const [medStatus, setMedStatus] = useState<Record<string, "taken" | "refused" | undefined>>({});
   const [showRefusalFor, setShowRefusalFor] = useState<string | null>(null);
   const [refusalReason, setRefusalReason] = useState("");
@@ -4298,19 +4407,33 @@ function ActiveVisitScreen({
   const [loneElapsed, setLoneElapsed] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  // Feature 1 — Vitals
   const [bpSys, setBpSys] = useState("");
   const [bpDia, setBpDia] = useState("");
   const [pulse, setPulse] = useState("");
   const [o2sat, setO2sat] = useState("");
   const [vitalsSaved, setVitalsSaved] = useState(false);
-  // Feature 3 — Fluid & Nutrition
   const [fluidGlasses, setFluidGlasses] = useState(0);
   const [mealStatus, setMealStatus] = useState<"" | "Full" | "Half" | "Refused">("");
+  const [showMealPrompt, setShowMealPrompt] = useState(false);
+  const [mealPromptDismissed, setMealPromptDismissed] = useState(false);
+  const [mood, setMood] = useState("");
+  const [moodSet, setMoodSet] = useState(false);
+  const [shownCues, setShownCues] = useState<Set<string>>(new Set());
+  const [showPrevVisits, setShowPrevVisits] = useState(false);
+  const [showInlineIncident, setShowInlineIncident] = useState(false);
+  const [incidentSeverity, setIncidentSeverity] = useState("");
+  const [incidentType, setIncidentType] = useState("");
+  const [incidentNote, setIncidentNote] = useState("");
+  const [incidentDone, setIncidentDone] = useState(false);
+
   const loneIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const visitIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const recognitionRef = useRef<any>(null);
+  const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastActivityRef = useRef<number>(Date.now());
 
   const VISIT_TASKS = ["Prepare breakfast", "Assist with mobility", "Record mood"];
+  const MEAL_TASK_IDX = 0;
   const CARE_HISTORY = [
     { date: "14 Mar 2026", summary: "Client in good spirits. All medication administered. Breakfast completed without issue." },
     { date: "12 Mar 2026", summary: "Mobility slightly reduced compared to previous visit. Flagged to supervisor. Meds taken on time." },
@@ -4340,28 +4463,79 @@ function ActiveVisitScreen({
     return () => { if (loneIntervalRef.current) clearInterval(loneIntervalRef.current); };
   }, [isLone]);
 
+  useEffect(() => {
+    const trackActivity = () => { lastActivityRef.current = Date.now(); };
+    document.addEventListener("click", trackActivity);
+    document.addEventListener("touchstart", trackActivity);
+    const visCheck = setInterval(() => {
+      if (isLone && document.hidden) {
+        const inactiveMs = Date.now() - lastActivityRef.current;
+        if (inactiveMs >= 25 * 60 * 1000) setLoneElapsed(25 * 60 + 1);
+      }
+    }, 30000);
+    return () => {
+      document.removeEventListener("click", trackActivity);
+      document.removeEventListener("touchstart", trackActivity);
+      clearInterval(visCheck);
+    };
+  }, [isLone]);
+
   const loneOverdue = isLone && loneElapsed >= 25 * 60;
   const allMedsAcknowledged = client.meds.every((m) => medStatus[m.name] !== undefined);
+  const firstName = client.name.split(" ")[0];
 
-  function handleMicClick() {
-    setIsRecording(true);
-    setTimeout(() => {
-      setNotes((n) => (n ? n + "\n" : "") + "Client ate breakfast. Appeared withdrawn. Mobility slightly reduced.");
-      setIsRecording(false);
-    }, 1500);
+  function handleTaskCheck(i: number) {
+    const newTasks = [...tasks];
+    newTasks[i] = !newTasks[i];
+    setTasks(newTasks);
+    if (i === MEAL_TASK_IDX && newTasks[i] && !mealPromptDismissed && mealStatus === "") {
+      setShowMealPrompt(true);
+    }
+    const taskName = VISIT_TASKS[i];
+    const cue = (client.contextualCues as { trigger: string; content: string }[])?.find((c) => c.trigger === taskName);
+    if (cue && newTasks[i] && !shownCues.has(taskName)) {
+      setShownCues((prev) => new Set([...prev, taskName]));
+    }
   }
 
-  const TAB_LABELS: Record<string, string> = {
-    tasks: "Care Tasks",
-    notes: "Care Notes",
-    medication: "Medication",
-    history: "Care History",
-  };
+  function startRecording() {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      setNotes((n) => (n ? n + "\n" : "") + "[Voice dictation requires Chrome — allow microphone and try again.]");
+      return;
+    }
+    const rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = "en-GB";
+    rec.onresult = (e: any) => {
+      let final = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      }
+      if (final) setNotes((n) => n + final + " ");
+    };
+    rec.onerror = () => stopRecording();
+    rec.onend = () => stopRecording();
+    rec.start();
+    recognitionRef.current = rec;
+    setIsRecording(true);
+    setRecordingTime(0);
+    recordingIntervalRef.current = setInterval(() => setRecordingTime((t) => t + 1), 1000);
+  }
+
+  function stopRecording() {
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+    setIsRecording(false);
+  }
 
   return (
     <div style={{ height: "100%", background: COLORS.darkNavy, display: "flex", flexDirection: "column", position: "relative" }}>
-      {/* Header */}
-      <div style={{ background: "rgba(15,29,52,0.98)", padding: "12px 16px", flexShrink: 0 }}>
+
+      {/* ── Header ── */}
+      <div style={{ background: "rgba(15,29,52,0.98)", padding: "12px 16px 10px", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0 }}>‹</button>
           <div style={{ textAlign: "center" }}>
@@ -4371,24 +4545,29 @@ function ActiveVisitScreen({
           <button onClick={onSOS} style={{ background: COLORS.red, border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, fontSize: 12, padding: "5px 10px", cursor: "pointer" }}>SOS</button>
         </div>
 
-        {/* Client profile card */}
+        {/* Client + AI button */}
         <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 10, padding: "10px 12px", background: "rgba(255,255,255,0.06)", borderRadius: 12 }}>
           <div style={{ width: 44, height: 44, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.darkNavy, fontWeight: 700, fontSize: 16, flexShrink: 0 }}>
-            {client.name.split(" ").map((n) => n[0]).join("")}
+            {client.name.split(" ").map((n: string) => n[0]).join("")}
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{client.name}</div>
             <div style={{ color: COLORS.g2, fontSize: 12 }}>Age {client.age} · {client.condition}</div>
-            <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 1 }}>{client.time}</div>
           </div>
-          <button onClick={onAssistant} style={{ width: 34, height: 34, borderRadius: "50%", border: "none", background: "linear-gradient(135deg, #3B82F6, #1D4ED8)", color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} title="CAREi Assistant">✦</button>
+          <button onClick={onAssistant} style={{ width: 34, height: 34, borderRadius: "50%", border: "none", background: "linear-gradient(135deg, #3B82F6, #1D4ED8)", color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✦</button>
         </div>
 
-        {/* Lone worker control pill */}
-        <div style={{ marginTop: 8 }}>
-          <button onClick={() => setIsLone((l) => !l)} style={{ background: isLone ? "rgba(255,90,95,0.2)" : "rgba(255,255,255,0.1)", border: "none", borderRadius: 99, padding: "5px 14px", color: isLone ? COLORS.red : COLORS.g2, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-            {isLone ? "🔴 Lone Worker Active — tap to deactivate" : "Lone Worker — tap to activate"}
+        {/* Persistent controls row */}
+        <div style={{ display: "flex", gap: 8, marginTop: 9, alignItems: "center" }}>
+          <button onClick={() => setIsLone((l) => !l)} style={{ background: isLone ? "rgba(255,90,95,0.2)" : "rgba(255,255,255,0.08)", border: "none", borderRadius: 99, padding: "5px 12px", color: isLone ? COLORS.red : COLORS.g2, fontSize: 11, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
+            {isLone ? "🔴 Lone Worker" : "Lone Worker"}
           </button>
+          <div style={{ flex: 1 }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 6, background: fluidGlasses >= 6 ? "rgba(34,197,94,0.12)" : "rgba(79,209,197,0.1)", borderRadius: 99, padding: "4px 10px", border: `1px solid ${fluidGlasses >= 6 ? "rgba(34,197,94,0.3)" : "rgba(79,209,197,0.25)"}` }}>
+            <span style={{ fontSize: 13 }}>💧</span>
+            <span style={{ color: fluidGlasses >= 6 ? COLORS.green : COLORS.teal, fontWeight: 700, fontSize: 13, minWidth: 14, textAlign: "center" }}>{fluidGlasses}</span>
+            <button onClick={() => setFluidGlasses((g) => Math.min(12, g + 1))} style={{ width: 22, height: 22, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>+</button>
+          </div>
         </div>
       </div>
 
@@ -4400,7 +4579,7 @@ function ActiveVisitScreen({
         </div>
       )}
 
-      {/* Lone worker banner — always visible when active, regardless of tab */}
+      {/* Lone worker banner */}
       {isLone && (
         <div style={{ background: loneOverdue ? COLORS.red : "rgba(255,90,95,0.18)", padding: "8px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
           <div>
@@ -4411,186 +4590,248 @@ function ActiveVisitScreen({
         </div>
       )}
 
-      {/* Tabs */}
-      <div style={{ display: "flex", borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
-        {(["tasks", "notes", "medication", "history"] as const).map((tab) => (
-          <button key={tab} onClick={() => setActiveTab(tab)} style={{ flex: 1, padding: "10px 4px", border: "none", background: "transparent", color: activeTab === tab ? COLORS.teal : COLORS.g3, fontSize: 10, fontWeight: 600, cursor: "pointer", borderBottom: `2px solid ${activeTab === tab ? COLORS.teal : "transparent"}`, fontFamily: "DM Sans, sans-serif" }}>
-            {TAB_LABELS[tab]}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab content */}
-      <div className="phone-scroll" style={{ flex: 1, padding: "12px 14px 96px" }}>
-
-        {/* Care Tasks */}
-        {activeTab === "tasks" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600, marginBottom: 2 }}>Care Tasks</div>
-            {VISIT_TASKS.map((task, i) => (
-              <div key={task} onClick={() => { const t = [...tasks]; t[i] = !t[i]; setTasks(t); }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "rgba(255,255,255,0.06)", borderRadius: 12, cursor: "pointer" }}>
-                <div className={`task-check ${tasks[i] ? "checked" : ""}`}>
-                  {tasks[i] && <svg width="12" height="9" viewBox="0 0 12 9"><polyline points="1,5 4,8 11,1" fill="none" stroke={COLORS.darkNavy} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-                </div>
-                <span style={{ color: tasks[i] ? COLORS.g3 : COLORS.g1, fontSize: 13, textDecoration: tasks[i] ? "line-through" : "none" }}>{task}</span>
-              </div>
+      {/* ── Mood Capture ── */}
+      {!moodSet ? (
+        <div style={{ padding: "10px 14px 8px", background: "rgba(79,209,197,0.05)", borderBottom: "1px solid rgba(79,209,197,0.12)", flexShrink: 0 }}>
+          <div style={{ color: COLORS.teal, fontSize: 12, fontWeight: 600, marginBottom: 8 }}>How does {firstName} seem right now?</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            {[{ emoji: "😊", label: "Good" }, { emoji: "😐", label: "Neutral" }, { emoji: "😔", label: "Low" }, { emoji: "😰", label: "Anxious" }, { emoji: "😴", label: "Tired" }].map((m) => (
+              <button key={m.label} onClick={() => { setMood(m.label); setMoodSet(true); }}
+                style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "7px 2px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", cursor: "pointer" }}>
+                <span style={{ fontSize: 18 }}>{m.emoji}</span>
+                <span style={{ color: COLORS.g2, fontSize: 9, fontFamily: "DM Sans, sans-serif" }}>{m.label}</span>
+              </button>
             ))}
-            <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600, marginTop: 8, marginBottom: 2 }}>Client Records</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              <div onClick={onBodyMap} style={{ background: "rgba(255,90,95,0.08)", borderRadius: 12, padding: "12px 14px", cursor: "pointer" }}>
-                <span style={{ fontSize: 18 }}>🫀</span>
-                <div style={{ color: COLORS.red, fontWeight: 600, fontSize: 12, marginTop: 4 }}>Body Map</div>
-              </div>
-              <div onClick={onCarePlan} style={{ background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: "12px 14px", cursor: "pointer" }}>
-                <span style={{ fontSize: 18 }}>📄</span>
-                <div style={{ color: COLORS.g1, fontWeight: 600, fontSize: 12, marginTop: 4 }}>Care Plan</div>
-              </div>
-              <div onClick={onEmergency} style={{ background: "rgba(255,90,95,0.08)", borderRadius: 12, padding: "12px 14px", cursor: "pointer", gridColumn: "span 2", display: "flex", gap: 10, alignItems: "center" }}>
-                <span style={{ fontSize: 18 }}>🚨</span>
-                <div style={{ color: COLORS.red, fontWeight: 600, fontSize: 12 }}>Emergency Contacts</div>
-              </div>
-              <div onClick={onIncident} style={{ background: "rgba(246,183,60,0.08)", borderRadius: 12, padding: "12px 14px", cursor: "pointer", gridColumn: "span 2", display: "flex", gap: 10, alignItems: "center", border: "1px solid rgba(246,183,60,0.2)" }}>
-                <span style={{ fontSize: 18 }}>⚠️</span>
-                <div>
-                  <div style={{ color: COLORS.amber, fontWeight: 600, fontSize: 12 }}>Report Incident</div>
-                  <div style={{ color: COLORS.g3, fontSize: 10, marginTop: 1 }}>Falls, skin changes, safeguarding</div>
+          </div>
+        </div>
+      ) : (
+        <div style={{ padding: "5px 14px", background: "rgba(34,197,94,0.06)", borderBottom: "1px solid rgba(34,197,94,0.1)", flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 12 }}>✓</span>
+          <span style={{ color: COLORS.green, fontSize: 11, fontWeight: 600 }}>Mood at visit start: {mood}</span>
+          <button onClick={() => setMoodSet(false)} style={{ marginLeft: "auto", background: "none", border: "none", color: COLORS.g3, fontSize: 10, cursor: "pointer", padding: 0 }}>edit</button>
+        </div>
+      )}
+
+      {/* ── Single scroll content ── */}
+      <div className="phone-scroll" style={{ flex: 1, padding: "12px 14px 110px", display: "flex", flexDirection: "column", gap: 0 }}>
+
+        {/* SECTION 1: Care Tasks */}
+        <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 8 }}>CARE TASKS</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 4 }}>
+          {VISIT_TASKS.map((task, i) => {
+            const cue = (client.contextualCues as { trigger: string; content: string }[])?.find((c) => c.trigger === task);
+            const cueShown = shownCues.has(task);
+            return (
+              <div key={task}>
+                <div onClick={() => handleTaskCheck(i)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", background: "rgba(255,255,255,0.06)", borderRadius: tasks[i] && !(i === MEAL_TASK_IDX && showMealPrompt && !mealPromptDismissed) ? 12 : "12px 12px 0 0", cursor: "pointer", borderBottom: tasks[i] && (i === MEAL_TASK_IDX && showMealPrompt && !mealPromptDismissed || cueShown) ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+                  <div className={`task-check ${tasks[i] ? "checked" : ""}`}>
+                    {tasks[i] && <svg width="12" height="9" viewBox="0 0 12 9"><polyline points="1,5 4,8 11,1" fill="none" stroke={COLORS.darkNavy} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                  </div>
+                  <span style={{ color: tasks[i] ? COLORS.g3 : COLORS.g1, fontSize: 13, textDecoration: tasks[i] ? "line-through" : "none", flex: 1 }}>{task}</span>
+                  {tasks[i] && cue && <span style={{ color: COLORS.teal, fontSize: 11 }}>💡</span>}
                 </div>
+
+                {/* Inline meal prompt */}
+                {i === MEAL_TASK_IDX && tasks[i] && showMealPrompt && !mealPromptDismissed && mealStatus === "" && (
+                  <div className="fade-in" style={{ padding: "10px 14px 12px", background: "rgba(246,183,60,0.07)", borderRadius: "0 0 12px 12px", border: "1px solid rgba(246,183,60,0.18)", borderTop: "none" }}>
+                    <div style={{ color: COLORS.amber, fontSize: 12, fontWeight: 600, marginBottom: 8 }}>How much did {firstName} eat?</div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      {(["Full", "Half", "Refused"] as const).map((opt) => (
+                        <button key={opt} onClick={() => { setMealStatus(opt); setShowMealPrompt(false); setMealPromptDismissed(true); }}
+                          style={{ flex: 1, padding: "8px 0", borderRadius: 9, border: `1px solid ${opt === "Full" ? "rgba(34,197,94,0.4)" : opt === "Half" ? "rgba(246,183,60,0.4)" : "rgba(255,90,95,0.4)"}`, background: opt === "Full" ? "rgba(34,197,94,0.1)" : opt === "Half" ? "rgba(246,183,60,0.1)" : "rgba(255,90,95,0.1)", color: opt === "Full" ? COLORS.green : opt === "Half" ? COLORS.amber : COLORS.red, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>
+                          {opt === "Full" ? "🍽 Full" : opt === "Half" ? "🍴 Half" : "✗ Refused"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Meal status confirmed badge */}
+                {i === MEAL_TASK_IDX && tasks[i] && mealStatus !== "" && (
+                  <div style={{ padding: "5px 14px", background: "rgba(255,255,255,0.03)", borderRadius: "0 0 10px 10px", borderTop: "none", display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ color: mealStatus === "Full" ? COLORS.green : mealStatus === "Half" ? COLORS.amber : COLORS.red, fontSize: 11, fontWeight: 600 }}>
+                      {mealStatus === "Full" ? "🍽 Full meal eaten" : mealStatus === "Half" ? "🍴 Half portion eaten" : "✗ Meal refused — note in care notes"}
+                    </span>
+                  </div>
+                )}
+
+                {/* Contextual care plan cue */}
+                {tasks[i] && cueShown && cue && !(i === MEAL_TASK_IDX && showMealPrompt && !mealPromptDismissed) && (
+                  <div className="fade-in" style={{ margin: "0 0 0 0", padding: "8px 14px 10px 44px", background: "rgba(79,209,197,0.05)", border: "1px solid rgba(79,209,197,0.18)", borderTop: "none", borderRadius: mealStatus !== "" || i !== MEAL_TASK_IDX ? "0 0 12px 12px" : "0 0 12px 12px" }}>
+                    <div style={{ color: COLORS.teal, fontSize: 10, fontWeight: 700, marginBottom: 3, letterSpacing: 0.5 }}>💡 CARE GUIDANCE</div>
+                    <div style={{ color: COLORS.g2, fontSize: 12, lineHeight: 1.5 }}>{cue.content}</div>
+                  </div>
+                )}
               </div>
+            );
+          })}
+        </div>
+
+        {/* Quick record links */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 10, marginBottom: 6 }}>
+          <div onClick={onBodyMap} style={{ background: "rgba(255,90,95,0.07)", borderRadius: 11, padding: "10px 12px", cursor: "pointer", border: "1px solid rgba(255,90,95,0.15)" }}>
+            <span style={{ fontSize: 16 }}>🫀</span>
+            <div style={{ color: COLORS.red, fontWeight: 600, fontSize: 11, marginTop: 3 }}>Body Map</div>
+          </div>
+          <div onClick={onCarePlan} style={{ background: "rgba(255,255,255,0.05)", borderRadius: 11, padding: "10px 12px", cursor: "pointer" }}>
+            <span style={{ fontSize: 16 }}>📄</span>
+            <div style={{ color: COLORS.g1, fontWeight: 600, fontSize: 11, marginTop: 3 }}>Care Plan</div>
+          </div>
+          <div onClick={onEmergency} style={{ background: "rgba(255,90,95,0.07)", borderRadius: 11, padding: "10px 12px", cursor: "pointer", gridColumn: "span 2", display: "flex", gap: 8, alignItems: "center", border: "1px solid rgba(255,90,95,0.15)" }}>
+            <span style={{ fontSize: 16 }}>🚨</span>
+            <div style={{ color: COLORS.red, fontWeight: 600, fontSize: 11 }}>Emergency Contacts</div>
+          </div>
+        </div>
+
+        {/* Inline incident flag button */}
+        <button onClick={() => { setShowInlineIncident(true); setIncidentDone(false); setIncidentSeverity(""); setIncidentType(""); setIncidentNote(""); }}
+          style={{ width: "100%", padding: "10px 14px", borderRadius: 11, border: "1px solid rgba(246,183,60,0.25)", background: "rgba(246,183,60,0.06)", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", marginTop: 2, marginBottom: 14 }}>
+          <span style={{ fontSize: 16 }}>⚑</span>
+          <div style={{ textAlign: "left" }}>
+            <div style={{ color: COLORS.amber, fontWeight: 600, fontSize: 12 }}>Flag an Incident</div>
+            <div style={{ color: COLORS.g3, fontSize: 10 }}>Falls, skin changes, behaviour, safeguarding</div>
+          </div>
+        </button>
+
+        {/* SECTION 2: Medications Due */}
+        <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 8 }}>MEDICATIONS DUE</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+          {client.meds.map((med) => (
+            <div key={med.name} style={{ background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: 12, border: medStatus[med.name] ? `1px solid ${medStatus[med.name] === "taken" ? COLORS.green : COLORS.amber}` : "1px solid transparent" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: medStatus[med.name] ? 6 : 8 }}>
+                <div>
+                  <div style={{ color: "#fff", fontWeight: 700, fontSize: 13 }}>{med.name} {med.dose}</div>
+                  <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 1 }}>{med.adminNote}</div>
+                </div>
+                {medStatus[med.name] && (
+                  <Badge color={medStatus[med.name] === "taken" ? COLORS.green : COLORS.amber} bg={medStatus[med.name] === "taken" ? "rgba(34,197,94,0.15)" : "rgba(246,183,60,0.15)"}>
+                    {medStatus[med.name] === "taken" ? "✓ Taken" : "⚠ Refused"}
+                  </Badge>
+                )}
+              </div>
+              {!medStatus[med.name] && (
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => setMedStatus((s) => ({ ...s, [med.name]: "taken" }))} style={{ flex: 1, padding: "8px 0", borderRadius: 9, border: "1px solid rgba(34,197,94,0.4)", background: "rgba(34,197,94,0.1)", color: COLORS.green, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>✓ Taken</button>
+                  <button onClick={() => { setShowRefusalFor(med.name); setRefusalReason(""); setRefusalWhatSaid(""); setRefusalAction(""); }} style={{ flex: 1, padding: "8px 0", borderRadius: 9, border: "1px solid rgba(246,183,60,0.4)", background: "rgba(246,183,60,0.1)", color: COLORS.amber, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>✗ Refused</button>
+                </div>
+              )}
             </div>
+          ))}
+          {!allMedsAcknowledged && (
+            <div style={{ background: "rgba(246,183,60,0.08)", borderRadius: 9, padding: "8px 12px", display: "flex", gap: 8, alignItems: "center" }}>
+              <span style={{ fontSize: 13 }}>⚠️</span>
+              <span style={{ color: COLORS.amber, fontSize: 11 }}>Acknowledge all medications before completing visit.</span>
+            </div>
+          )}
+        </div>
+
+        {/* SECTION 3: Care Notes */}
+        <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 8 }}>CARE NOTES</div>
+
+        {/* Vital Signs — contextual: only for Tom */}
+        {client.vitalSignsRequired && (
+          <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "12px 14px", borderLeft: `3px solid ${COLORS.teal}`, marginBottom: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
+              <span style={{ fontSize: 14 }}>🩺</span>
+              <div style={{ color: COLORS.teal, fontWeight: 700, fontSize: 13 }}>Vital Signs</div>
+              {vitalsSaved && <span style={{ marginLeft: "auto", color: COLORS.green, fontSize: 11, fontWeight: 700 }}>✓ Recorded</span>}
+            </div>
+            {(client.vitalSignsThreshold as string) && (
+              <div style={{ background: "rgba(255,90,95,0.1)", borderRadius: 8, padding: "6px 10px", marginBottom: 10, display: "flex", gap: 6, alignItems: "center" }}>
+                <span style={{ fontSize: 12 }}>⚠️</span>
+                <span style={{ color: COLORS.red, fontSize: 11, fontWeight: 600 }}>{client.vitalSignsThreshold as string}</span>
+              </div>
+            )}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+              {[
+                { label: "Systolic (mmHg)", val: bpSys, set: setBpSys, placeholder: "e.g. 128" },
+                { label: "Diastolic (mmHg)", val: bpDia, set: setBpDia, placeholder: "e.g. 82" },
+                { label: "Pulse (bpm)", val: pulse, set: setPulse, placeholder: "e.g. 72" },
+                { label: "O₂ Sat (%)", val: o2sat, set: setO2sat, placeholder: "e.g. 97" },
+              ].map(({ label, val, set, placeholder }) => (
+                <div key={label}>
+                  <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 600, marginBottom: 3 }}>{label}</div>
+                  <input type="number" value={val} onChange={(e) => { set(e.target.value); setVitalsSaved(false); }} placeholder={placeholder}
+                    style={{ width: "100%", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: "7px 9px", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, outline: "none" }} />
+                </div>
+              ))}
+            </div>
+            {bpSys && bpDia && (parseInt(bpSys) > 140 || parseInt(bpDia) > 90) && (
+              <div style={{ background: "rgba(255,90,95,0.12)", border: "1px solid rgba(255,90,95,0.3)", borderRadius: 8, padding: "6px 10px", marginBottom: 8, display: "flex", gap: 6, alignItems: "center" }}>
+                <span style={{ fontSize: 12 }}>⚠️</span>
+                <span style={{ color: COLORS.red, fontSize: 11, fontWeight: 700 }}>BP elevated — notify office immediately</span>
+              </div>
+            )}
+            <button onClick={() => { if (bpSys && bpDia) setVitalsSaved(true); }} disabled={!bpSys || !bpDia}
+              style={{ width: "100%", padding: "8px 0", borderRadius: 9, border: "none", background: bpSys && bpDia ? `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})` : "rgba(255,255,255,0.08)", color: bpSys && bpDia ? COLORS.darkNavy : COLORS.g3, fontFamily: "DM Sans, sans-serif", fontSize: 12, fontWeight: 700, cursor: bpSys && bpDia ? "pointer" : "not-allowed" }}>
+              {vitalsSaved ? "✓ Vitals Saved" : "Save Vitals"}
+            </button>
           </div>
         )}
 
-        {/* Care Notes */}
-        {activeTab === "notes" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-
-            {/* ── Vitals (Feature 1) ── */}
-            <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 14px 12px", borderLeft: `3px solid ${COLORS.teal}` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 12 }}>
-                <span style={{ fontSize: 15 }}>🩺</span>
-                <div style={{ color: COLORS.teal, fontWeight: 700, fontSize: 13 }}>Vital Signs</div>
-                {vitalsSaved && <span style={{ marginLeft: "auto", color: COLORS.green, fontSize: 11, fontWeight: 700 }}>✓ Recorded</span>}
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
-                {[
-                  { label: "Systolic (mmHg)", val: bpSys, set: setBpSys, placeholder: "e.g. 128" },
-                  { label: "Diastolic (mmHg)", val: bpDia, set: setBpDia, placeholder: "e.g. 82" },
-                  { label: "Pulse (bpm)", val: pulse, set: setPulse, placeholder: "e.g. 72" },
-                  { label: "O₂ Sat (%)", val: o2sat, set: setO2sat, placeholder: "e.g. 97" },
-                ].map(({ label, val, set, placeholder }) => (
-                  <div key={label}>
-                    <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 600, marginBottom: 4 }}>{label}</div>
-                    <input
-                      type="number" value={val} onChange={(e) => { set(e.target.value); setVitalsSaved(false); }}
-                      placeholder={placeholder}
-                      style={{ width: "100%", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: "8px 10px", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, outline: "none" }}
-                    />
-                  </div>
-                ))}
-              </div>
-              {bpSys && bpDia && (parseInt(bpSys) > 140 || parseInt(bpDia) > 90) && (
-                <div style={{ background: "rgba(255,90,95,0.12)", border: "1px solid rgba(255,90,95,0.3)", borderRadius: 8, padding: "7px 10px", marginBottom: 10, display: "flex", gap: 7, alignItems: "center" }}>
-                  <span style={{ fontSize: 13 }}>⚠️</span>
-                  <span style={{ color: COLORS.red, fontSize: 12, fontWeight: 700 }}>BP elevated ({bpSys}/{bpDia} mmHg) — notify office and GP if above 140/90</span>
-                </div>
-              )}
-              <button
-                onClick={() => { if (bpSys && bpDia) setVitalsSaved(true); }}
-                disabled={!bpSys || !bpDia}
-                style={{ width: "100%", padding: "9px 0", borderRadius: 10, border: "none", background: bpSys && bpDia ? `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})` : "rgba(255,255,255,0.08)", color: bpSys && bpDia ? COLORS.darkNavy : COLORS.g3, fontFamily: "DM Sans, sans-serif", fontSize: 13, fontWeight: 700, cursor: bpSys && bpDia ? "pointer" : "not-allowed" }}
-              >
-                {vitalsSaved ? "✓ Vitals Saved" : "Save Vitals"}
-              </button>
+        {/* Fluid & Nutrition full card */}
+        <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "12px 14px", borderLeft: `3px solid ${COLORS.amber}`, marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
+            <span style={{ fontSize: 14 }}>💧</span>
+            <div style={{ color: COLORS.amber, fontWeight: 700, fontSize: 13 }}>Fluid & Nutrition</div>
+            {mealStatus && <Badge color={mealStatus === "Full" ? COLORS.green : mealStatus === "Half" ? COLORS.amber : COLORS.red} bg={mealStatus === "Full" ? "rgba(34,197,94,0.12)" : mealStatus === "Half" ? "rgba(246,183,60,0.12)" : "rgba(255,90,95,0.12)"}>{mealStatus === "Full" ? "🍽 Full" : mealStatus === "Half" ? "🍴 Half" : "✗ Refused"}</Badge>}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+            <div style={{ color: COLORS.g2, fontSize: 12 }}>Fluid intake (glasses)</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
+              <button onClick={() => setFluidGlasses((g) => Math.max(0, g - 1))} style={{ width: 28, height: 28, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.06)", color: "#fff", fontSize: 15, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
+              <span style={{ color: fluidGlasses >= 6 ? COLORS.green : COLORS.amber, fontWeight: 700, fontSize: 17, minWidth: 20, textAlign: "center" }}>{fluidGlasses}</span>
+              <button onClick={() => setFluidGlasses((g) => Math.min(12, g + 1))} style={{ width: 28, height: 28, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.06)", color: "#fff", fontSize: 15, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
             </div>
-
-            {/* ── Fluid & Nutrition (Feature 3) ── */}
-            <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 14px 12px", borderLeft: `3px solid ${COLORS.amber}` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 12 }}>
-                <span style={{ fontSize: 15 }}>💧</span>
-                <div style={{ color: COLORS.amber, fontWeight: 700, fontSize: 13 }}>Fluid & Nutrition</div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-                <div style={{ color: COLORS.g2, fontSize: 12 }}>Fluid intake (glasses)</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginLeft: "auto" }}>
-                  <button onClick={() => setFluidGlasses((g) => Math.max(0, g - 1))} style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.06)", color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
-                  <span style={{ color: fluidGlasses >= 6 ? COLORS.green : COLORS.amber, fontWeight: 700, fontSize: 18, minWidth: 24, textAlign: "center" }}>{fluidGlasses}</span>
-                  <button onClick={() => setFluidGlasses((g) => Math.min(12, g + 1))} style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.06)", color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
-                </div>
-              </div>
-              <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 8, height: 6, marginBottom: 6, overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${Math.min(100, (fluidGlasses / 8) * 100)}%`, background: fluidGlasses >= 6 ? COLORS.green : COLORS.amber, borderRadius: 8, transition: "width 0.3s" }} />
-              </div>
-              <div style={{ color: COLORS.g3, fontSize: 11, marginBottom: 12 }}>Target: 6–8 glasses · {fluidGlasses >= 6 ? "✓ Target reached" : `${8 - fluidGlasses} more to reach target`}</div>
-              <div style={{ color: COLORS.g2, fontSize: 12, marginBottom: 6 }}>Meal completion</div>
-              <div style={{ display: "flex", gap: 8 }}>
+          </div>
+          <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 8, height: 5, marginBottom: 5, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${Math.min(100, (fluidGlasses / 8) * 100)}%`, background: fluidGlasses >= 6 ? COLORS.green : COLORS.amber, borderRadius: 8, transition: "width 0.3s" }} />
+          </div>
+          <div style={{ color: COLORS.g3, fontSize: 11 }}>Target: 6–8 glasses · {fluidGlasses >= 6 ? "✓ Target reached" : `${8 - fluidGlasses} more to go`}</div>
+          {!mealStatus && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ color: COLORS.g2, fontSize: 11, marginBottom: 6 }}>Meal completion</div>
+              <div style={{ display: "flex", gap: 6 }}>
                 {(["Full", "Half", "Refused"] as const).map((opt) => (
-                  <button key={opt} onClick={() => setMealStatus(opt)} style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: `1px solid ${mealStatus === opt ? (opt === "Full" ? COLORS.green : opt === "Half" ? COLORS.amber : COLORS.red) : "rgba(255,255,255,0.12)"}`, background: mealStatus === opt ? (opt === "Full" ? "rgba(34,197,94,0.12)" : opt === "Half" ? "rgba(246,183,60,0.12)" : "rgba(255,90,95,0.12)") : "rgba(255,255,255,0.04)", color: mealStatus === opt ? (opt === "Full" ? COLORS.green : opt === "Half" ? COLORS.amber : COLORS.red) : COLORS.g2, fontWeight: mealStatus === opt ? 700 : 400, fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>
+                  <button key={opt} onClick={() => setMealStatus(opt)} style={{ flex: 1, padding: "7px 0", borderRadius: 9, border: `1px solid rgba(255,255,255,0.12)`, background: "rgba(255,255,255,0.04)", color: COLORS.g2, fontSize: 11, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>
                     {opt === "Full" ? "🍽 Full" : opt === "Half" ? "🍴 Half" : "✗ Refused"}
                   </button>
                 ))}
               </div>
             </div>
+          )}
+        </div>
 
-            {/* ── Care Notes ── */}
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600 }}>Care Notes</div>
-                <button onClick={handleMicClick} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 99, border: "none", background: isRecording ? `linear-gradient(90deg, ${COLORS.red}, #cc1a20)` : `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: isRecording ? "#fff" : COLORS.darkNavy, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                  {isRecording ? "⏺ Listening…" : "🎤 Dictate"}
-                </button>
-              </div>
-              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Tap Dictate or type care notes here…" rows={5} style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, resize: "none", outline: "none" }} />
-              <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                {["Mood", "Appetite", "Mobility"].map((chip) => (
-                  <button key={chip} onClick={() => setNotes((n) => n + (n ? " " : "") + chip + ": ")} style={{ padding: "4px 10px", borderRadius: 99, border: "1px solid rgba(79,209,197,0.3)", background: "rgba(79,209,197,0.08)", color: COLORS.teal, fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>+ {chip}</button>
-                ))}
-              </div>
-            </div>
+        {/* Care Notes dictation */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600 }}>Care Notes</div>
+            <button onClick={isRecording ? stopRecording : startRecording}
+              style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 99, border: "none", background: isRecording ? `linear-gradient(90deg, ${COLORS.red}, #cc1a20)` : `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: isRecording ? "#fff" : COLORS.darkNavy, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+              {isRecording ? `⏺ ${recordingTime}s` : "🎤 Dictate"}
+            </button>
           </div>
-        )}
-
-        {/* Medication */}
-        {activeTab === "medication" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600 }}>Scheduled Medications</div>
-            {client.meds.map((med) => (
-              <div key={med.name} style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: 14, border: medStatus[med.name] ? `1px solid ${medStatus[med.name] === "taken" ? COLORS.green : COLORS.amber}` : "1px solid transparent" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: medStatus[med.name] ? 0 : 10 }}>
-                  <div>
-                    <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{med.name} {med.dose}</div>
-                    <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 2 }}>Scheduled dose</div>
-                  </div>
-                  {medStatus[med.name] && (
-                    <Badge color={medStatus[med.name] === "taken" ? COLORS.green : COLORS.amber} bg={medStatus[med.name] === "taken" ? "rgba(34,197,94,0.15)" : "rgba(246,183,60,0.15)"}>
-                      {medStatus[med.name] === "taken" ? "✓ Taken" : "⚠ Refused — Logged"}
-                    </Badge>
-                  )}
-                </div>
-                {!medStatus[med.name] && (
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button onClick={() => setMedStatus((s) => ({ ...s, [med.name]: "taken" }))} style={{ flex: 1, padding: "9px 0", borderRadius: 10, border: "1px solid rgba(34,197,94,0.4)", background: "rgba(34,197,94,0.1)", color: COLORS.green, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>✓ Taken</button>
-                    <button onClick={() => { setShowRefusalFor(med.name); setRefusalReason(""); setRefusalWhatSaid(""); setRefusalAction(""); }} style={{ flex: 1, padding: "9px 0", borderRadius: 10, border: "1px solid rgba(246,183,60,0.4)", background: "rgba(246,183,60,0.1)", color: COLORS.amber, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>✗ Refused</button>
-                  </div>
-                )}
-              </div>
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Tap Dictate or type care notes here…" rows={4}
+            style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "9px 12px", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, resize: "none", outline: "none" }} />
+          <div style={{ display: "flex", gap: 6, marginTop: 7 }}>
+            {["Mood", "Appetite", "Mobility", "Skin"].map((chip) => (
+              <button key={chip} onClick={() => setNotes((n) => n + (n ? " " : "") + chip + ": ")}
+                style={{ padding: "4px 9px", borderRadius: 99, border: "1px solid rgba(79,209,197,0.3)", background: "rgba(79,209,197,0.07)", color: COLORS.teal, fontSize: 11, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>+ {chip}</button>
             ))}
-            {!allMedsAcknowledged && (
-              <div style={{ background: "rgba(246,183,60,0.1)", borderRadius: 10, padding: "10px 14px", display: "flex", gap: 8, alignItems: "center" }}>
-                <span>⚠️</span>
-                <span style={{ color: COLORS.amber, fontSize: 12, lineHeight: 1.5 }}>All medications must be acknowledged before completing the visit.</span>
-              </div>
-            )}
           </div>
-        )}
+        </div>
 
-        {/* Care History */}
-        {activeTab === "history" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600 }}>Previous Visits</div>
+        {/* SECTION 4: Previous Visits (collapsible) */}
+        <button onClick={() => setShowPrevVisits((v) => !v)}
+          style={{ width: "100%", padding: "9px 14px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", color: COLORS.g2, fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span>Previous Visits</span>
+          <span>{showPrevVisits ? "▾" : "▸"}</span>
+        </button>
+        {showPrevVisits && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
             {CARE_HISTORY.map((visit, i) => (
-              <div key={i} style={{ background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: "12px 14px" }}>
-                <div style={{ color: COLORS.teal, fontSize: 11, fontWeight: 600, marginBottom: 4 }}>{visit.date}</div>
-                <div style={{ color: COLORS.g1, fontSize: 13, lineHeight: 1.5 }}>{visit.summary}</div>
+              <div key={i} style={{ background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: "10px 12px" }}>
+                <div style={{ color: COLORS.teal, fontSize: 11, fontWeight: 600, marginBottom: 3 }}>{visit.date}</div>
+                <div style={{ color: COLORS.g2, fontSize: 12, lineHeight: 1.5 }}>{visit.summary}</div>
               </div>
             ))}
           </div>
@@ -4598,12 +4839,12 @@ function ActiveVisitScreen({
       </div>
 
       {/* Fixed Complete Visit button */}
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "14px 16px 24px", background: "rgba(15,29,52,0.97)", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "12px 16px 24px", background: "rgba(15,29,52,0.97)", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
         <button
-          onClick={allMedsAcknowledged ? onComplete : () => setActiveTab("medication")}
-          style={{ width: "100%", padding: "15px 0", borderRadius: 14, border: "none", background: allMedsAcknowledged ? `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})` : "rgba(255,255,255,0.1)", color: allMedsAcknowledged ? COLORS.darkNavy : COLORS.g3, fontFamily: "DM Sans, sans-serif", fontSize: 15, fontWeight: 700, cursor: allMedsAcknowledged ? "pointer" : "not-allowed" }}
+          onClick={allMedsAcknowledged ? onComplete : undefined}
+          style={{ width: "100%", padding: "14px 0", borderRadius: 14, border: "none", background: allMedsAcknowledged ? `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})` : "rgba(255,255,255,0.1)", color: allMedsAcknowledged ? COLORS.darkNavy : COLORS.g3, fontFamily: "DM Sans, sans-serif", fontSize: 15, fontWeight: 700, cursor: allMedsAcknowledged ? "pointer" : "not-allowed" }}
         >
-          {allMedsAcknowledged ? "Complete Visit →" : `Confirm medications first (${Object.keys(medStatus).length}/${client.meds.length})`}
+          {allMedsAcknowledged ? "Complete Visit →" : `Confirm medications (${Object.keys(medStatus).length}/${client.meds.length})`}
         </button>
       </div>
 
@@ -4625,7 +4866,8 @@ function ActiveVisitScreen({
               </div>
               <div>
                 <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 6 }}>WHAT DID THE CLIENT SAY? <span style={{ color: COLORS.g3, fontWeight: 400 }}>(optional)</span></label>
-                <input value={refusalWhatSaid} onChange={(e) => setRefusalWhatSaid(e.target.value)} placeholder="e.g. 'I don't want it today'…" style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.05)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+                <input value={refusalWhatSaid} onChange={(e) => setRefusalWhatSaid(e.target.value)} placeholder="e.g. 'I don't want it today'…"
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.05)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 12, outline: "none", boxSizing: "border-box" }} />
               </div>
               <div>
                 <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 6 }}>ACTION TAKEN *</label>
@@ -4638,8 +4880,62 @@ function ActiveVisitScreen({
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
               <button onClick={() => setShowRefusalFor(null)} style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: COLORS.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Cancel</button>
-              <button onClick={() => { if (refusalReason && refusalAction) { setMedStatus((s) => ({ ...s, [showRefusalFor!]: "refused" })); setShowRefusalFor(null); } }} style={{ flex: 2, padding: "11px 0", borderRadius: 10, border: "none", background: refusalReason && refusalAction ? COLORS.amber : "rgba(255,255,255,0.08)", color: refusalReason && refusalAction ? COLORS.darkNavy : COLORS.g3, fontSize: 13, fontWeight: 700, cursor: refusalReason && refusalAction ? "pointer" : "not-allowed", fontFamily: "DM Sans, sans-serif" }}>Log Refusal</button>
+              <button onClick={() => { if (refusalReason && refusalAction) { setMedStatus((s) => ({ ...s, [showRefusalFor!]: "refused" })); setShowRefusalFor(null); } }}
+                style={{ flex: 2, padding: "11px 0", borderRadius: 10, border: "none", background: refusalReason && refusalAction ? COLORS.amber : "rgba(255,255,255,0.08)", color: refusalReason && refusalAction ? COLORS.darkNavy : COLORS.g3, fontSize: 13, fontWeight: 700, cursor: refusalReason && refusalAction ? "pointer" : "not-allowed", fontFamily: "DM Sans, sans-serif" }}>Log Refusal</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Inline Incident Flag Bottom Sheet */}
+      {showInlineIncident && (
+        <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.65)", display: "flex", flexDirection: "column", justifyContent: "flex-end", zIndex: 50 }} onClick={(e) => { if (e.target === e.currentTarget && !incidentDone) setShowInlineIncident(false); }}>
+          <div style={{ background: COLORS.navy, borderRadius: "20px 20px 0 0", padding: 20, maxHeight: "80%", overflowY: "auto" }}>
+            <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto 16px" }} />
+            {incidentDone ? (
+              <div style={{ textAlign: "center", padding: "16px 0 8px" }}>
+                <div style={{ fontSize: 36, marginBottom: 12 }}>✅</div>
+                <div style={{ color: "#fff", fontWeight: 700, fontSize: 17, marginBottom: 4 }}>Incident Flagged</div>
+                <div style={{ color: COLORS.amber, fontSize: 13, marginBottom: 6 }}>Ref: INC-{Date.now().toString().slice(-6)}</div>
+                <div style={{ color: COLORS.g2, fontSize: 12, lineHeight: 1.5, marginBottom: 20 }}>Your supervisor has been notified. This is logged to the CQC audit trail.</div>
+                <button onClick={() => setShowInlineIncident(false)} style={{ padding: "12px 32px", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Done</button>
+              </div>
+            ) : (
+              <>
+                <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 18, color: "#fff", marginBottom: 4 }}>Report Incident</div>
+                <div style={{ color: COLORS.g2, fontSize: 12, marginBottom: 16 }}>This will be logged to supervisor and CQC audit trail immediately.</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div>
+                    <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 6 }}>SEVERITY</label>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      {[{ label: "Low", color: COLORS.green }, { label: "Medium", color: COLORS.amber }, { label: "High", color: COLORS.red }].map((s) => (
+                        <button key={s.label} onClick={() => setIncidentSeverity(s.label)}
+                          style={{ flex: 1, padding: "8px 0", borderRadius: 9, border: `1px solid ${incidentSeverity === s.label ? s.color : "rgba(255,255,255,0.12)"}`, background: incidentSeverity === s.label ? `${s.color}22` : "transparent", color: incidentSeverity === s.label ? s.color : COLORS.g2, fontWeight: incidentSeverity === s.label ? 700 : 400, fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>{s.label}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 6 }}>INCIDENT TYPE</label>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {["Fall", "Medication error", "Skin change", "Behaviour", "Safeguarding", "Other"].map((t) => (
+                        <button key={t} onClick={() => setIncidentType(t)}
+                          style={{ padding: "5px 11px", borderRadius: 99, border: `1px solid ${incidentType === t ? COLORS.amber : "rgba(255,255,255,0.12)"}`, background: incidentType === t ? "rgba(246,183,60,0.15)" : "transparent", color: incidentType === t ? COLORS.amber : COLORS.g2, fontSize: 11, fontWeight: incidentType === t ? 700 : 400, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>{t}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 6 }}>BRIEF DESCRIPTION <span style={{ color: COLORS.g3, fontWeight: 400 }}>(optional)</span></label>
+                    <textarea value={incidentNote} onChange={(e) => setIncidentNote(e.target.value)} placeholder="What happened? What action did you take?" rows={3}
+                      style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.05)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 12, outline: "none", resize: "none", boxSizing: "border-box" }} />
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+                  <button onClick={() => setShowInlineIncident(false)} style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: COLORS.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Cancel</button>
+                  <button onClick={() => { if (incidentSeverity && incidentType) setIncidentDone(true); }}
+                    style={{ flex: 2, padding: "11px 0", borderRadius: 10, border: "none", background: incidentSeverity && incidentType ? COLORS.amber : "rgba(255,255,255,0.08)", color: incidentSeverity && incidentType ? COLORS.darkNavy : COLORS.g3, fontSize: 13, fontWeight: 700, cursor: incidentSeverity && incidentType ? "pointer" : "not-allowed", fontFamily: "DM Sans, sans-serif" }}>Flag Incident</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -5075,7 +5371,6 @@ export default function CAREiApp() {
             onBodyMap={() => { setVisitReturnScreen("active-visit"); nav("bodymap"); }}
             onCarePlan={() => { setVisitReturnScreen("active-visit"); nav("care-plan"); }}
             onEmergency={() => { setVisitReturnScreen("active-visit"); nav("emergency"); }}
-            onIncident={() => nav("incident-report")}
           />
         );
       }

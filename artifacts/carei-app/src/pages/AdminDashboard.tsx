@@ -282,9 +282,22 @@ function CQCAuditTrail() {
 
 function AgencyAlerts() {
   const [filter, setFilter] = useState<AlertFilter>("All");
+  const [ackState, setAckState] = useState<Record<number, { open: boolean; text: string; done: boolean; time: string }>>({});
+
   const filtered = ALERTS.filter(a =>
     filter === "All" ? true : filter === "Critical" ? a.sev === "Critical" : a.type === "AI Flag"
   );
+
+  function openAck(id: number) {
+    setAckState(s => ({ ...s, [id]: { open: true, text: s[id]?.text ?? "", done: false, time: "" } }));
+  }
+  function submitAck(id: number) {
+    const text = ackState[id]?.text?.trim();
+    if (!text) return;
+    const time = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    setAckState(s => ({ ...s, [id]: { open: false, text, done: true, time } }));
+  }
+
   return (
     <div>
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
@@ -297,30 +310,63 @@ function AgencyAlerts() {
         ))}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {filtered.map(a => (
-          <div key={a.id} style={{
-            background: "rgba(255,255,255,0.04)", borderRadius: 14, padding: "16px 20px",
-            border: `1px solid ${a.sev === "Critical" ? "rgba(255,90,95,0.3)" : "transparent"}`,
-          }}>
-            <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 8 }}>
-              <SevChip s={a.sev} />
-              <span style={{ background: "rgba(255,255,255,0.08)", color: C.g1, padding: "2px 8px", borderRadius: 99, fontSize: 11 }}>{a.type}</span>
-              <span style={{ marginLeft: "auto", color: C.g3, fontSize: 12 }}>{a.time}</span>
+        {filtered.map(a => {
+          const ack = ackState[a.id];
+          return (
+            <div key={a.id} style={{
+              background: ack?.done ? "rgba(34,197,94,0.04)" : "rgba(255,255,255,0.04)", borderRadius: 14, padding: "16px 20px",
+              border: `1px solid ${ack?.done ? "rgba(34,197,94,0.2)" : a.sev === "Critical" ? "rgba(255,90,95,0.3)" : "transparent"}`,
+            }}>
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 8 }}>
+                <SevChip s={a.sev} />
+                <span style={{ background: "rgba(255,255,255,0.08)", color: C.g1, padding: "2px 8px", borderRadius: 99, fontSize: 11 }}>{a.type}</span>
+                <span style={{ marginLeft: "auto", color: C.g3, fontSize: 12 }}>{a.time}</span>
+              </div>
+              <div style={{ color: "#fff", fontWeight: 600, fontSize: 14, marginBottom: 6 }}>{a.title}</div>
+              <div style={{ color: C.g2, fontSize: 13, lineHeight: 1.5, marginBottom: 12 }}>{a.detail}</div>
+
+              {/* Feature 6 — Supervisor Acknowledgement Log */}
+              {ack?.done ? (
+                <div style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 8, padding: "10px 14px" }}>
+                  <div style={{ color: C.green, fontWeight: 700, fontSize: 12, marginBottom: 4 }}>✓ Acknowledged — {ack.time}</div>
+                  <div style={{ color: C.g2, fontSize: 12, lineHeight: 1.5 }}><span style={{ color: C.g3 }}>Action taken: </span>{ack.text}</div>
+                </div>
+              ) : ack?.open ? (
+                <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: "12px 14px" }}>
+                  <div style={{ color: C.g1, fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Supervisor action taken:</div>
+                  <textarea
+                    value={ack.text}
+                    onChange={e => setAckState(s => ({ ...s, [a.id]: { ...s[a.id], text: e.target.value } }))}
+                    placeholder="Describe the action taken (e.g. Called Amy Mitchell, confirmed safe. Logged in incident system.)"
+                    rows={3}
+                    style={{ width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: "8px 10px", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 12, resize: "none", outline: "none", marginBottom: 8 }}
+                  />
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => setAckState(s => ({ ...s, [a.id]: { ...s[a.id], open: false } }))} style={{ padding: "7px 16px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "transparent", color: C.g2, fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Cancel</button>
+                    <button onClick={() => submitAck(a.id)} style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: "none", background: ack.text?.trim() ? `linear-gradient(90deg, ${C.teal}, ${C.teal2})` : "rgba(255,255,255,0.1)", color: ack.text?.trim() ? C.dark : C.g3, fontWeight: 700, fontSize: 12, cursor: ack.text?.trim() ? "pointer" : "not-allowed", fontFamily: "DM Sans, sans-serif" }}>
+                      ✓ Submit Acknowledgement
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: "flex", gap: 8 }}>
+                  {["Call", "Escalate", "Review"].map(btn => (
+                    <button key={btn} style={{
+                      padding: "6px 14px", borderRadius: 8, border: `1px solid rgba(255,255,255,0.15)`,
+                      background: btn === "Escalate" ? "rgba(255,90,95,0.15)" : "rgba(255,255,255,0.06)",
+                      color: btn === "Escalate" ? C.red : C.g1,
+                      fontWeight: btn === "Escalate" ? 700 : 400, fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif",
+                    }}>{btn}</button>
+                  ))}
+                  <button onClick={() => openAck(a.id)} style={{
+                    marginLeft: "auto", padding: "6px 14px", borderRadius: 8, border: `1px solid rgba(79,209,197,0.35)`,
+                    background: "rgba(79,209,197,0.1)", color: C.teal, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif",
+                  }}>✓ Acknowledge</button>
+                </div>
+              )}
             </div>
-            <div style={{ color: "#fff", fontWeight: 600, fontSize: 14, marginBottom: 6 }}>{a.title}</div>
-            <div style={{ color: C.g2, fontSize: 13, lineHeight: 1.5, marginBottom: 12 }}>{a.detail}</div>
-            <div style={{ display: "flex", gap: 8 }}>
-              {["Call", "Escalate", "Review", "Action"].map(btn => (
-                <button key={btn} style={{
-                  padding: "6px 14px", borderRadius: 8, border: `1px solid rgba(255,255,255,0.15)`,
-                  background: btn === "Escalate" ? "rgba(255,90,95,0.15)" : "rgba(255,255,255,0.06)",
-                  color: btn === "Escalate" ? C.red : C.g1,
-                  fontWeight: btn === "Escalate" ? 700 : 400, fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif",
-                }}>{btn}</button>
-              ))}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

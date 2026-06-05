@@ -1,1 +1,2 @@
 carei-app-source.tar.gz filter=lfs diff=lfs merge=lfs -text
+carei-app-source.zip filter=lfs diff=lfs merge=lfs -text

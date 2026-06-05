@@ -12,3 +12,9 @@ id = "jIpR80BIOvOjJf_TmvlM8"
 uri = "file://CAREi-Source-Code.md"
 type = "text"
 title = "CAREi-Source-Code.md"
+
+[[outputs]]
+id = "YNe5ZqolrSyn1IWGiV6IU"
+uri = "file://carei-app-source.tar.gz"
+type = "unspecified"
+title = "CAREi App — Full Source Code"

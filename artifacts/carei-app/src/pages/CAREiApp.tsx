@@ -4340,9 +4340,9 @@ function TodayCareScreen({
                 {status !== "completed" && (
                   <button
                     onClick={(e) => playBriefing(client, e)}
-                    style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 99, border: `1px solid ${speakingId === client.id ? "rgba(79,209,197,0.5)" : "rgba(255,255,255,0.12)"}`, background: speakingId === client.id ? "rgba(79,209,197,0.15)" : "rgba(255,255,255,0.05)", color: speakingId === client.id ? COLORS.teal : COLORS.g3, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "DM Sans, sans-serif", flexShrink: 0 }}
+                    style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 14px", borderRadius: 99, border: `1px solid ${speakingId === client.id ? "rgba(246,183,60,0.6)" : "rgba(79,209,197,0.55)"}`, background: speakingId === client.id ? "rgba(246,183,60,0.15)" : "rgba(79,209,197,0.18)", color: speakingId === client.id ? "#F6B73C" : COLORS.teal, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "DM Sans, sans-serif", flexShrink: 0 }}
                   >
-                    {speakingId === client.id ? "⏹ Stop" : "🔊 Listen"}
+                    {speakingId === client.id ? "⏹ Stop" : "🔊 Listen to update"}
                   </button>
                 )}
               </div>

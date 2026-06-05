@@ -272,6 +272,25 @@ function formatTime(seconds: number): string {
   return `${m}:${s}`;
 }
 
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+interface VisitData {
+  notes: string;
+  confirmedMeds: string[];
+  skippedMeds: string[];
+  fluidMl: number;
+  completedTasks: string[];
+  mealStatus: string;
+  mood: string;
+}
+
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
 function Badge({
@@ -599,7 +618,8 @@ function ClientOverviewScreen({
   );
 }
 
-function OTPScreen({ onNext }: { onNext: () => void }) {
+function OTPScreen({ onNext }: { onNext: (name: string) => void }) {
+  const [fullName, setFullName] = useState("Sarah Johnson");
   const [email, setEmail] = useState("sarah.johnson@adjoy.co.uk");
   const [codeSent, setCodeSent] = useState(false);
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -616,10 +636,10 @@ function OTPScreen({ onNext }: { onNext: () => void }) {
 
   useEffect(() => {
     if (verified) {
-      const t = setTimeout(onNext, 1200);
+      const t = setTimeout(() => onNext(fullName.trim() || "Sarah Johnson"), 1200);
       return () => clearTimeout(t);
     }
-  }, [verified, onNext]);
+  }, [verified, onNext, fullName]);
 
   function handleSend() {
     setCodeSent(true);
@@ -677,27 +697,50 @@ function OTPScreen({ onNext }: { onNext: () => void }) {
         </div>
       </div>
 
-      <div>
-        <label style={{ color: COLORS.g1, fontSize: 13, fontWeight: 500 }}>
-          Email address
-        </label>
-        <input
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={{
-            display: "block",
-            width: "100%",
-            marginTop: 8,
-            padding: "12px 16px",
-            borderRadius: 12,
-            border: `1px solid rgba(255,255,255,0.15)`,
-            background: "rgba(255,255,255,0.08)",
-            color: "#fff",
-            fontFamily: "DM Sans, sans-serif",
-            fontSize: 14,
-            outline: "none",
-          }}
-        />
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div>
+          <label style={{ color: COLORS.g1, fontSize: 13, fontWeight: 500 }}>Full name</label>
+          <input
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            placeholder="e.g. Sarah Johnson"
+            style={{
+              display: "block",
+              width: "100%",
+              marginTop: 8,
+              padding: "12px 16px",
+              borderRadius: 12,
+              border: `1px solid rgba(255,255,255,0.15)`,
+              background: "rgba(255,255,255,0.08)",
+              color: "#fff",
+              fontFamily: "DM Sans, sans-serif",
+              fontSize: 14,
+              outline: "none",
+            }}
+          />
+        </div>
+        <div>
+          <label style={{ color: COLORS.g1, fontSize: 13, fontWeight: 500 }}>
+            Email address
+          </label>
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={{
+              display: "block",
+              width: "100%",
+              marginTop: 8,
+              padding: "12px 16px",
+              borderRadius: 12,
+              border: `1px solid rgba(255,255,255,0.15)`,
+              background: "rgba(255,255,255,0.08)",
+              color: "#fff",
+              fontFamily: "DM Sans, sans-serif",
+              fontSize: 14,
+              outline: "none",
+            }}
+          />
+        </div>
       </div>
 
       {!codeSent && (
@@ -2354,20 +2397,20 @@ function MedicationScreen({ onNext }: { onNext: () => void }) {
   );
 }
 
-function SummaryScreen({ onDone }: { onDone: () => void }) {
+function SummaryScreen({ onDone, carerName }: { onDone: () => void; carerName: string }) {
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [readReceipt, setReadReceipt] = useState(false);
 
-  const fallbackSummary = `Grace was in good spirits and engaged positively throughout the visit. Personal care completed fully. Medications administered as prescribed with no issues noted.
+  const fallbackSummary = `${CLIENT.name} was in good spirits and engaged positively throughout the visit. Personal care completed fully. Medications administered as prescribed with no issues noted.
 
 • Mood: Calm and responsive, recognised carer
-• Appetite: Breakfast eaten — porridge and tea, good intake
-• Mobility: Mobilising with frame, steady on feet
+• Appetite: Good — ate well at mealtime
+• Mobility: Mobilising with assistance, steady and safe
 • Skin: No new pressure areas or concerns observed
 
-Next visit: Monitor blood sugar levels. Ensure Metformin is given AFTER meals — never on an empty stomach. Check in with Dr Sandra Obi if confusion increases.`;
+Next visit: Continue monitoring as per care plan. Follow any medication timing instructions carefully.`;
 
   useEffect(() => {
     async function generateSummary() {
@@ -2409,7 +2452,7 @@ Next visit: Monitor blood sugar levels. Ensure Metformin is given AFTER meals �
         </div>
         <div style={{ background: "rgba(79,209,197,0.08)", borderRadius: 14, padding: 16, border: "1px solid rgba(79,209,197,0.2)", marginBottom: 24 }}>
           <div style={{ color: COLORS.teal, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>Submitted by</div>
-          <div style={{ color: COLORS.g1, fontSize: 13 }}>Sarah Johnson · Adjoy Healthcare</div>
+          <div style={{ color: COLORS.g1, fontSize: 13 }}>{carerName} · Adjoy Healthcare</div>
           <div style={{ color: COLORS.g3, fontSize: 11, marginTop: 2 }}>Visit ended · {ts}</div>
         </div>
         <div style={{ color: COLORS.g2, fontSize: 13, textAlign: "center", marginBottom: 16 }}>Next carer — tap below to confirm you have read this note</div>
@@ -2431,7 +2474,7 @@ Next visit: Monitor blood sugar levels. Ensure Metformin is given AFTER meals �
           <div style={{ color: "#fff", fontWeight: 700, fontSize: 22, marginTop: 16 }}>Handover Complete</div>
           <div style={{ color: COLORS.teal, fontSize: 14, marginTop: 6 }}>Chain of custody recorded ✓</div>
           <div style={{ color: COLORS.g2, fontSize: 13, marginTop: 8, lineHeight: 1.6 }}>
-            Handover submitted by Sarah Johnson<br />Read receipt confirmed by next carer
+            Handover submitted by {carerName}<br />Read receipt confirmed by next carer
           </div>
           <div style={{ marginTop: 12, background: "rgba(34,197,94,0.12)", borderRadius: 10, padding: "8px 16px", display: "inline-block" }}>
             <span style={{ color: COLORS.green, fontWeight: 700, fontSize: 12 }}>CQC AUDIT TRAIL — COMPLETE</span>
@@ -2541,7 +2584,7 @@ Next visit: Monitor blood sugar levels. Ensure Metformin is given AFTER meals �
   );
 }
 
-function ProfileScreen({ onSignOut }: { onSignOut: () => void }) {
+function ProfileScreen({ onSignOut, carerName }: { onSignOut: () => void; carerName: string }) {
   return (
     <div
       style={{
@@ -2568,10 +2611,10 @@ function ProfileScreen({ onSignOut }: { onSignOut: () => void }) {
             fontSize: 28,
           }}
         >
-          SJ
+          {getInitials(carerName)}
         </div>
         <div style={{ textAlign: "center" }}>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: 20 }}>Sarah Johnson</div>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 20 }}>{carerName}</div>
           <div style={{ color: COLORS.g2, fontSize: 14, marginTop: 2 }}>Adjoy Healthcare</div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
@@ -2814,7 +2857,7 @@ function SOSOverlay({ onDismiss }: { onDismiss: () => void }) {
 
 // ─── Family Portal Screen ─────────────────────────────────────────────────────
 
-function FamilySummaryScreen({ onBack, approvalStatus, onRead }: { onBack: () => void; approvalStatus: "pending" | "approved"; onRead: () => void }) {
+function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName }: { onBack: () => void; approvalStatus: "pending" | "approved"; onRead: () => void; carerName: string }) {
   const [messageSent, setMessageSent] = useState(false);
   const [showMessage, setShowMessage] = useState(false);
   const [messageText, setMessageText] = useState("");
@@ -2834,7 +2877,7 @@ function FamilySummaryScreen({ onBack, approvalStatus, onRead }: { onBack: () =>
         </div>
         <div style={{ background: "rgba(246,183,60,0.08)", border: "1px solid rgba(246,183,60,0.25)", borderRadius: 14, padding: "14px 18px", width: "100%", textAlign: "center" }}>
           <div style={{ color: COLORS.amber, fontWeight: 600, fontSize: 13 }}>Visit completed at 10:05</div>
-          <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 4 }}>Sarah Johnson · 9 April 2026</div>
+          <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 4 }}>{carerName} · 9 April 2026</div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <span style={{ fontSize: 14 }}>🔒</span>
@@ -2875,7 +2918,7 @@ function FamilySummaryScreen({ onBack, approvalStatus, onRead }: { onBack: () =>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
           <div>
             <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>Mary's Day Summary</div>
-            <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>Carer: Sarah Johnson · 1hr 5min visit</div>
+            <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>Carer: {carerName} · 1hr 5min visit</div>
           </div>
           <div style={{ width: 42, height: 42, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.darkNavy, fontWeight: 700, fontSize: 14 }}>MJ</div>
         </div>
@@ -2924,9 +2967,9 @@ function FamilySummaryScreen({ onBack, approvalStatus, onRead }: { onBack: () =>
         {/* Carer's note */}
         <div style={{ background: "rgba(79,209,197,0.07)", border: "1px solid rgba(79,209,197,0.2)", borderRadius: 14, padding: "14px 16px" }}>
           <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.darkNavy, fontWeight: 700, fontSize: 11, flexShrink: 0 }}>SJ</div>
+            <div style={{ width: 32, height: 32, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.darkNavy, fontWeight: 700, fontSize: 11, flexShrink: 0 }}>{getInitials(carerName)}</div>
             <div>
-              <div style={{ color: "#fff", fontWeight: 600, fontSize: 13 }}>Sarah's note</div>
+              <div style={{ color: "#fff", fontWeight: 600, fontSize: 13 }}>{carerName.split(" ")[0]}'s note</div>
               <div style={{ color: COLORS.g2, fontSize: 11 }}>Written at 10:07</div>
             </div>
           </div>
@@ -3653,11 +3696,13 @@ function ManagerApprovalsScreen({
   onApprove,
   summaryReadAt,
   onBack,
+  carerName,
 }: {
   approvalStatus: "pending" | "approved";
   onApprove: () => void;
   summaryReadAt: string | null;
   onBack: () => void;
+  carerName: string;
 }) {
   const [approvedAt, setApprovedAt] = useState<string | null>(null);
 
@@ -3695,7 +3740,7 @@ function ManagerApprovalsScreen({
         <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, overflow: "hidden" }}>
           <div style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
             <div style={{ color: "#fff", fontWeight: 700, fontSize: 13 }}>Mary Johnson — 9 Apr 2026</div>
-            <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 2 }}>Carer: Sarah Johnson · Visit 09:00–10:05</div>
+            <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 2 }}>Carer: {carerName} · Visit 09:00–10:05</div>
           </div>
           {[
             { label: "Tasks completed", value: "6 / 6" },
@@ -4239,6 +4284,7 @@ function TodayCareScreen({
   onAssistant,
   onSOS,
   onProfile,
+  carerName,
 }: {
   visitStatuses: Record<string, string>;
   onSelectClient: (id: string) => void;
@@ -4247,6 +4293,7 @@ function TodayCareScreen({
   onAssistant: () => void;
   onSOS: () => void;
   onProfile: () => void;
+  carerName: string;
 }) {
   const now = new Date();
   const hour = now.getHours();
@@ -4284,7 +4331,7 @@ function TodayCareScreen({
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <button onClick={onOperations} style={{ padding: "6px 12px", borderRadius: 99, border: "1px solid rgba(246,183,60,0.4)", background: "rgba(246,183,60,0.1)", color: COLORS.amber, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Switch to Operations</button>
-            <div onClick={onProfile} style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.darkNavy, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>SJ</div>
+            <div onClick={onProfile} style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.darkNavy, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{getInitials(carerName)}</div>
           </div>
         </div>
         {/* Stats */}
@@ -4386,7 +4433,7 @@ function ActiveVisitScreen({
   onEmergency,
 }: {
   client: typeof SCHEDULE_CLIENTS[0];
-  onComplete: () => void;
+  onComplete: (data: VisitData) => void;
   onBack: () => void;
   onSOS: () => void;
   onAssistant: () => void;
@@ -4841,7 +4888,15 @@ function ActiveVisitScreen({
       {/* Fixed Complete Visit button */}
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "12px 16px 24px", background: "rgba(15,29,52,0.97)", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
         <button
-          onClick={allMedsAcknowledged ? onComplete : undefined}
+          onClick={allMedsAcknowledged ? () => onComplete({
+            notes,
+            confirmedMeds: client.meds.filter(m => medStatus[m.name] === "taken").map(m => `${m.name} ${m.dose}`),
+            skippedMeds: client.meds.filter(m => medStatus[m.name] === "refused").map(m => `${m.name} ${m.dose}`),
+            fluidMl: fluidGlasses * 250,
+            completedTasks: VISIT_TASKS.filter((_, i) => tasks[i]),
+            mealStatus,
+            mood,
+          }) : undefined}
           style={{ width: "100%", padding: "14px 0", borderRadius: 14, border: "none", background: allMedsAcknowledged ? `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})` : "rgba(255,255,255,0.1)", color: allMedsAcknowledged ? COLORS.darkNavy : COLORS.g3, fontFamily: "DM Sans, sans-serif", fontSize: 15, fontWeight: 700, cursor: allMedsAcknowledged ? "pointer" : "not-allowed" }}
         >
           {allMedsAcknowledged ? "Complete Visit →" : `Confirm medications (${Object.keys(medStatus).length}/${client.meds.length})`}
@@ -5017,24 +5072,76 @@ function CAREiAssistantModal({ onClose, clientName }: { onClose: () => void; cli
 function ContinuCareSummaryScreen({
   client,
   onDone,
+  visitData,
 }: {
   client: typeof SCHEDULE_CLIENTS[0];
   onDone: () => void;
+  visitData?: VisitData;
 }) {
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState({ observations: "", medication: "", riskSignals: "" });
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setSummary({
-        observations: "Client consumed breakfast. Mild withdrawal noted during visit. Engaged with carer appropriately. Personal care completed fully.",
-        medication: client.meds.map((m) => `${m.name} ${m.dose} — taken ✓`).join("\n"),
-        riskSignals: "Slight reduction in mobility compared to previous visit. Monitor mood over next 48 hours. No immediate escalation required.",
-      });
+    function buildMedText() {
+      if (visitData?.confirmedMeds?.length || visitData?.skippedMeds?.length) {
+        const lines: string[] = [];
+        (visitData.confirmedMeds ?? []).forEach(m => lines.push(`${m} — given ✓`));
+        (visitData.skippedMeds ?? []).forEach(m => lines.push(`${m} — not given ⚠️`));
+        return lines.join("\n");
+      }
+      return client.meds.map(m => `${m.name} ${m.dose} — taken ✓`).join("\n");
+    }
+
+    function buildFallback() {
+      const parts: string[] = [];
+      if (visitData?.mood) parts.push(`Mood at visit start: ${visitData.mood}.`);
+      if (visitData?.completedTasks?.length) parts.push(`Tasks completed: ${visitData.completedTasks.join(", ")}.`);
+      if (visitData?.mealStatus) parts.push(`Meal intake: ${visitData.mealStatus}.`);
+      if (visitData?.fluidMl) parts.push(`Fluid intake: ${visitData.fluidMl}ml.`);
+      if (visitData?.notes?.trim()) parts.push(`Carer's notes: "${visitData.notes.trim()}"`);
+      const obs = parts.length ? parts.join("\n") : `Visit with ${client.name} completed. Personal care carried out as per care plan.`;
+      const risk = visitData?.notes?.trim()
+        ? `From carer's notes: "${visitData.notes.trim().slice(0, 180)}"`
+        : "No risk signals or concerns recorded this visit.";
+      setSummary({ observations: obs, medication: buildMedText(), riskSignals: risk });
       setLoading(false);
-    }, 2000);
-    return () => clearTimeout(timer);
+    }
+
+    async function generate() {
+      try {
+        const response = await fetch("/api/anthropic/summary", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            client,
+            visitDate: new Date().toLocaleDateString("en-GB"),
+            notes: visitData?.notes ?? "",
+            confirmedMeds: visitData?.confirmedMeds ?? [],
+            skippedMeds: visitData?.skippedMeds ?? [],
+            fluidMl: visitData?.fluidMl ?? 0,
+            completedTasks: visitData?.completedTasks ?? [],
+            mealStatus: visitData?.mealStatus ?? "",
+            mood: visitData?.mood ?? "",
+          }),
+        });
+        if (!response.ok) throw new Error();
+        const data = await response.json();
+        setSummary({
+          observations: data.summary ?? "",
+          medication: buildMedText(),
+          riskSignals: visitData?.notes?.trim()
+            ? `Carer's own notes: "${visitData.notes.trim().slice(0, 200)}"`
+            : "No concerns or risk signals recorded this visit.",
+        });
+      } catch {
+        buildFallback();
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    generate();
   }, []);
 
   if (submitted) {
@@ -5265,6 +5372,8 @@ export default function CAREiApp() {
   const [summaryReadAt, setSummaryReadAt] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [queuedCount, setQueuedCount] = useState(0);
+  const [carerName, setCarerName] = useState("Sarah Johnson");
+  const [lastVisitData, setLastVisitData] = useState<VisitData | undefined>(undefined);
 
   useEffect(() => {
     const up = () => { setIsOffline(false); setQueuedCount(0); };
@@ -5293,13 +5402,13 @@ export default function CAREiApp() {
       case "splash":
         return <SplashScreen onNext={() => nav("otp")} />;
       case "otp":
-        return <OTPScreen onNext={() => nav("today")} />;
+        return <OTPScreen onNext={(name) => { setCarerName(name); nav("today"); }} />;
       case "copilot":
         return <CopilotScreen onBack={() => nav("today")} />;
       case "medication":
         return <MedicationScreen onNext={() => nav("today")} />;
       case "profile":
-        return <ProfileScreen onSignOut={() => nav("otp")} />;
+        return <ProfileScreen onSignOut={() => nav("otp")} carerName={carerName} />;
       case "family":
         return <FamilyPortalScreen onBack={() => nav("today")} onSummary={() => nav("family-summary")} />;
       case "family-summary":
@@ -5308,6 +5417,7 @@ export default function CAREiApp() {
             onBack={() => nav("family")}
             approvalStatus={summaryApproval}
             onRead={() => { if (!summaryReadAt) setSummaryReadAt(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })); }}
+            carerName={carerName}
           />
         );
       case "manager-approvals":
@@ -5317,6 +5427,7 @@ export default function CAREiApp() {
             onApprove={() => setSummaryApproval("approved")}
             summaryReadAt={summaryReadAt}
             onBack={() => nav("today")}
+            carerName={carerName}
           />
         );
       case "bodymap": {
@@ -5347,6 +5458,7 @@ export default function CAREiApp() {
             onAssistant={() => setShowAssistant(true)}
             onSOS={() => setShowSOS(true)}
             onProfile={() => nav("profile")}
+            carerName={carerName}
           />
         );
       case "client-overview": {
@@ -5364,7 +5476,7 @@ export default function CAREiApp() {
         return (
           <ActiveVisitScreen
             client={activeClient}
-            onComplete={() => nav("handover")}
+            onComplete={(data) => { setLastVisitData(data); nav("handover"); }}
             onBack={() => nav("today")}
             onSOS={() => setShowSOS(true)}
             onAssistant={() => setShowAssistant(true)}
@@ -5386,6 +5498,7 @@ export default function CAREiApp() {
           <ContinuCareSummaryScreen
             client={summaryClient}
             onDone={() => { setVisitStatuses((s) => ({ ...s, [summaryClient.id]: "completed" })); nav("today"); }}
+            visitData={lastVisitData}
           />
         );
       }

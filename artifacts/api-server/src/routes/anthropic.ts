@@ -29,19 +29,57 @@ router.post("/anthropic/chat", async (req, res) => {
 
 router.post("/anthropic/summary", async (req, res) => {
   try {
-    const { client, visitDate } = req.body;
+    const {
+      client,
+      visitDate,
+      notes,
+      confirmedMeds,
+      skippedMeds,
+      fluidMl,
+      completedTasks,
+      mealStatus,
+      mood,
+    } = req.body;
 
-    const prompt = `Generate a concise, professional ContinuCare+ handover note for the following domiciliary care visit:
+    const confirmedStr = confirmedMeds?.length
+      ? confirmedMeds.join(", ")
+      : "None recorded";
+    const skippedStr = skippedMeds?.length
+      ? skippedMeds.join(", ")
+      : "None";
+    const tasksStr = completedTasks?.length
+      ? completedTasks.join(", ")
+      : "None recorded";
+    const fluidStr = fluidMl ? `${fluidMl}ml` : "Not recorded";
+    const notesStr = notes?.trim() || "No notes entered by carer.";
+    const moodStr = mood || "Not recorded";
+    const mealStr = mealStatus || "Not recorded";
 
-Client: ${client.name}, Age ${client.age}
+    const prompt = `You are generating a professional ContinuCare+ handover note for a UK domiciliary care visit. Use the carer's own notes as your PRIMARY source — reflect exactly what they recorded. Do not invent or assume anything not stated.
+
+CLIENT
+Name: ${client.name}, Age: ${client.age}
 Address: ${client.address}
-Conditions: ${client.conditions.join(", ")}
-Allergy: ${client.allergy}
-GP: ${client.gp}
+Conditions: ${client.conditions?.join(", ") ?? "See care plan"}
+Allergy: ${client.allergy ?? "None known"}
+GP: ${client.gp ?? "See care plan"}
 Visit Date: ${visitDate}
-Medications given: ${client.meds.map((m: { name: string; dose: string }) => `${m.name} ${m.dose}`).join(", ")}
 
-Write a brief (150-200 word) handover note in a professional care setting format. Include: overall impression, 4 bullet points covering Mood, Appetite, Mobility, and Skin condition (positive observations), and a brief note for the next carer. Keep it warm but clinically professional.`;
+WHAT THE CARER RECORDED
+Mood at visit start: ${moodStr}
+Carer's notes (typed/dictated): ${notesStr}
+Meal intake: ${mealStr}
+Fluid intake: ${fluidStr}
+Tasks completed: ${tasksStr}
+Medications given: ${confirmedStr}
+Medications not given / refused: ${skippedStr}
+
+Write a concise (150–200 word) professional handover note. Structure:
+1. One opening sentence summarising the visit.
+2. Four bullet points: Mood, Appetite/Fluid, Tasks completed, Medications.
+3. One sentence for the next carer (any flags, things to monitor, or "No concerns").
+
+Use the carer's notes as the primary source. Be warm but clinically precise. Do not mention Grace or any client not listed above.`;
 
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-6",

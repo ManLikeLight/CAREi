@@ -442,7 +442,7 @@ function SplashScreen({ onSignUp, onLogin }: { onSignUp: () => void; onLogin: ()
           Built for the carer,<br />by a carer
         </div>
         {/* Badges */}
-        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", justifyContent: "center", marginTop: 26 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 7, marginTop: 26 }}>
           {["AI Powered", "GDPR Ready", "Built for UK care compliance"].map((b) => (
             <span
               key={b}
@@ -2942,7 +2942,7 @@ function SOSOverlay({ onDismiss }: { onDismiss: () => void }) {
 
 // ─── Family Portal Screen ─────────────────────────────────────────────────────
 
-function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName, carerAgency }: { onBack: () => void; approvalStatus: "pending" | "approved"; onRead: () => void; carerName: string; carerAgency: string }) {
+function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName, carerAgency, client }: { onBack: () => void; approvalStatus: "pending" | "approved"; onRead: () => void; carerName: string; carerAgency: string; client: typeof SCHEDULE_CLIENTS[0] }) {
   const [messageSent, setMessageSent] = useState(false);
   const [showMessage, setShowMessage] = useState(false);
   const [messageText, setMessageText] = useState("");
@@ -2984,10 +2984,7 @@ function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName, carerA
     { icon: "🧩", label: "Activity", detail: "Enjoyed a short puzzle, 15 minutes, engaged well", done: true },
   ];
 
-  const meds = [
-    { name: "Aspirin", dose: "75mg", time: "09:14", status: "given" },
-    { name: "Donepezil", dose: "10mg", time: "09:16", status: "given" },
-  ];
+  const meds = client.meds.map((m, i) => ({ name: m.name, dose: m.dose, time: `09:${14 + i * 2}`, status: "given" }));
 
   return (
     <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", position: "relative" }}>
@@ -3005,10 +3002,10 @@ function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName, carerA
         {/* Carer & client */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
           <div>
-            <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>Mary's Day Summary</div>
+            <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>{client.name.split(" ")[0]}'s Day Summary</div>
             <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>Carer: {carerName} · 1hr 5min visit</div>
           </div>
-          <div style={{ width: 42, height: 42, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.darkNavy, fontWeight: 700, fontSize: 14 }}>MJ</div>
+          <div style={{ width: 42, height: 42, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.darkNavy, fontWeight: 700, fontSize: 14 }}>{getInitials(client.name)}</div>
         </div>
       </div>
 
@@ -3062,7 +3059,7 @@ function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName, carerA
             </div>
           </div>
           <div style={{ color: COLORS.g0, fontSize: 13, lineHeight: 1.6, fontStyle: "italic" }}>
-            "Mary was in really good spirits this morning, she was chatting about her garden and seemed very alert. She had a healthy appetite and finished all her breakfast. She moved well with her frame and did a lovely little puzzle afterwards. A good visit overall."
+            {`"${client.name.split(" ")[0]} was in really good spirits this morning. ${client.name.split(" ")[0]} had a healthy appetite and finished all of breakfast. Engaged well during the visit and all tasks completed as planned. A good visit overall."`}
           </div>
         </div>
 
@@ -3151,14 +3148,16 @@ function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName, carerA
   );
 }
 
-function FamilyPortalScreen({ onBack, onSummary, carerName }: { onBack: () => void; onSummary: () => void; carerName: string }) {
+function FamilyPortalScreen({ onBack, onSummary, carerName, client }: { onBack: () => void; onSummary: () => void; carerName: string; client: typeof SCHEDULE_CLIENTS[0] }) {
+  const firstName = client.name.split(" ")[0];
+  const medNames = client.meds.map(m => `${m.name} ${m.dose}`).join(", ");
   const events = [
-    { time: "10:02", icon: "🚗", text: `${carerName.split(" ")[0]} arrived at Grace's home`, done: true },
+    { time: "10:02", icon: "🚗", text: `${carerName.split(" ")[0]} arrived at ${firstName}'s home`, done: true },
     { time: "10:05", icon: "🛁", text: "Personal care commenced", done: true },
-    { time: "10:35", icon: "🍵", text: "Breakfast prepared, porridge and tea, good intake", done: true },
-    { time: "10:47", icon: "💊", text: "Medications administered: Amlodipine, Metformin, Atorvastatin", done: true },
-    { time: "10:52", icon: "🩺", text: "Blood pressure checked: 142/88 mmHg", done: true },
-    { time: "11:05", icon: "🧩", text: "Activity: crossword puzzle, good engagement", done: true },
+    { time: "10:35", icon: "🍵", text: "Breakfast prepared, good intake", done: true },
+    { time: "10:47", icon: "💊", text: `Medications administered: ${medNames}`, done: true },
+    { time: "10:52", icon: "🩺", text: "Health check completed", done: true },
+    { time: "11:05", icon: "🧩", text: "Activity & social engagement", done: true },
     { time: "~11:30", icon: "🏁", text: "Visit completion & handover note", done: false },
   ];
   return (
@@ -3169,7 +3168,7 @@ function FamilyPortalScreen({ onBack, onSummary, carerName }: { onBack: () => vo
           <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>Family Portal</div>
           <Badge color={COLORS.green} bg="rgba(34,197,94,0.12)">Live</Badge>
         </div>
-        <div style={{ color: COLORS.g2, fontSize: 13, marginTop: 4 }}>Grace Mensah · Today's Visit</div>
+        <div style={{ color: COLORS.g2, fontSize: 13, marginTop: 4 }}>{client.name} · Today's Visit</div>
       </div>
 
       <div className="phone-scroll" style={{ flex: 1, padding: "0 18px 100px" }}>
@@ -4126,7 +4125,8 @@ function HandoverScreen({ client, onSubmit }: { client: typeof SCHEDULE_CLIENTS[
         </div>
       </div>
 
-      <div className="phone-scroll" style={{ flex: 1, minHeight: 0, padding: "0 18px 120px", display: "flex", flexDirection: "column", gap: 18 }}>
+      <div className="phone-scroll" style={{ flex: 1, minHeight: 0, padding: "0 18px 120px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
 
         {/* Mood */}
         <div>
@@ -4173,6 +4173,7 @@ function HandoverScreen({ client, onSubmit }: { client: typeof SCHEDULE_CLIENTS[
         <div>
           <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 8 }}>ANY CONCERNS TO FLAG? <span style={{ color: COLORS.g3, fontWeight: 400 }}>(optional)</span></label>
           <textarea value={concerns} onChange={(e) => setConcerns(e.target.value)} placeholder="Leave blank if none. Include anything that needs supervisor attention." rows={2} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${concerns ? "rgba(246,183,60,0.35)" : "rgba(255,255,255,0.12)"}`, background: concerns ? "rgba(246,183,60,0.05)" : "rgba(255,255,255,0.05)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, resize: "none", outline: "none", boxSizing: "border-box" }} />
+        </div>
         </div>
       </div>
 
@@ -4495,10 +4496,7 @@ function TodayCareScreen({
             <div style={{ color: COLORS.g2, fontSize: 12 }}>{greeting},</div>
             <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 24, color: "#fff" }}>Today's Care</div>
           </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <button onClick={onOperations} style={{ padding: "6px 12px", borderRadius: 99, border: "1px solid rgba(246,183,60,0.4)", background: "rgba(246,183,60,0.1)", color: COLORS.amber, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Switch to Operations</button>
-            <div onClick={onProfile} style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.darkNavy, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{getInitials(carerName)}</div>
-          </div>
+          <div onClick={onProfile} style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.darkNavy, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{getInitials(carerName)}</div>
         </div>
         {/* Stats */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 16 }}>
@@ -4622,6 +4620,10 @@ function ActiveVisitScreen({
   setNotes: React.Dispatch<React.SetStateAction<string>>;
   fluidGlasses: number;
   setFluidGlasses: React.Dispatch<React.SetStateAction<number>>;
+  mood: string;
+  setMood: React.Dispatch<React.SetStateAction<string>>;
+  moodSet: boolean;
+  setMoodSet: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -4641,8 +4643,6 @@ function ActiveVisitScreen({
   const [mealStatus, setMealStatus] = useState<"" | "Full" | "Half" | "Refused">("");
   const [showMealPrompt, setShowMealPrompt] = useState(false);
   const [mealPromptDismissed, setMealPromptDismissed] = useState(false);
-  const [mood, setMood] = useState("");
-  const [moodSet, setMoodSet] = useState(false);
   const [shownCues, setShownCues] = useState<Set<string>>(new Set());
   const [showPrevVisits, setShowPrevVisits] = useState(false);
   const [showInlineIncident, setShowInlineIncident] = useState(false);
@@ -5564,6 +5564,8 @@ export default function CAREiApp() {
   const [visitTasks, setVisitTasks] = useState([false, false, false]);
   const [visitNotes, setVisitNotes] = useState("");
   const [visitFluidGlasses, setVisitFluidGlasses] = useState(0);
+  const [visitMood, setVisitMood] = useState("");
+  const [visitMoodSet, setVisitMoodSet] = useState(false);
 
   useEffect(() => {
     const up = () => { setIsOffline(false); setQueuedCount(0); };
@@ -5602,9 +5604,12 @@ export default function CAREiApp() {
         return <MedicationScreen onNext={() => nav("today")} />;
       case "profile":
         return <ProfileScreen onSignOut={() => nav("otp")} carerName={carerName} carerEmail={carerEmail} />;
-      case "family":
-        return <FamilyPortalScreen onBack={() => nav("today")} onSummary={() => nav("family-summary")} carerName={carerName} />;
-      case "family-summary":
+      case "family": {
+        const familyClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
+        return <FamilyPortalScreen onBack={() => nav("today")} onSummary={() => nav("family-summary")} carerName={carerName} client={familyClient} />;
+      }
+      case "family-summary": {
+        const familyClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
         return (
           <FamilySummaryScreen
             onBack={() => nav("family")}
@@ -5612,8 +5617,10 @@ export default function CAREiApp() {
             onRead={() => { if (!summaryReadAt) setSummaryReadAt(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })); }}
             carerName={carerName}
             carerAgency={carerAgency}
+            client={familyClient}
           />
         );
+      }
       case "manager-approvals":
         return (
           <ManagerApprovalsScreen
@@ -5670,7 +5677,7 @@ export default function CAREiApp() {
           <ClientOverviewScreen
             client={overviewClient}
             onBack={() => nav("today")}
-            onStartVisit={() => { setVisitStatuses((s) => ({ ...s, [overviewClient.id]: "in-progress" })); setVisitMedStatus({}); setVisitTasks([false, false, false]); setVisitNotes(""); setVisitFluidGlasses(0); nav("active-visit"); }}
+            onStartVisit={() => { setVisitStatuses((s) => ({ ...s, [overviewClient.id]: "in-progress" })); setVisitMedStatus({}); setVisitTasks([false, false, false]); setVisitNotes(""); setVisitFluidGlasses(0); setVisitMood(""); setVisitMoodSet(false); nav("active-visit"); }}
           />
         );
       }
@@ -5679,7 +5686,7 @@ export default function CAREiApp() {
         return (
           <ActiveVisitScreen
             client={activeClient}
-            onComplete={(data) => { setLastVisitData(data); setVisitMedStatus({}); setVisitTasks([false, false, false]); setVisitNotes(""); setVisitFluidGlasses(0); nav("handover"); }}
+            onComplete={(data) => { setLastVisitData(data); setVisitMedStatus({}); setVisitTasks([false, false, false]); setVisitNotes(""); setVisitFluidGlasses(0); setVisitMood(""); setVisitMoodSet(false); nav("handover"); }}
             onBack={() => nav("today")}
             onSOS={() => setShowSOS(true)}
             onAssistant={() => setShowAssistant(true)}
@@ -5694,6 +5701,10 @@ export default function CAREiApp() {
             setNotes={setVisitNotes}
             fluidGlasses={visitFluidGlasses}
             setFluidGlasses={setVisitFluidGlasses}
+            mood={visitMood}
+            setMood={setVisitMood}
+            moodSet={visitMoodSet}
+            setMoodSet={setVisitMoodSet}
           />
         );
       }

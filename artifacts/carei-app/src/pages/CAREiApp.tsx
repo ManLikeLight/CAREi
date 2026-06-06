@@ -124,6 +124,7 @@ const SCHEDULE_CLIENTS = [
       { name: "Aspirin", dose: "75mg", adminNote: "Give with food. Monitor for stomach discomfort." },
       { name: "Donepezil", dose: "10mg", adminNote: "Give after breakfast. Monitor for nausea or sleep disturbance." },
     ],
+    pronouns: "she/her",
   },
   {
     id: "tom",
@@ -157,6 +158,7 @@ const SCHEDULE_CLIENTS = [
       { name: "Aspirin", dose: "75mg", adminNote: "Give with morning meal. Monitor for dizziness." },
       { name: "Lisinopril", dose: "10mg", adminNote: "Give with food. Monitor blood pressure. Report readings above 140/90." },
     ],
+    pronouns: "he/him",
   },
   {
     id: "aisha",
@@ -190,6 +192,7 @@ const SCHEDULE_CLIENTS = [
       { name: "Metformin", dose: "500mg", adminNote: "⚠ Give AFTER meals only, never on an empty stomach. Monitor for nausea for 30 mins after." },
       { name: "Lisinopril", dose: "10mg", adminNote: "Give with food. Monitor blood pressure and report readings above 140/90." },
     ],
+    pronouns: "she/her",
   },
 ];
 
@@ -3420,7 +3423,7 @@ function VisitHistoryScreen({ clientName, onBack }: { clientName: string; onBack
 
 function buildCarePlan(client: typeof SCHEDULE_CLIENTS[0]) {
   const n = client.name.split(" ")[0];
-  const isHe = client.id === "tom";
+  const isHe = client.pronouns === "he/him";
   const pronoun = isHe ? "he" : "she";
   const possessive = isHe ? "his" : "her";
 
@@ -4151,6 +4154,12 @@ function HandoverScreen({ client, onSubmit }: { client: typeof SCHEDULE_CLIENTS[
         <div>
           <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 8 }}>KEY OBSERVATIONS <span style={{ color: COLORS.g3, fontWeight: 400 }}>(optional)</span></label>
           <textarea value={observations} onChange={(e) => setObservations(e.target.value)} placeholder={`Anything the next carer should know about ${client.name.split(" ")[0]}…`} rows={3} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.05)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, resize: "none", outline: "none", boxSizing: "border-box" }} />
+          {observations && (client.pronouns === "he/him" ? /\b(she|her|hers)\b/i.test(observations) : /\b(he|him|his)\b/i.test(observations)) && (
+            <div style={{ marginTop: 6, padding: "8px 10px", borderRadius: 8, background: "rgba(246,183,60,0.1)", border: "1px solid rgba(246,183,60,0.3)", display: "flex", gap: 7, alignItems: "center" }}>
+              <span style={{ fontSize: 14, flexShrink: 0 }}>⚠️</span>
+              <span style={{ color: COLORS.amber, fontSize: 11, lineHeight: 1.5 }}>Pronoun check — {client.name.split(" ")[0]} uses <strong>{client.pronouns}</strong>. Please review your notes.</span>
+            </div>
+          )}
         </div>
 
         {/* Pending tasks */}
@@ -5031,6 +5040,12 @@ function ActiveVisitScreen({
           </div>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Tap Dictate or type care notes here…" rows={4}
             style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "9px 12px", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, resize: "none", outline: "none" }} />
+          {notes && (client.pronouns === "he/him" ? /\b(she|her|hers)\b/i.test(notes) : /\b(he|him|his)\b/i.test(notes)) && (
+            <div style={{ marginTop: 6, padding: "8px 10px", borderRadius: 8, background: "rgba(246,183,60,0.1)", border: "1px solid rgba(246,183,60,0.3)", display: "flex", gap: 7, alignItems: "center" }}>
+              <span style={{ fontSize: 14, flexShrink: 0 }}>⚠️</span>
+              <span style={{ color: COLORS.amber, fontSize: 11, lineHeight: 1.5 }}>Pronoun check — {client.name.split(" ")[0]} uses <strong>{client.pronouns}</strong>. Please review your notes.</span>
+            </div>
+          )}
           <div style={{ display: "flex", gap: 6, marginTop: 7 }}>
             {["Mood", "Appetite", "Mobility", "Skin"].map((chip) => (
               <button key={chip} onClick={() => setNotes((n) => n + (n ? " " : "") + chip + ": ")}

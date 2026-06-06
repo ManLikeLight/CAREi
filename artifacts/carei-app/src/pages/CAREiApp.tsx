@@ -392,21 +392,81 @@ function NavPills({
 
 function SplashScreen({ onSignUp, onLogin }: { onSignUp: () => void; onLogin: () => void }) {
   return (
-    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column" }}>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 28px", textAlign: "center" }}>
-        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 36, color: "#fff", letterSpacing: 1 }}>
+    <div style={{
+      height: "100%",
+      background: "linear-gradient(180deg, #070e1d 0%, #0b1628 55%, #0f1e34 100%)",
+      display: "flex",
+      flexDirection: "column",
+      position: "relative",
+      overflow: "hidden",
+    }}>
+      {/* Soft teal glow behind the logo */}
+      <div style={{
+        position: "absolute",
+        top: "28%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        width: 320,
+        height: 320,
+        background: "radial-gradient(circle, rgba(79,209,197,0.11) 0%, rgba(79,209,197,0) 68%)",
+        pointerEvents: "none",
+      }} />
+      {/* Teal warmth rising from the bottom */}
+      <div style={{
+        position: "absolute",
+        bottom: -30,
+        left: "50%",
+        transform: "translateX(-50%)",
+        width: 380,
+        height: 200,
+        background: "radial-gradient(ellipse at bottom, rgba(79,209,197,0.10) 0%, rgba(79,209,197,0) 72%)",
+        pointerEvents: "none",
+      }} />
+
+      {/* Centred hero group */}
+      <div style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "0 28px",
+        textAlign: "center",
+        position: "relative",
+        gap: 0,
+      }}>
+        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 40, color: "#fff", letterSpacing: 1, lineHeight: 1 }}>
           CARE<span style={{ color: COLORS.teal }}>i</span>
         </div>
-        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 26, color: "#fff", marginTop: 20, lineHeight: 1.35, letterSpacing: 0.1 }}>
+        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 24, color: "rgba(255,255,255,0.92)", marginTop: 14, lineHeight: 1.4, letterSpacing: 0.1 }}>
           Built for the carer,<br />by a carer
         </div>
-        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", justifyContent: "center", marginTop: 36 }}>
-          {["CQC Regulated", "GDPR Compliant", "AI Powered"].map((b) => (
-            <Badge key={b} color={COLORS.teal} bg="rgba(79,209,197,0.12)">{b}</Badge>
+        {/* Badges */}
+        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", justifyContent: "center", marginTop: 26 }}>
+          {["Built for UK care compliance", "GDPR Ready", "AI Powered"].map((b) => (
+            <span
+              key={b}
+              style={{
+                display: "inline-block",
+                padding: "5px 12px",
+                borderRadius: 99,
+                border: "1px solid rgba(79,209,197,0.32)",
+                background: "rgba(79,209,197,0.08)",
+                color: COLORS.teal,
+                fontSize: 11,
+                fontWeight: 600,
+                fontFamily: "DM Sans, sans-serif",
+                letterSpacing: 0.2,
+              }}
+            >
+              {b}
+            </span>
           ))}
         </div>
       </div>
-      <div style={{ padding: "0 24px 36px" }}>
+
+      {/* CTA buttons + footer tagline */}
+      <div style={{ padding: "0 24px 34px", position: "relative" }}>
         <div style={{ display: "flex", gap: 12 }}>
           <button
             onClick={onSignUp}

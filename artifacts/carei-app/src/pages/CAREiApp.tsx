@@ -4603,6 +4603,10 @@ function ActiveVisitScreen({
   setNotes,
   fluidGlasses,
   setFluidGlasses,
+  mood,
+  setMood,
+  moodSet,
+  setMoodSet,
 }: {
   client: typeof SCHEDULE_CLIENTS[0];
   onComplete: (data: VisitData) => void;

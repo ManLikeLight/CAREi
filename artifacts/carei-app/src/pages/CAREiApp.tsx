@@ -443,25 +443,16 @@ function SplashScreen({ onSignUp, onLogin }: { onSignUp: () => void; onLogin: ()
         </div>
         {/* Badges */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 7, marginTop: 26 }}>
-          {["AI Powered", "GDPR Ready", "Built for UK care compliance"].map((b) => (
-            <span
-              key={b}
-              style={{
-                display: "inline-block",
-                padding: "5px 12px",
-                borderRadius: 99,
-                border: "1px solid rgba(79,209,197,0.32)",
-                background: "rgba(79,209,197,0.08)",
-                color: COLORS.teal,
-                fontSize: 11,
-                fontWeight: 600,
-                fontFamily: "DM Sans, sans-serif",
-                letterSpacing: 0.2,
-              }}
-            >
-              {b}
-            </span>
-          ))}
+          <div style={{ display: "flex", gap: 10 }}>
+            {["AI Powered", "GDPR Ready"].map((b) => (
+              <span key={b} style={{ display: "inline-block", padding: "5px 12px", borderRadius: 99, border: "1px solid rgba(79,209,197,0.32)", background: "rgba(79,209,197,0.08)", color: COLORS.teal, fontSize: 11, fontWeight: 600, fontFamily: "DM Sans, sans-serif", letterSpacing: 0.2 }}>
+                {b}
+              </span>
+            ))}
+          </div>
+          <span style={{ display: "inline-block", padding: "5px 14px", borderRadius: 99, border: "1px solid rgba(79,209,197,0.32)", background: "rgba(79,209,197,0.08)", color: COLORS.teal, fontSize: 11, fontWeight: 600, fontFamily: "DM Sans, sans-serif", letterSpacing: 0.2 }}>
+            Built for UK care compliance
+          </span>
         </div>
       </div>
 

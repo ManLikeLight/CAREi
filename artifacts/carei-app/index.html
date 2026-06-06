@@ -28,9 +28,94 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "CAREi",
+      "url": "https://carei.app/",
+      "description": "CAREi is an AI-powered domiciliary care management platform built for CQC-regulated home care agencies. Streamline scheduling, compliance, and carer coordination with intelligent automation.",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "GBP"
+      },
+      "featureList": [
+        "AI-powered visit scheduling",
+        "CQC compliance management",
+        "Real-time carer coordination",
+        "Medication administration records",
+        "Person-centred care planning",
+        "GDPR-compliant data handling"
+      ],
+      "audience": {
+        "@type": "Audience",
+        "audienceType": "Domiciliary care agencies, home care providers, CQC-regulated organisations"
+      }
+    }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!--
+        Static pre-render for crawlers and bots that do not execute JavaScript.
+        React replaces this content on mount.
+      -->
+      <div style="min-height:100vh;background:linear-gradient(160deg,#0a1628 0%,#0d2137 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:Inter,sans-serif;color:#fff;padding:48px 24px;box-sizing:border-box;">
+        <header style="text-align:center;margin-bottom:32px;">
+          <h1 style="font-size:40px;font-weight:700;margin:0 0 8px;letter-spacing:1px;">CAREi</h1>
+          <p style="font-size:16px;color:#4fd1c5;margin:0;font-weight:500;">Intelligent Care. Every Visit.</p>
+        </header>
+
+        <main style="max-width:520px;width:100%;text-align:center;">
+          <p style="font-size:17px;line-height:1.6;color:#b0c4d8;margin:0 0 32px;">
+            AI-powered domiciliary care management built for CQC-regulated home care agencies.
+            Streamline scheduling, compliance, and carer coordination with intelligent automation.
+          </p>
+
+          <section aria-label="Key features" style="margin-bottom:36px;text-align:left;">
+            <h2 style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#4fd1c5;margin:0 0 16px;">What CAREi does</h2>
+            <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px;">
+              <li style="display:flex;gap:10px;align-items:flex-start;">
+                <span aria-hidden="true" style="font-size:15px;flex-shrink:0;margin-top:2px;">📅</span>
+                <span style="color:#d0e4f0;font-size:14px;line-height:1.5;"><strong>AI scheduling</strong> — intelligently matches carers to clients based on skills, location, and continuity of care.</span>
+              </li>
+              <li style="display:flex;gap:10px;align-items:flex-start;">
+                <span aria-hidden="true" style="font-size:15px;flex-shrink:0;margin-top:2px;">✅</span>
+                <span style="color:#d0e4f0;font-size:14px;line-height:1.5;"><strong>CQC compliance</strong> — built-in frameworks keep your agency audit-ready at all times.</span>
+              </li>
+              <li style="display:flex;gap:10px;align-items:flex-start;">
+                <span aria-hidden="true" style="font-size:15px;flex-shrink:0;margin-top:2px;">💊</span>
+                <span style="color:#d0e4f0;font-size:14px;line-height:1.5;"><strong>Medication records</strong> — digital MAR sheets with allergy alerts and administration guidance at point of care.</span>
+              </li>
+              <li style="display:flex;gap:10px;align-items:flex-start;">
+                <span aria-hidden="true" style="font-size:15px;flex-shrink:0;margin-top:2px;">🛡️</span>
+                <span style="color:#d0e4f0;font-size:14px;line-height:1.5;"><strong>GDPR compliant</strong> — secure, encrypted storage designed for sensitive personal care data.</span>
+              </li>
+              <li style="display:flex;gap:10px;align-items:flex-start;">
+                <span aria-hidden="true" style="font-size:15px;flex-shrink:0;margin-top:2px;">🤝</span>
+                <span style="color:#d0e4f0;font-size:14px;line-height:1.5;"><strong>Person-centred planning</strong> — care plans built around individual needs, preferences, and communication styles.</span>
+              </li>
+            </ul>
+          </section>
+
+          <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:28px;">
+            <a href="/?signup" style="display:inline-block;padding:15px 40px;border-radius:14px;background:linear-gradient(90deg,#4fd1c5,#38b2ac);color:#0a1628;font-weight:700;font-size:15px;text-decoration:none;">Sign Up</a>
+            <a href="/?login" style="display:inline-block;padding:15px 40px;border-radius:14px;border:2px solid #4fd1c5;color:#4fd1c5;font-weight:700;font-size:15px;text-decoration:none;background:transparent;">Log In</a>
+          </div>
+
+          <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+            <span style="display:inline-block;padding:4px 12px;border-radius:99px;background:rgba(79,209,197,0.12);color:#4fd1c5;font-size:12px;font-weight:600;">CQC Regulated</span>
+            <span style="display:inline-block;padding:4px 12px;border-radius:99px;background:rgba(79,209,197,0.12);color:#4fd1c5;font-size:12px;font-weight:600;">GDPR Compliant</span>
+            <span style="display:inline-block;padding:4px 12px;border-radius:99px;background:rgba(79,209,197,0.12);color:#4fd1c5;font-size:12px;font-weight:600;">AI Powered</span>
+          </div>
+        </main>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

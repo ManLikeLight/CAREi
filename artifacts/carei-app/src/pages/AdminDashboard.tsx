@@ -26,26 +26,26 @@ const CLIENTS = [
 ];
 
 const AUDIT = [
-  { time: "10:49", event: "Medication confirmed — Atorvastatin 20mg", carer: "Sarah Johnson", s: "ok"   },
-  { time: "10:48", event: "Medication confirmed — Metformin 500mg",   carer: "Sarah Johnson", s: "ok"   },
-  { time: "10:47", event: "Medication confirmed — Amlodipine 5mg",    carer: "Sarah Johnson", s: "ok"   },
+  { time: "10:49", event: "Medication confirmed: Atorvastatin 20mg", carer: "Sarah Johnson", s: "ok"   },
+  { time: "10:48", event: "Medication confirmed: Metformin 500mg",   carer: "Sarah Johnson", s: "ok"   },
+  { time: "10:47", event: "Medication confirmed: Amlodipine 5mg",    carer: "Sarah Johnson", s: "ok"   },
   { time: "10:33", event: "Lone worker check-in overdue (18 min)",    carer: "Amy Mitchell",  s: "warn" },
-  { time: "10:15", event: "Visit started — Patricia Lane",            carer: "Amy Mitchell",  s: "ok"   },
-  { time: "10:00", event: "Visit started — Grace Mensah",             carer: "Sarah Johnson", s: "ok"   },
-  { time: "09:42", event: "Medication flagged — out of stock note",   carer: "James Osei",    s: "warn" },
-  { time: "09:30", event: "Visit started — Robert Turner",            carer: "James Osei",    s: "ok"   },
-  { time: "09:00", event: "Visit started — Frank Novak",              carer: "Tom Bridges",   s: "ok"   },
-  { time: "07:55", event: "CQC flag — medication gap not documented", carer: "System",        s: "fail" },
+  { time: "10:15", event: "Visit started: Patricia Lane",            carer: "Amy Mitchell",  s: "ok"   },
+  { time: "10:00", event: "Visit started: Grace Mensah",             carer: "Sarah Johnson", s: "ok"   },
+  { time: "09:42", event: "Medication flagged: out of stock note",   carer: "James Osei",    s: "warn" },
+  { time: "09:30", event: "Visit started: Robert Turner",            carer: "James Osei",    s: "ok"   },
+  { time: "09:00", event: "Visit started: Frank Novak",              carer: "Tom Bridges",   s: "ok"   },
+  { time: "07:55", event: "CQC flag: medication gap not documented", carer: "System",        s: "fail" },
 ];
 
 const ALERTS = [
-  { id: 1, sev: "Critical", type: "Lone Worker", title: "Amy Mitchell — check-in overdue 18 min",
+  { id: 1, sev: "Critical", type: "Lone Worker", title: "Amy Mitchell, check-in overdue 18 min",
     detail: "Amy Mitchell has not checked in while lone working at Patricia Lane's home. Immediate supervisor action required.",
     time: "10:33" },
-  { id: 2, sev: "High", type: "AI Flag", title: "Potential drug interaction — Robert Turner",
+  { id: 2, sev: "High", type: "AI Flag", title: "Potential drug interaction: Robert Turner",
     detail: "AI Copilot flagged a possible interaction between Warfarin and Ibuprofen. Review before next visit.",
     time: "10:15" },
-  { id: 3, sev: "Medium", type: "CQC", title: "Handover note missing — Margaret Cole",
+  { id: 3, sev: "Medium", type: "CQC", title: "Handover note missing: Margaret Cole",
     detail: "No ContinuCare+ handover submitted for Margaret Cole's 08:00 visit. Documentation gap flagged.",
     time: "09:50" },
   { id: 4, sev: "Low", type: "Schedule", title: "James Osei 8 min behind schedule",
@@ -149,7 +149,7 @@ function CarerOverview() {
         {/* Lone worker map */}
         <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 14, overflow: "hidden" }}>
           <div style={{ padding: "14px 18px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>Lone Worker Map — Reading</div>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>Lone Worker Map: Reading</div>
             <div style={{ display: "flex", gap: 12 }}>
               {[["Active", C.green], ["Late", C.red], ["Break", C.amber]].map(([l, c]) => (
                 <div key={l} style={{ display: "flex", alignItems: "center", gap: 5 }}>
@@ -186,7 +186,7 @@ function CarerOverview() {
             })}
             {/* Amy Mitchell warning */}
             <div style={{ position: "absolute", left: "68%", top: "30%", background: "rgba(255,90,95,0.15)", border: `1px solid ${C.red}`, borderRadius: 8, padding: "6px 10px", fontSize: 11, color: C.red, fontWeight: 600, whiteSpace: "nowrap" }}>
-              ⚠ Amy Mitchell — 18 min overdue
+              ⚠ Amy Mitchell, 18 min overdue
             </div>
           </div>
         </div>
@@ -327,11 +327,11 @@ function AgencyAlerts() {
               <div style={{ color: "#fff", fontWeight: 600, fontSize: 14, marginBottom: 6 }}>{a.title}</div>
               <div style={{ color: C.g2, fontSize: 13, lineHeight: 1.5, marginBottom: 12 }}>{a.detail}</div>
 
-              {/* Feature 6 — Supervisor Acknowledgement Log */}
+              {/* Feature 6, Supervisor Acknowledgement Log */}
               {ack?.done ? (
                 <div style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 8, padding: "10px 14px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-                    <div style={{ color: C.green, fontWeight: 700, fontSize: 12 }}>✓ Acknowledged — {ack.time}</div>
+                    <div style={{ color: C.green, fontWeight: 700, fontSize: 12 }}>✓ Acknowledged: {ack.time}</div>
                     {ack.responseTime && (
                       <span style={{ marginLeft: "auto", background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 99, padding: "2px 8px", color: C.green, fontSize: 11, fontWeight: 600 }}>
                         ⏱ Responded in {ack.responseTime}

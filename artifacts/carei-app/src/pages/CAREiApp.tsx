@@ -60,13 +60,13 @@ const CLIENT = {
   gp: "Dr Sandra Obi",
   meds: [
     { name: "Amlodipine", dose: "5mg", time: "10AM", route: "Oral", adminNote: "Give with a full glass of water. Monitor for dizziness for 20 mins after." },
-    { name: "Metformin", dose: "500mg", time: "10AM", route: "Oral", adminNote: "⚠ Give AFTER meals — never on an empty stomach. Monitor for nausea/vomiting for 30 mins after administration." },
+    { name: "Metformin", dose: "500mg", time: "10AM", route: "Oral", adminNote: "⚠ Give AFTER meals, never on an empty stomach. Monitor for nausea/vomiting for 30 mins after administration." },
     { name: "Atorvastatin", dose: "20mg", time: "10AM", route: "Oral", adminNote: "Give at same time each day. Monitor for any muscle pain or weakness after administration." },
   ],
 };
 
 const TASKS = [
-  "Personal care — wash, dress",
+  "Personal care: wash, dress",
   "Breakfast preparation",
   "Morning medication (10AM)",
   "Blood pressure check",
@@ -105,19 +105,19 @@ const SCHEDULE_CLIENTS = [
     allergy: "None known",
     supportLevel: "Full physical assistance + 1-to-1 supervision throughout",
     framework: "Person-Centred · PBS · Dementia Care Mapping (DCM)",
-    communication: "Use simple words and short sentences. Validate feelings — never argue or correct. Approach from the front, maintain eye contact. Mary may not recognise you — introduce yourself each visit.",
-    mobilityNote: "Walking frame required at all times — high fall risk",
+    communication: "Use simple words and short sentences. Validate feelings, never argue or correct. Approach from the front, maintain eye contact. Mary may not recognise you, introduce yourself each visit.",
+    mobilityNote: "Walking frame required at all times, high fall risk",
     medNote: "Donepezil 10mg after breakfast · Aspirin 75mg with food",
     vitalSignsRequired: false,
     vitalSignsThreshold: "",
     lastHandoverBullets: [
-      "Mary was calm and cooperative throughout — no exit-seeking behaviour noted. Personal care completed fully.",
-      "No changes since last visit — routine and medication both as planned. Ate a full breakfast.",
-      "Watch for: agitation around mealtimes — offer familiar music as a calming distraction before continuing.",
+      "Mary was calm and cooperative throughout, no exit-seeking behaviour noted. Personal care completed fully.",
+      "No changes since last visit, routine and medication both as planned. Ate a full breakfast.",
+      "Watch for: agitation around mealtimes, offer familiar music as a calming distraction before continuing.",
     ],
     contextualCues: [
-      { trigger: "Prepare breakfast", content: "Encourage fluid alongside meal — Mary requires 6–8 glasses daily. Offer water or juice first before starting breakfast. Aspirin must be given WITH food." },
-      { trigger: "Assist with mobility", content: "Walking frame must remain within reach at all times. Mary is HIGH FALL RISK — never leave her standing unassisted. Remove trip hazards before starting movement." },
+      { trigger: "Prepare breakfast", content: "Encourage fluid alongside meal, Mary requires 6–8 glasses daily. Offer water or juice first before starting breakfast. Aspirin must be given WITH food." },
+      { trigger: "Assist with mobility", content: "Walking frame must remain within reach at all times. Mary is HIGH FALL RISK, never leave her standing unassisted. Remove trip hazards before starting movement." },
       { trigger: "Record mood", content: "Use the PBS framework: Green (calm/engaging), Amber (repetitive questioning/pacing), Red (physical behaviour). Document what helped in the notes." },
     ],
     meds: [
@@ -138,20 +138,20 @@ const SCHEDULE_CLIENTS = [
     allergy: "None known",
     supportLevel: "Physical assistance with personal care and transfers. Mobility support throughout.",
     framework: "Person-Centred · Stroke Rehabilitation Approach · PACE",
-    communication: "Speak slowly and clearly — Tom may have word-finding difficulties. Allow extra time to respond. Do not finish his sentences. Use gestures where helpful.",
-    mobilityNote: "Hoist required for transfers — never attempt manual lift alone",
+    communication: "Speak slowly and clearly, Tom may have word-finding difficulties. Allow extra time to respond. Do not finish his sentences. Use gestures where helpful.",
+    mobilityNote: "Hoist required for transfers, never attempt manual lift alone",
     medNote: "Aspirin 75mg and Lisinopril 10mg with morning meal",
     vitalSignsRequired: true,
-    vitalSignsThreshold: "Report to supervisor if BP above 140/90 mmHg — call office immediately",
+    vitalSignsThreshold: "Report to supervisor if BP above 140/90 mmHg, call office immediately",
     lastHandoverBullets: [
-      "Tom completed transfers safely with hoist — cooperated well. BP 138/86 — within normal range.",
-      "Change since last visit: appetite slightly reduced — ate approximately half of breakfast.",
-      "Watch for: any difficulty swallowing — do not rush food or drink; report immediately if observed.",
+      "Tom completed transfers safely with hoist, cooperated well. BP 138/86, within normal range.",
+      "Change since last visit: appetite slightly reduced, ate approximately half of breakfast.",
+      "Watch for: any difficulty swallowing, do not rush food or drink; report immediately if observed.",
     ],
     contextualCues: [
-      { trigger: "Prepare breakfast", content: "Aspirin and Lisinopril must be given WITH this meal — confirm Tom has eaten before administering. Record BP 20 mins after Lisinopril." },
-      { trigger: "Assist with mobility", content: "Hoist required for ALL transfers — never attempt manual lift alone. Support Tom's affected side throughout. Allow him extra time — do not rush." },
-      { trigger: "Record mood", content: "Allow extra time for Tom to communicate — post-stroke aphasia means he needs processing time. Do not finish his sentences. Note any visible frustration or withdrawal." },
+      { trigger: "Prepare breakfast", content: "Aspirin and Lisinopril must be given WITH this meal, confirm Tom has eaten before administering. Record BP 20 mins after Lisinopril." },
+      { trigger: "Assist with mobility", content: "Hoist required for ALL transfers, never attempt manual lift alone. Support Tom's affected side throughout. Allow him extra time, do not rush." },
+      { trigger: "Record mood", content: "Allow extra time for Tom to communicate, post-stroke aphasia means he needs processing time. Do not finish his sentences. Note any visible frustration or withdrawal." },
     ],
     meds: [
       { name: "Aspirin", dose: "75mg", adminNote: "Give with morning meal. Monitor for dizziness." },
@@ -168,26 +168,26 @@ const SCHEDULE_CLIENTS = [
     tags: ["Diabetes", "Nutrition Monitoring"],
     emoji: "👩🏽",
     gp: "Dr F. Hassan · Woodley Health Centre",
-    allergy: "Sulfonamides — do not administer",
+    allergy: "Sulfonamides: do not administer",
     supportLevel: "Verbal prompts and encouragement. Assistance with nutrition monitoring and medication.",
     framework: "Person-Centred · Diabetes Care Protocol · Trauma-Informed Care",
-    communication: "Aisha speaks English and Urdu. Use simple language and offer choices. She is private — always explain what you are doing before doing it.",
-    mobilityNote: "Independent walking — monitor for dizziness (hypoglycaemia risk)",
-    medNote: "Metformin 500mg AFTER meals — never on empty stomach",
+    communication: "Aisha speaks English and Urdu. Use simple language and offer choices. She is private, always explain what you are doing before doing it.",
+    mobilityNote: "Independent walking, monitor for dizziness (hypoglycaemia risk)",
+    medNote: "Metformin 500mg AFTER meals, never on empty stomach",
     vitalSignsRequired: false,
     vitalSignsThreshold: "",
     lastHandoverBullets: [
-      "Aisha in good spirits — engaged positively with carer. Blood sugar 7.2 mmol/L before Metformin.",
-      "No changes since last visit — foot inspection normal, no redness, wounds or swelling noted.",
-      "Watch for: signs of hypoglycaemia before and after meals — sweating, shaking, confusion, pale skin.",
+      "Aisha in good spirits, engaged positively with carer. Blood sugar 7.2 mmol/L before Metformin.",
+      "No changes since last visit, foot inspection normal, no redness, wounds or swelling noted.",
+      "Watch for: signs of hypoglycaemia before and after meals, sweating, shaking, confusion, pale skin.",
     ],
     contextualCues: [
-      { trigger: "Prepare breakfast", content: "Confirm Aisha has eaten BEFORE giving Metformin — never administer on an empty stomach. Monitor for nausea for 30 mins after. Encourage water with meal." },
-      { trigger: "Assist with mobility", content: "Monitor for dizziness before and after movement — hypoglycaemia risk. If Aisha appears unsteady or confused, sit her down and check blood sugar immediately." },
-      { trigger: "Record mood", content: "Always explain each step before doing it — Aisha values being in control of her care. Note any signs of withdrawal or reduced engagement; these may indicate low blood sugar." },
+      { trigger: "Prepare breakfast", content: "Confirm Aisha has eaten BEFORE giving Metformin, never administer on an empty stomach. Monitor for nausea for 30 mins after. Encourage water with meal." },
+      { trigger: "Assist with mobility", content: "Monitor for dizziness before and after movement, hypoglycaemia risk. If Aisha appears unsteady or confused, sit her down and check blood sugar immediately." },
+      { trigger: "Record mood", content: "Always explain each step before doing it, Aisha values being in control of her care. Note any signs of withdrawal or reduced engagement; these may indicate low blood sugar." },
     ],
     meds: [
-      { name: "Metformin", dose: "500mg", adminNote: "⚠ Give AFTER meals only — never on an empty stomach. Monitor for nausea for 30 mins after." },
+      { name: "Metformin", dose: "500mg", adminNote: "⚠ Give AFTER meals only, never on an empty stomach. Monitor for nausea for 30 mins after." },
       { name: "Lisinopril", dose: "10mg", adminNote: "Give with food. Monitor blood pressure and report readings above 140/90." },
     ],
   },
@@ -392,81 +392,21 @@ function NavPills({
 
 function SplashScreen({ onSignUp, onLogin }: { onSignUp: () => void; onLogin: () => void }) {
   return (
-    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", overflowY: "auto" }}>
-      {/* Header */}
-      <div style={{ padding: "28px 24px 0", textAlign: "center", flexShrink: 0 }}>
-        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 30, color: "#fff", letterSpacing: 1 }}>
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 28px", textAlign: "center" }}>
+        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 36, color: "#fff", letterSpacing: 1 }}>
           CARE<span style={{ color: COLORS.teal }}>i</span>
         </div>
-        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 26, color: "#fff", marginTop: 16, lineHeight: 1.35, letterSpacing: 0.1 }}>
+        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 26, color: "#fff", marginTop: 20, lineHeight: 1.35, letterSpacing: 0.1 }}>
           Built for the carer,<br />by a carer
         </div>
-        <div style={{ fontSize: 13, fontWeight: 500, color: COLORS.teal, marginTop: 10, letterSpacing: 0.5 }}>
-          Intelligent Care. Every Visit.
-        </div>
-      </div>
-
-      {/* Today's Visit Banner */}
-      <div style={{ margin: "18px 16px 0", background: "rgba(79,209,197,0.08)", border: "1px solid rgba(79,209,197,0.2)", borderRadius: 16, padding: "14px 16px", flexShrink: 0 }}>
-        <div style={{ color: COLORS.teal, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 }}>Today's Client — At a Glance</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-          <div style={{ width: 46, height: 46, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <span style={{ fontSize: 22 }}>👩🏾</span>
-          </div>
-          <div>
-            <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>Grace Mensah</div>
-            <div style={{ color: COLORS.g2, fontSize: 12 }}>83 years · 10 Oak Avenue, Reading RG1 4AT</div>
-          </div>
-        </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
-          {["Hypertension", "T2 Diabetes", "Mild Cognitive Impairment"].map(c => (
-            <span key={c} style={{ background: "rgba(255,255,255,0.08)", color: COLORS.g1, fontSize: 11, borderRadius: 99, padding: "3px 9px", fontWeight: 600 }}>{c}</span>
-          ))}
-        </div>
-        {/* Key info rows */}
-        {[
-          { icon: "🩺", label: "GP", value: "Dr Sandra Obi · Caversham Surgery" },
-          { icon: "⚠️", label: "Allergy", value: "PENICILLIN — do not administer" },
-          { icon: "🤝", label: "Support level", value: "Full physical assistance + verbal prompts" },
-          { icon: "🧭", label: "Framework", value: "Person-Centred · PBS · PACE · Trauma-Informed" },
-          { icon: "💬", label: "Communication", value: "Use first name, short sentences, one step at a time" },
-          { icon: "🚶", label: "Mobility", value: "Walking frame at all times — high fall risk" },
-        ].map(row => (
-          <div key={row.label} style={{ display: "flex", gap: 8, marginBottom: 7, alignItems: "flex-start" }}>
-            <span style={{ fontSize: 13, flexShrink: 0, marginTop: 1 }}>{row.icon}</span>
-            <div>
-              <span style={{ color: COLORS.g3, fontSize: 11, fontWeight: 600 }}>{row.label}: </span>
-              <span style={{ color: row.label === "Allergy" ? COLORS.red : COLORS.g1, fontSize: 12, fontWeight: row.label === "Allergy" ? 700 : 400 }}>{row.value}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Medication summary */}
-      <div style={{ margin: "12px 16px 0", background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "12px 14px", flexShrink: 0 }}>
-        <div style={{ color: COLORS.g2, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.7, marginBottom: 8 }}>Medications Due Today</div>
-        {[
-          { name: "Amlodipine 5mg", note: "10AM oral · monitor for dizziness 20 min after" },
-          { name: "Metformin 500mg", note: "10AM oral · AFTER meals only — monitor 30 min after", warn: true },
-          { name: "Atorvastatin 20mg", note: "10AM oral · monitor for muscle pain after" },
-        ].map(m => (
-          <div key={m.name} style={{ display: "flex", gap: 8, marginBottom: 7, alignItems: "flex-start" }}>
-            <span style={{ fontSize: 13, flexShrink: 0, marginTop: 1 }}>💊</span>
-            <div>
-              <span style={{ color: m.warn ? COLORS.amber : "#fff", fontSize: 12, fontWeight: 700 }}>{m.name} </span>
-              <span style={{ color: COLORS.g2, fontSize: 11 }}>{m.note}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Badges + CTA */}
-      <div style={{ padding: "16px 16px 24px", flexShrink: 0 }}>
-        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", justifyContent: "center", marginBottom: 14 }}>
+        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", justifyContent: "center", marginTop: 36 }}>
           {["CQC Regulated", "GDPR Compliant", "AI Powered"].map((b) => (
             <Badge key={b} color={COLORS.teal} bg="rgba(79,209,197,0.12)">{b}</Badge>
           ))}
         </div>
+      </div>
+      <div style={{ padding: "0 24px 36px" }}>
         <div style={{ display: "flex", gap: 12 }}>
           <button
             onClick={onSignUp}
@@ -480,6 +420,9 @@ function SplashScreen({ onSignUp, onLogin }: { onSignUp: () => void; onLogin: ()
           >
             Log In
           </button>
+        </div>
+        <div style={{ textAlign: "center", marginTop: 18 }}>
+          <span style={{ color: COLORS.g3, fontSize: 11, letterSpacing: 0.3 }}>Intelligent Care. Every Visit.</span>
         </div>
       </div>
     </div>
@@ -499,7 +442,7 @@ function ClientOverviewScreen({
 }) {
   const isAllergyRisk = client.allergy && client.allergy !== "None known";
   const isMetformin = client.meds.some((m) => m.name === "Metformin");
-  // Feature 5 — Handover read receipt
+  // Feature 5, Handover read receipt
   const [handoverRead, setHandoverRead] = useState(false);
   const firstName = client.name.split(" ")[0];
 
@@ -508,7 +451,7 @@ function ClientOverviewScreen({
       {/* Header */}
       <div style={{ padding: "18px 18px 0", flexShrink: 0 }}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0, marginBottom: 10 }}>‹</button>
-        <div style={{ color: COLORS.teal, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>Client Brief — Before You Start</div>
+        <div style={{ color: COLORS.teal, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>Client Brief, Before You Start</div>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
           <div style={{ width: 50, height: 50, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <span style={{ fontSize: 24 }}>{client.emoji}</span>
@@ -579,7 +522,7 @@ function ClientOverviewScreen({
           ))}
           {isMetformin && (
             <div style={{ background: "rgba(246,183,60,0.12)", borderRadius: 8, padding: "7px 10px", marginTop: 4 }}>
-              <span style={{ color: COLORS.amber, fontSize: 12, fontWeight: 700 }}>⚠ Metformin must be given AFTER meals — confirm client has eaten first</span>
+              <span style={{ color: COLORS.amber, fontSize: 12, fontWeight: 700 }}>⚠ Metformin must be given AFTER meals, confirm client has eaten first</span>
             </div>
           )}
         </div>
@@ -592,7 +535,7 @@ function ClientOverviewScreen({
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <span style={{ fontSize: 20 }}>✅</span>
               <div>
-                <div style={{ color: COLORS.green, fontWeight: 700, fontSize: 13 }}>Briefing confirmed — you're ready to start</div>
+                <div style={{ color: COLORS.green, fontWeight: 700, fontSize: 13 }}>Briefing confirmed, you're ready to start</div>
                 <div style={{ color: COLORS.g3, fontSize: 11, marginTop: 2 }}>Confirmed at {new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</div>
               </div>
             </div>
@@ -600,7 +543,7 @@ function ClientOverviewScreen({
             <>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                 <span style={{ fontSize: 14 }}>📋</span>
-                <div style={{ color: COLORS.g1, fontWeight: 700, fontSize: 13 }}>Last Visit — Key Points</div>
+                <div style={{ color: COLORS.g1, fontWeight: 700, fontSize: 13 }}>Last Visit, Key Points</div>
                 <span style={{ marginLeft: "auto", color: COLORS.g3, fontSize: 10, fontStyle: "italic" }}>~10 sec read</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
@@ -612,7 +555,7 @@ function ClientOverviewScreen({
                 ))}
               </div>
               <button onClick={() => setHandoverRead(true)} style={{ width: "100%", padding: "9px 0", borderRadius: 10, border: "1px solid rgba(79,209,197,0.3)", background: "rgba(79,209,197,0.08)", color: COLORS.teal, fontFamily: "DM Sans, sans-serif", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                ✓ I've seen this — start visit
+                ✓ I've seen this, start visit
               </button>
             </>
           )}
@@ -766,7 +709,6 @@ function SignUpScreen({ onNext, onLogin }: { onNext: (name: string, agency: stri
           CARE<span style={{ color: COLORS.teal }}>i</span>
         </div>
         <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff", marginTop: 16 }}>Create your account</div>
-        <div style={{ fontSize: 13, fontWeight: 500, color: COLORS.teal, marginTop: 6, letterSpacing: 0.4 }}>Intelligent Care. Every Visit.</div>
       </div>
 
       {step === "done" && <AuthSuccess message="Account created! Welcome aboard…" />}
@@ -904,7 +846,6 @@ function LoginScreen({ onNext, onSignUp }: { onNext: (name: string, agency: stri
           CARE<span style={{ color: COLORS.teal }}>i</span>
         </div>
         <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff", marginTop: 20 }}>Welcome back</div>
-        <div style={{ fontSize: 13, fontWeight: 500, color: COLORS.teal, marginTop: 6, letterSpacing: 0.4 }}>Intelligent Care. Every Visit.</div>
       </div>
 
       {done && <AuthSuccess message="PIN verified! Signing you in…" />}
@@ -1296,7 +1237,7 @@ function LiveVisitScreen({
     const SR =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) {
-      setNotes((n) => (n ? n + "\n" : "") + "[Dictation requires Chrome or Edge — open the app in a full browser tab and allow microphone access, then try again.]");
+      setNotes((n) => (n ? n + "\n" : "") + "[Dictation requires Chrome or Edge, open the app in a full browser tab and allow microphone access, then try again.]");
       return;
     }
     const rec = new SR();
@@ -1316,9 +1257,9 @@ function LiveVisitScreen({
     rec.onerror = (e: any) => {
       setIsRecording(false);
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-        setNotes((n) => (n ? n + "\n" : "") + "[Microphone access denied — please allow microphone permission in your browser and try again.]");
+        setNotes((n) => (n ? n + "\n" : "") + "[Microphone access denied, please allow microphone permission in your browser and try again.]");
       } else if (e.error === "no-speech") {
-        setNotes((n) => (n ? n + "\n" : "") + "[No speech detected — please speak clearly and try again.]");
+        setNotes((n) => (n ? n + "\n" : "") + "[No speech detected, please speak clearly and try again.]");
       }
     };
     rec.onend = () => setIsRecording(false);
@@ -1439,7 +1380,7 @@ function LiveVisitScreen({
       {!isOnline && (
         <div style={{ background: "rgba(246,183,60,0.9)", padding: "6px 16px", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <span style={{ fontSize: 14 }}>📵</span>
-          <span style={{ color: "#1B2A49", fontWeight: 700, fontSize: 12 }}>Offline — data will sync when reconnected</span>
+          <span style={{ color: "#1B2A49", fontWeight: 700, fontSize: 12 }}>Offline, data will sync when reconnected</span>
         </div>
       )}
 
@@ -2384,7 +2325,7 @@ function MedicationScreen({ onNext }: { onNext: () => void }) {
           </div>
         ))}
 
-        {/* Feature 2 — Medication Monitoring Timer */}
+        {/* Feature 2, Medication Monitoring Timer */}
         {allActioned && !monitoringConfirmed && (
           <div style={{ background: "rgba(79,209,197,0.08)", border: "1px solid rgba(79,209,197,0.25)", borderRadius: 14, padding: "14px 16px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
@@ -2401,7 +2342,7 @@ function MedicationScreen({ onNext }: { onNext: () => void }) {
               <div style={{ height: "100%", width: `${monitorPct}%`, background: monitorDone ? COLORS.green : COLORS.teal, borderRadius: 99, transition: "width 1s linear" }} />
             </div>
             <div style={{ color: COLORS.g3, fontSize: 11, marginBottom: 12 }}>
-              {monitorDone ? "✓ Monitoring window complete — confirm below" : `${monitorWindowMins - monitorMins} min ${60 - monitorSecs}s remaining · ${monitorPct}% complete`}
+              {monitorDone ? "✓ Monitoring window complete, confirm below" : `${monitorWindowMins - monitorMins} min ${60 - monitorSecs}s remaining · ${monitorPct}% complete`}
             </div>
             <button
               onClick={() => { setMonitoringConfirmed(true); if (monitorRef.current) clearInterval(monitorRef.current); }}
@@ -2415,7 +2356,7 @@ function MedicationScreen({ onNext }: { onNext: () => void }) {
         {allActioned && monitoringConfirmed && (
           <div style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 12, padding: "11px 14px", display: "flex", gap: 10, alignItems: "center" }}>
             <span style={{ fontSize: 16 }}>✅</span>
-            <div style={{ color: COLORS.green, fontWeight: 700, fontSize: 13 }}>Monitoring confirmed — {new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</div>
+            <div style={{ color: COLORS.green, fontWeight: 700, fontSize: 13 }}>Monitoring confirmed, {new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</div>
           </div>
         )}
 
@@ -2456,22 +2397,22 @@ function MedicationScreen({ onNext }: { onNext: () => void }) {
             <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto 16px" }} />
             <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 18, color: "#fff", marginBottom: 4 }}>Monitoring window still open</div>
             <div style={{ color: COLORS.amber, fontSize: 13, marginBottom: 6 }}>
-              {monitorWindowMins - Math.floor(monitoringElapsed / 60)} min {60 - (monitoringElapsed % 60)}s remaining — early exit will be logged
+              {monitorWindowMins - Math.floor(monitoringElapsed / 60)} min {60 - (monitoringElapsed % 60)}s remaining, early exit will be logged
             </div>
             <div style={{ color: COLORS.g2, fontSize: 12, marginBottom: 14, lineHeight: 1.5 }}>
               You can proceed early if there is a clinical or operational reason. Select a reason to continue:
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
-              {["Next client appointment due", "Client is settled and a responsible adult is present", "Supervisor has been informed and agreed", "No concerns observed — low-risk situation"].map((r) => (
+              {["Next client appointment due", "Client is settled and a responsible adult is present", "Supervisor has been informed and agreed", "No concerns observed, low-risk situation"].map((r) => (
                 <button key={r} onClick={() => setEarlyExitReason(r)} style={{ padding: "9px 14px", borderRadius: 10, border: `1px solid ${earlyExitReason === r ? COLORS.amber : "rgba(255,255,255,0.1)"}`, background: earlyExitReason === r ? "rgba(246,183,60,0.15)" : "transparent", color: earlyExitReason === r ? COLORS.amber : COLORS.g2, textAlign: "left", fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif", fontWeight: earlyExitReason === r ? 600 : 400 }}>{r}</button>
               ))}
             </div>
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => { setShowEarlyExitModal(false); setEarlyExitReason(""); }} style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: COLORS.g1, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Wait — stay with client</button>
+              <button onClick={() => { setShowEarlyExitModal(false); setEarlyExitReason(""); }} style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: COLORS.g1, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Wait, stay with client</button>
               <button
                 onClick={() => { if (earlyExitReason) { setMonitoringConfirmed(true); setShowEarlyExitModal(false); onNext(); } }}
                 style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "none", background: earlyExitReason ? COLORS.amber : "rgba(255,255,255,0.08)", color: earlyExitReason ? COLORS.darkNavy : COLORS.g3, fontSize: 13, fontWeight: 700, cursor: earlyExitReason ? "pointer" : "not-allowed", fontFamily: "DM Sans, sans-serif" }}>
-                {earlyExitReason ? "Proceed — log reason" : "Select a reason first"}
+                {earlyExitReason ? "Proceed, log reason" : "Select a reason first"}
               </button>
             </div>
           </div>
@@ -2490,7 +2431,7 @@ function SummaryScreen({ onDone, carerName }: { onDone: () => void; carerName: s
   const fallbackSummary = `${CLIENT.name} was in good spirits and engaged positively throughout the visit. Personal care completed fully. Medications administered as prescribed with no issues noted.
 
 • Mood: Calm and responsive, recognised carer
-• Appetite: Good — ate well at mealtime
+• Appetite: Good, ate well at mealtime
 • Mobility: Mobilising with assistance, steady and safe
 • Skin: No new pressure areas or concerns observed
 
@@ -2531,7 +2472,7 @@ Next visit: Continue monitoring as per care plan. Follow any medication timing i
             <Badge color={COLORS.teal} bg="rgba(79,209,197,0.12)">ContinuCare+</Badge>
             <span style={{ color: COLORS.g3, fontSize: 12 }}>{new Date().toLocaleDateString("en-GB")} · {ts}</span>
           </div>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Grace Mensah — Handover Note</div>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Grace Mensah, Handover Note</div>
           <div style={{ color: COLORS.g1, fontSize: 12, lineHeight: 1.6, maxHeight: 140, overflowY: "auto" }}>{summary}</div>
         </div>
         <div style={{ background: "rgba(79,209,197,0.08)", borderRadius: 14, padding: 16, border: "1px solid rgba(79,209,197,0.2)", marginBottom: 24 }}>
@@ -2539,7 +2480,7 @@ Next visit: Continue monitoring as per care plan. Follow any medication timing i
           <div style={{ color: COLORS.g1, fontSize: 13 }}>{carerName} · Adjoy Healthcare</div>
           <div style={{ color: COLORS.g3, fontSize: 11, marginTop: 2 }}>Visit ended · {ts}</div>
         </div>
-        <div style={{ color: COLORS.g2, fontSize: 13, textAlign: "center", marginBottom: 16 }}>Next carer — tap below to confirm you have read this note</div>
+        <div style={{ color: COLORS.g2, fontSize: 13, textAlign: "center", marginBottom: 16 }}>Next carer, tap below to confirm you have read this note</div>
         <button onClick={() => setReadReceipt(true)} style={{ width: "100%", padding: "16px 0", borderRadius: 14, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
           ✓ I've Read This Handover
         </button>
@@ -2561,7 +2502,7 @@ Next visit: Continue monitoring as per care plan. Follow any medication timing i
             Handover submitted by {carerName}<br />Read receipt confirmed by next carer
           </div>
           <div style={{ marginTop: 12, background: "rgba(34,197,94,0.12)", borderRadius: 10, padding: "8px 16px", display: "inline-block" }}>
-            <span style={{ color: COLORS.green, fontWeight: 700, fontSize: 12 }}>CQC AUDIT TRAIL — COMPLETE</span>
+            <span style={{ color: COLORS.green, fontWeight: 700, fontSize: 12 }}>CQC AUDIT TRAIL, COMPLETE</span>
           </div>
           <button onClick={onDone} style={{ marginTop: 24, padding: "14px 32px", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>
             Return to Dashboard
@@ -2977,10 +2918,10 @@ function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName, carerA
   const tasks = [
     { icon: "🛁", label: "Personal care", detail: "Washing, dressing, oral hygiene", done: true },
     { icon: "💊", label: "Morning medications given", detail: "Aspirin 75mg · Donepezil 10mg", done: true },
-    { icon: "🍵", label: "Breakfast", detail: "Porridge with honey and a cup of tea — good appetite", done: true },
+    { icon: "🍵", label: "Breakfast", detail: "Porridge with honey and a cup of tea, good appetite", done: true },
     { icon: "🚶", label: "Mobility support", detail: "Short walk to the living room with frame, no difficulty", done: true },
-    { icon: "🩺", label: "Health check", detail: "Blood pressure 138/84 mmHg — within normal range", done: true },
-    { icon: "🧩", label: "Activity", detail: "Enjoyed a short puzzle — 15 minutes, engaged well", done: true },
+    { icon: "🩺", label: "Health check", detail: "Blood pressure 138/84 mmHg, within normal range", done: true },
+    { icon: "🧩", label: "Activity", detail: "Enjoyed a short puzzle, 15 minutes, engaged well", done: true },
   ];
 
   const meds = [
@@ -3061,7 +3002,7 @@ function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName, carerA
             </div>
           </div>
           <div style={{ color: COLORS.g0, fontSize: 13, lineHeight: 1.6, fontStyle: "italic" }}>
-            "Mary was in really good spirits this morning — she was chatting about her garden and seemed very alert. She had a healthy appetite and finished all her breakfast. She moved well with her frame and did a lovely little puzzle afterwards. A good visit overall."
+            "Mary was in really good spirits this morning, she was chatting about her garden and seemed very alert. She had a healthy appetite and finished all her breakfast. She moved well with her frame and did a lovely little puzzle afterwards. A good visit overall."
           </div>
         </div>
 
@@ -3154,7 +3095,7 @@ function FamilyPortalScreen({ onBack, onSummary }: { onBack: () => void; onSumma
   const events = [
     { time: "10:02", icon: "🚗", text: "Sarah arrived at Grace's home", done: true },
     { time: "10:05", icon: "🛁", text: "Personal care commenced", done: true },
-    { time: "10:35", icon: "🍵", text: "Breakfast prepared — porridge and tea, good intake", done: true },
+    { time: "10:35", icon: "🍵", text: "Breakfast prepared, porridge and tea, good intake", done: true },
     { time: "10:47", icon: "💊", text: "Medications administered: Amlodipine, Metformin, Atorvastatin", done: true },
     { time: "10:52", icon: "🩺", text: "Blood pressure checked: 142/88 mmHg", done: true },
     { time: "11:05", icon: "🧩", text: "Activity: crossword puzzle, good engagement", done: true },
@@ -3351,7 +3292,7 @@ function BodyMapScreen({ clientName, onBack }: { clientName: string; onBack: () 
       <div style={{ padding: "12px 18px 24px", flexShrink: 0 }}>
         <div style={{ color: COLORS.g3, fontSize: 11, textAlign: "center", marginBottom: 10 }}>Tap any zone to mark it with: <span style={{ color: markColor, fontWeight: 700 }}>{markType}</span></div>
 
-        {/* Feature 4 — Photo Capture */}
+        {/* Feature 4, Photo Capture */}
         {marks.length > 0 && (
           <div style={{ marginBottom: 10 }}>
             <input ref={photoInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhoto} style={{ display: "none" }} />
@@ -3452,116 +3393,116 @@ function buildCarePlan(client: typeof SCHEDULE_CLIENTS[0]) {
         "Maintain personal hygiene and dignity at all times",
         "Support safe mobility with walking frame at all times",
         "Administer medications as prescribed",
-        "Monitor nutrition and fluid intake — encourage 6–8 glasses of water daily",
-        "Promote cognitive engagement — crosswords, music, familiar routines",
+        "Monitor nutrition and fluid intake, encourage 6–8 glasses of water daily",
+        "Promote cognitive engagement, crosswords, music, familiar routines",
         "Monitor for signs of pain or discomfort that Mary may not verbalise",
       ],
       preventive: [
         "Falls: Remove trip hazards before starting each task; ensure non-slip footwear",
-        "Falls: Walking frame must remain within reach at all times — never move it away",
+        "Falls: Walking frame must remain within reach at all times, never move it away",
         "Wandering: Ensure exit doors are secured; note any exit-seeking behaviour",
-        "Dehydration: Offer fluids every 20–30 mins — Mary may not ask independently",
-        "Routine: Use the same sequence of tasks each visit — familiarity reduces anxiety",
+        "Dehydration: Offer fluids every 20–30 mins, Mary may not ask independently",
+        "Routine: Use the same sequence of tasks each visit, familiarity reduces anxiety",
         "Skin integrity: Check for pressure marks or bruising at each visit",
       ],
       risks: [
-        "HIGH FALL RISK — walking frame at all times, never leave Mary standing unassisted",
-        "Dementia — may not recognise staff; introduce yourself at every visit",
-        "Exit seeking — monitor during visits; escalate immediately if Mary leaves unsupervised",
-        "Medication compliance — verify each dose is swallowed, document refusals",
-        "Aspirin with food only — never on empty stomach",
-        "Donepezil after breakfast — monitor for nausea or sleep disturbance",
+        "HIGH FALL RISK, walking frame at all times, never leave Mary standing unassisted",
+        "Dementia, may not recognise staff; introduce yourself at every visit",
+        "Exit seeking, monitor during visits; escalate immediately if Mary leaves unsupervised",
+        "Medication compliance, verify each dose is swallowed, document refusals",
+        "Aspirin with food only, never on empty stomach",
+        "Donepezil after breakfast, monitor for nausea or sleep disturbance",
       ],
       postMed: [
         "After Aspirin: Give with food; observe for stomach discomfort for 20 mins",
         "After Donepezil: Give after breakfast; monitor for nausea or sleep disturbance",
-        "If Mary refuses medication: do not force — document refusal, reason, and notify office",
+        "If Mary refuses medication: do not force, document refusal, reason, and notify office",
         "If any adverse reaction: call 999 immediately, then notify the care office",
       ],
       pbsCalmSigns: ["Smiling, relaxed, engaging in conversation", "Cooperating with personal care without resistance", "Asking for tea or familiar music", "Recognising or responding warmly to the carer"],
-      pbsCalmActions: ["Continue with the planned care routine calmly", "Offer choices wherever possible — 'Would you like tea first or a wash?'", `Engage ${n} in ${possessive} preferred topics — music, family, crosswords`, "Praise cooperation genuinely and warmly"],
-      pbsAnxiousSigns: ["Repeated questioning — 'Where am I?', 'Who are you?'", "Pacing or trying to get up repeatedly", `Refusing tasks ${pronoun} usually accepts`, "Tearfulness, calling out or verbal expressions of fear"],
-      pbsAnxiousActions: ["Pause the task — do not push through resistance", `Speak softly, use ${n}'s name: '${n}, I'm here to help you, you're safe'`, "Offer a warm drink and sit beside her calmly", `Try a familiar distraction — ${possessive} favourite music or a photo of family`, "Document the episode and what helped in the visit notes"],
+      pbsCalmActions: ["Continue with the planned care routine calmly", "Offer choices wherever possible, 'Would you like tea first or a wash?'", `Engage ${n} in ${possessive} preferred topics, music, family, crosswords`, "Praise cooperation genuinely and warmly"],
+      pbsAnxiousSigns: ["Repeated questioning, 'Where am I?', 'Who are you?'", "Pacing or trying to get up repeatedly", `Refusing tasks ${pronoun} usually accepts`, "Tearfulness, calling out or verbal expressions of fear"],
+      pbsAnxiousActions: ["Pause the task, do not push through resistance", `Speak softly, use ${n}'s name: '${n}, I'm here to help you, you're safe'`, "Offer a warm drink and sit beside her calmly", `Try a familiar distraction, ${possessive} favourite music or a photo of family`, "Document the episode and what helped in the visit notes"],
       pbsRiskSigns: ["Hitting, scratching or grabbing at staff", "Shouting, swearing or screaming", "Spitting or biting", "Attempting to leave the property urgently"],
-      pbsRiskActions: [`Do NOT restrain — step back and create a safe distance`, `Stay calm — speak slowly: '${n}, I'm not going to hurt you, I'm here to help'`, `This is the dementia, not ${n} — do not take behaviour personally`, "Request backup: call a colleague or the office immediately", "Document fully in CAREi and complete an Incident Report", "If injury occurs: seek first aid, complete Datix, notify manager"],
+      pbsRiskActions: [`Do NOT restrain, step back and create a safe distance`, `Stay calm, speak slowly: '${n}, I'm not going to hurt you, I'm here to help'`, `This is the dementia, not ${n}, do not take behaviour personally`, "Request backup: call a colleague or the office immediately", "Document fully in CAREi and complete an Incident Report", "If injury occurs: seek first aid, complete Datix, notify manager"],
       lastReview: ["Reviewed: 01 March 2026 by Dr A. Patel", "Next review: 01 June 2026", "Care package: 1 hr × 5 days per week", "Framework: PBS + Person-Centred + Dementia Care Mapping"],
     },
     tom: {
       objectives: [
-        "Support safe transfers and mobility — hoist required for all bed/chair transfers",
+        "Support safe transfers and mobility, hoist required for all bed/chair transfers",
         "Maintain personal hygiene and dignity throughout",
         "Administer medications as prescribed with food",
-        "Monitor for signs of stroke recurrence — FAST assessment if concerned",
+        "Monitor for signs of stroke recurrence, FAST assessment if concerned",
         "Encourage stroke rehabilitation exercises as per physio plan",
         "Monitor blood pressure and document at each visit",
       ],
       preventive: [
-        "Transfers: Always use the hoist — never attempt manual lifts alone",
+        "Transfers: Always use the hoist, never attempt manual lifts alone",
         "Falls: Ensure pathways are clear; Tom has weakness on the affected side",
-        "Stroke recurrence: Know the FAST signs — Face drooping, Arm weakness, Speech difficulty, Time to call 999",
-        "Dysphagia: If Tom has swallowing difficulties, report immediately — never rush food or drink",
+        "Stroke recurrence: Know the FAST signs, Face drooping, Arm weakness, Speech difficulty, Time to call 999",
+        "Dysphagia: If Tom has swallowing difficulties, report immediately, never rush food or drink",
         "Skin integrity: Check pressure areas after transfers, especially hips and sacrum",
         "Blood pressure: Record reading every visit; report above 140/90 to the office",
       ],
       risks: [
-        "HOIST REQUIRED for all transfers — never attempt manual lift alone",
-        "Post-stroke weakness on affected side — support that side during all movement",
-        "Communication difficulties (aphasia) — allow extra time, do not rush Tom",
-        "Blood pressure monitoring — report readings above 140/90 immediately",
+        "HOIST REQUIRED for all transfers, never attempt manual lift alone",
+        "Post-stroke weakness on affected side, support that side during all movement",
+        "Communication difficulties (aphasia), allow extra time, do not rush Tom",
+        "Blood pressure monitoring, report readings above 140/90 immediately",
         "Aspirin with morning meal only",
-        "Lisinopril with food — monitor blood pressure after administration",
+        "Lisinopril with food, monitor blood pressure after administration",
       ],
       postMed: [
         "After Aspirin: Give with morning meal; check for stomach discomfort",
         "After Lisinopril: Monitor blood pressure for 20 mins; report readings above 140/90",
-        "If Tom refuses medication: do not force — document refusal, reason, and notify office",
+        "If Tom refuses medication: do not force, document refusal, reason, and notify office",
         "If any adverse reaction: call 999 immediately, then notify the care office",
       ],
       pbsCalmSigns: ["Engaging in conversation or attempting to communicate", "Cooperating with personal care and transfers", "Good eye contact, relaxed posture", "Attempting physio exercises willingly"],
-      pbsCalmActions: ["Continue with the care routine at Tom's pace", "Allow extra time for communication — do not finish his sentences", `Acknowledge ${possessive} effort and progress genuinely`, "Engage Tom in conversation about his interests between tasks"],
-      pbsAnxiousSigns: ["Visible frustration at being unable to communicate clearly", "Withdrawal — closing eyes, turning away, refusing interaction", "Increased agitation during personal care", "Refusing transfers or physio exercises"],
-      pbsAnxiousActions: ["Pause — never force a transfer or task when Tom is distressed", `Use calm, simple language: '${n}, we can take our time, there's no rush'`, "Offer Tom control — 'Are you ready? Tell me when'", "Try a brief distraction — music or a short break before trying again", "Document the episode and what helped"],
+      pbsCalmActions: ["Continue with the care routine at Tom's pace", "Allow extra time for communication, do not finish his sentences", `Acknowledge ${possessive} effort and progress genuinely`, "Engage Tom in conversation about his interests between tasks"],
+      pbsAnxiousSigns: ["Visible frustration at being unable to communicate clearly", "Withdrawal, closing eyes, turning away, refusing interaction", "Increased agitation during personal care", "Refusing transfers or physio exercises"],
+      pbsAnxiousActions: ["Pause, never force a transfer or task when Tom is distressed", `Use calm, simple language: '${n}, we can take our time, there's no rush'`, "Offer Tom control, 'Are you ready? Tell me when'", "Try a brief distraction, music or a short break before trying again", "Document the episode and what helped"],
       pbsRiskSigns: ["Grabbing or pushing staff during transfers or care", "Shouting or verbal outbursts from frustration", "Refusing to cooperate with essential tasks over multiple visits", "Extreme distress during personal care"],
-      pbsRiskActions: ["Step back and give Tom space — do not react to physical behaviour", `Stay calm: '${n}, I hear you. Let's stop for a moment'`, "Do not attempt transfers without cooperation — call for backup", "This is post-stroke frustration — not aggression; never retaliate", "Document fully in CAREi and complete an Incident Report", "If injury occurs: seek first aid, complete Datix, notify manager"],
+      pbsRiskActions: ["Step back and give Tom space, do not react to physical behaviour", `Stay calm: '${n}, I hear you. Let's stop for a moment'`, "Do not attempt transfers without cooperation, call for backup", "This is post-stroke frustration, not aggression; never retaliate", "Document fully in CAREi and complete an Incident Report", "If injury occurs: seek first aid, complete Datix, notify manager"],
       lastReview: ["Reviewed: 15 February 2026 by Dr M. Clarke", "Next review: 15 May 2026", "Care package: 30 mins × 5 days per week", "Framework: PBS + Person-Centred + Stroke Rehabilitation Approach"],
     },
     aisha: {
       objectives: [
         "Monitor blood sugar levels and document at each visit",
-        "Ensure Metformin is administered AFTER meals — confirm client has eaten first",
-        "Monitor nutrition — low-sugar, balanced meals; encourage 6–8 glasses of water",
-        "Inspect feet at each visit — report any redness, numbness or wounds immediately",
+        "Ensure Metformin is administered AFTER meals, confirm client has eaten first",
+        "Monitor nutrition, low-sugar, balanced meals; encourage 6–8 glasses of water",
+        "Inspect feet at each visit, report any redness, numbness or wounds immediately",
         "Promote independence while providing verbal prompting and encouragement",
         "Be alert for signs of hypoglycaemia at all times",
       ],
       preventive: [
-        "Hypoglycaemia: Know the signs — sweating, shaking, pale skin, confusion, rapid pulse",
+        "Hypoglycaemia: Know the signs, sweating, shaking, pale skin, confusion, rapid pulse",
         "Hypoglycaemia: Always ensure Aisha has eaten before administering Metformin",
-        "Foot care: Inspect for cuts, blisters, redness or swelling at every visit — diabetes increases infection risk",
-        "Hydration: Encourage 6–8 glasses of water — dehydration worsens blood sugar control",
+        "Foot care: Inspect for cuts, blisters, redness or swelling at every visit, diabetes increases infection risk",
+        "Hydration: Encourage 6–8 glasses of water, dehydration worsens blood sugar control",
         "Ketoacidosis: Report any excessive thirst, frequent urination or fruity breath immediately",
-        "Allergy: SULFONAMIDES — check all medication labels carefully before administration",
+        "Allergy: SULFONAMIDES, check all medication labels carefully before administration",
       ],
       risks: [
-        "ALLERGY: Sulfonamides — do not administer under any circumstances",
-        "Metformin MUST be given AFTER meals — never on empty stomach",
-        "HIGH HYPOGLYCAEMIA RISK — monitor for sweating, shaking, confusion before and after meals",
-        "Diabetic foot risk — inspect feet every visit; report any wounds or redness immediately",
-        "Lisinopril with food — monitor blood pressure after administration",
-        "Aisha values her privacy — always explain what you are doing before you do it",
+        "ALLERGY: Sulfonamides: do not administer under any circumstances",
+        "Metformin MUST be given AFTER meals, never on empty stomach",
+        "HIGH HYPOGLYCAEMIA RISK, monitor for sweating, shaking, confusion before and after meals",
+        "Diabetic foot risk, inspect feet every visit; report any wounds or redness immediately",
+        "Lisinopril with food, monitor blood pressure after administration",
+        "Aisha values her privacy, always explain what you are doing before you do it",
       ],
       postMed: [
-        "After Metformin: Monitor for nausea or stomach discomfort for 30 mins — ensure Aisha has eaten first",
+        "After Metformin: Monitor for nausea or stomach discomfort for 30 mins, ensure Aisha has eaten first",
         "After Lisinopril: Monitor blood pressure for 20 mins; report readings above 140/90",
-        "If Aisha refuses medication: do not force — document refusal, reason, and notify office",
+        "If Aisha refuses medication: do not force, document refusal, reason, and notify office",
         "If any adverse reaction or suspected hypo: call 999 immediately, then notify the care office",
       ],
       pbsCalmSigns: ["Engaged and communicating confidently", "Eating and drinking well, cooperative with care", "Managing tasks semi-independently with verbal prompts", "Relaxed, good eye contact, responding positively"],
-      pbsCalmActions: ["Continue with the care routine — offer choices and respect Aisha's preferences", "Always explain each step before doing it — Aisha values being in control", `Engage ${n} in conversation — ${pronoun} may be bilingual; adapt to ${possessive} language preference`, "Praise cooperation and independence positively"],
-      pbsAnxiousSigns: ["Sweating, shaking, pale skin or trembling — possible hypoglycaemia", "Appearing confused, disorientated or slow to respond", "Refusing food when blood sugar may be low", "Withdrawal — quiet, not engaging, avoiding eye contact"],
-      pbsAnxiousActions: ["PRIORITY: Check blood sugar if equipment available — report low reading immediately", `Offer a small fast-acting sugar source (glucose gel, fruit juice) if hypo is suspected`, `Stay calm: '${n}, I'm going to help you. Can you tell me how you feel?'`, "If blood sugar is critically low or Aisha loses consciousness: call 999 immediately", "Document blood sugar readings and any symptoms in the visit notes"],
+      pbsCalmActions: ["Continue with the care routine, offer choices and respect Aisha's preferences", "Always explain each step before doing it, Aisha values being in control", `Engage ${n} in conversation, ${pronoun} may be bilingual; adapt to ${possessive} language preference`, "Praise cooperation and independence positively"],
+      pbsAnxiousSigns: ["Sweating, shaking, pale skin or trembling, possible hypoglycaemia", "Appearing confused, disorientated or slow to respond", "Refusing food when blood sugar may be low", "Withdrawal, quiet, not engaging, avoiding eye contact"],
+      pbsAnxiousActions: ["PRIORITY: Check blood sugar if equipment available, report low reading immediately", `Offer a small fast-acting sugar source (glucose gel, fruit juice) if hypo is suspected`, `Stay calm: '${n}, I'm going to help you. Can you tell me how you feel?'`, "If blood sugar is critically low or Aisha loses consciousness: call 999 immediately", "Document blood sugar readings and any symptoms in the visit notes"],
       pbsRiskSigns: ["Confusion or disorientation not resolving with sugar intervention", "Loss of responsiveness or reduced consciousness", "Aggressive or unusual behaviour caused by very low blood sugar", "Vomiting, extreme weakness or collapse"],
-      pbsRiskActions: ["Call 999 immediately — do not delay for any reason", "Place Aisha in the recovery position if unconscious and breathing", "Do NOT give food or drink to an unconscious person", "Notify the care office and next of kin immediately", "Remain with Aisha until emergency services arrive", "Document the full episode in CAREi and complete an Incident Report"],
+      pbsRiskActions: ["Call 999 immediately, do not delay for any reason", "Place Aisha in the recovery position if unconscious and breathing", "Do NOT give food or drink to an unconscious person", "Notify the care office and next of kin immediately", "Remain with Aisha until emergency services arrive", "Document the full episode in CAREi and complete an Incident Report"],
       lastReview: ["Reviewed: 10 March 2026 by Dr F. Hassan", "Next review: 10 June 2026", "Care package: 1 hr × 5 days per week", "Framework: PBS + Person-Centred + Diabetes Care Protocol"],
     },
   };
@@ -3569,7 +3510,7 @@ function buildCarePlan(client: typeof SCHEDULE_CLIENTS[0]) {
   const d = byCondition[client.id] || byCondition.mary;
 
   const standardSections = [
-    { title: "Support Framework", icon: "🧭", color: COLORS.teal, items: client.framework.split(" · ").map(f => `${f} — embedded throughout all care interactions`) },
+    { title: "Support Framework", icon: "🧭", color: COLORS.teal, items: client.framework.split(" · ").map(f => `${f}, embedded throughout all care interactions`) },
     { title: "Level of Support", icon: "🤝", color: COLORS.teal, items: [client.supportLevel, ...d.objectives.slice(0, 2)] },
     { title: "Communication Passport", icon: "💬", color: "#a78bfa", items: client.communication.split(". ").filter(Boolean).map(s => s.trim().replace(/\.$/, "") + ".") },
     { title: "Care Objectives", icon: "🎯", color: COLORS.teal, items: d.objectives },
@@ -3618,7 +3559,7 @@ function CarePlanScreen({ client, onBack }: { client: typeof SCHEDULE_CLIENTS[0]
             <span style={{ fontSize: 18 }}>🧩</span>
             <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>PBS Support Plan</div>
           </div>
-          <div style={{ color: COLORS.g3, fontSize: 11, marginBottom: 14 }}>Positive Behaviour Support — what to do in each state</div>
+          <div style={{ color: COLORS.g3, fontSize: 11, marginBottom: 14 }}>Positive Behaviour Support, what to do in each state</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {pbsStates.map(state => (
               <div key={state.label} style={{ background: state.bg, borderRadius: 12, padding: "12px 14px", border: `1px solid ${state.border}` }}>
@@ -3652,11 +3593,11 @@ function CarePlanScreen({ client, onBack }: { client: typeof SCHEDULE_CLIENTS[0]
           </div>
           {[
             "If a service user hits or kicks you: step back immediately, do NOT retaliate or restrain. De-escalate using calm voice and safe distancing.",
-            "If you are injured: prioritise your safety — leave the room if necessary, call for help or dial 999.",
+            "If you are injured: prioritise your safety, leave the room if necessary, call for help or dial 999.",
             "If a service user has fallen: do NOT attempt to lift them alone. Call 999 if injured, keep them warm and calm, contact the office.",
             "All incidents must be reported immediately via the Incident Report in CAREi and a full Datix completed within 24 hours.",
-            "Adjoy Healthcare operates a zero-tolerance policy to staff injury — always report, always document.",
-            "Safety intervention training is mandatory — speak to your manager if you have not completed MAPA/breakaway training.",
+            "Adjoy Healthcare operates a zero-tolerance policy to staff injury, always report, always document.",
+            "Safety intervention training is mandatory, speak to your manager if you have not completed MAPA/breakaway training.",
           ].map((item, i) => (
             <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-start" }}>
               <div style={{ width: 4, height: 4, borderRadius: "50%", background: COLORS.red, marginTop: 6, flexShrink: 0 }} />
@@ -3676,7 +3617,7 @@ function EmergencyContactsScreen({ onBack, carerAgency }: { onBack: () => void; 
   const contacts = [
     { name: "David Mensah", relation: "Son (Next of Kin)", phone: "07700 900123", primary: true },
     { name: "Akosua Mensah", relation: "Daughter", phone: "07700 900456", primary: false },
-    { name: "Dr Sandra Obi", relation: "GP — Caversham Surgery", phone: "0118 947 0111", primary: false },
+    { name: "Dr Sandra Obi", relation: "GP: Caversham Surgery", phone: "0118 947 0111", primary: false },
     { name: agencyName, relation: "Care Agency (24hr)", phone: "0118 321 9900", primary: false },
     { name: `Care Manager, ${agencyName}`, relation: "On-call care manager", phone: "0800 000 0000", primary: false },
     { name: "Emergency Services", relation: "Police / Ambulance / Fire", phone: "999", primary: false },
@@ -3762,7 +3703,7 @@ function AdminTeaserScreen({ onBack, onOpenAdmin }: { onBack: () => void; onOpen
             <span style={{ fontSize: 16 }}>⚠️</span>
             <Badge color={COLORS.red} bg="rgba(255,90,95,0.2)">Critical</Badge>
           </div>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, marginBottom: 4 }}>Amy Mitchell — lone worker overdue</div>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, marginBottom: 4 }}>Amy Mitchell, lone worker overdue</div>
           <div style={{ color: COLORS.g2, fontSize: 12 }}>Check-in 18 min overdue at Patricia Lane's address. Supervisor action required.</div>
         </div>
         {/* CQC summary */}
@@ -3840,12 +3781,12 @@ function ManagerApprovalsScreen({
         {/* Summary preview */}
         <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, overflow: "hidden" }}>
           <div style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-            <div style={{ color: "#fff", fontWeight: 700, fontSize: 13 }}>Mary Johnson — 9 Apr 2026</div>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 13 }}>Mary Johnson, 9 Apr 2026</div>
             <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 2 }}>Carer: {carerName} · Visit 09:00–10:05</div>
           </div>
           {[
             { label: "Tasks completed", value: "6 / 6" },
-            { label: "Medications given", value: "2 / 2 — all as prescribed" },
+            { label: "Medications given", value: "2 / 2, all as prescribed" },
             { label: "Concerns raised", value: "None" },
             { label: "Carer's note", value: '"Mary was in really good spirits…"' },
           ].map((row) => (
@@ -4661,7 +4602,7 @@ function ActiveVisitScreen({
   function startRecording() {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) {
-      setNotes((n) => (n ? n + "\n" : "") + "[Voice dictation requires Chrome — allow microphone and try again.]");
+      setNotes((n) => (n ? n + "\n" : "") + "[Voice dictation requires Chrome, allow microphone and try again.]");
       return;
     }
     const rec = new SR();
@@ -4735,7 +4676,7 @@ function ActiveVisitScreen({
       {!isOnline && (
         <div style={{ background: "rgba(246,183,60,0.9)", padding: "6px 16px", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <span style={{ fontSize: 14 }}>📵</span>
-          <span style={{ color: "#1B2A49", fontWeight: 700, fontSize: 12 }}>Offline — data will sync when reconnected</span>
+          <span style={{ color: "#1B2A49", fontWeight: 700, fontSize: 12 }}>Offline, data will sync when reconnected</span>
         </div>
       )}
 
@@ -4809,7 +4750,7 @@ function ActiveVisitScreen({
                 {i === MEAL_TASK_IDX && tasks[i] && mealStatus !== "" && (
                   <div style={{ padding: "5px 14px", background: "rgba(255,255,255,0.03)", borderRadius: "0 0 10px 10px", borderTop: "none", display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ color: mealStatus === "Full" ? COLORS.green : mealStatus === "Half" ? COLORS.amber : COLORS.red, fontSize: 11, fontWeight: 600 }}>
-                      {mealStatus === "Full" ? "🍽 Full meal eaten" : mealStatus === "Half" ? "🍴 Half portion eaten" : "✗ Meal refused — note in care notes"}
+                      {mealStatus === "Full" ? "🍽 Full meal eaten" : mealStatus === "Half" ? "🍴 Half portion eaten" : "✗ Meal refused, note in care notes"}
                     </span>
                   </div>
                 )}
@@ -4887,7 +4828,7 @@ function ActiveVisitScreen({
         {/* SECTION 3: Care Notes */}
         <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 8 }}>CARE NOTES</div>
 
-        {/* Vital Signs — contextual: only for Tom */}
+        {/* Vital Signs, contextual: only for Tom */}
         {client.vitalSignsRequired && (
           <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "12px 14px", borderLeft: `3px solid ${COLORS.teal}`, marginBottom: 10 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
@@ -4918,7 +4859,7 @@ function ActiveVisitScreen({
             {bpSys && bpDia && (parseInt(bpSys) > 140 || parseInt(bpDia) > 90) && (
               <div style={{ background: "rgba(255,90,95,0.12)", border: "1px solid rgba(255,90,95,0.3)", borderRadius: 8, padding: "6px 10px", marginBottom: 8, display: "flex", gap: 6, alignItems: "center" }}>
                 <span style={{ fontSize: 12 }}>⚠️</span>
-                <span style={{ color: COLORS.red, fontSize: 11, fontWeight: 700 }}>BP elevated — notify office immediately</span>
+                <span style={{ color: COLORS.red, fontSize: 11, fontWeight: 700 }}>BP elevated, notify office immediately</span>
               </div>
             )}
             <button onClick={() => { if (bpSys && bpDia) setVitalsSaved(true); }} disabled={!bpSys || !bpDia}
@@ -5022,7 +4963,7 @@ function ActiveVisitScreen({
           <div style={{ background: COLORS.navy, borderRadius: "20px 20px 0 0", padding: 20, animation: "slideUp 0.3s ease" }}>
             <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto 16px" }} />
             <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 18, color: "#fff", marginBottom: 4 }}>Medication Refusal Log</div>
-            <div style={{ color: COLORS.amber, fontSize: 12, marginBottom: 16 }}>{showRefusalFor} — This will be logged to the CQC audit trail</div>
+            <div style={{ color: COLORS.amber, fontSize: 12, marginBottom: 16 }}>{showRefusalFor}, This will be logged to the CQC audit trail</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
                 <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 6 }}>REASON *</label>
@@ -5199,11 +5140,11 @@ function ContinuCareSummaryScreen({
     function buildMedText() {
       if (visitData?.confirmedMeds?.length || visitData?.skippedMeds?.length) {
         const lines: string[] = [];
-        (visitData.confirmedMeds ?? []).forEach(m => lines.push(`${m} — given ✓`));
-        (visitData.skippedMeds ?? []).forEach(m => lines.push(`${m} — not given ⚠️`));
+        (visitData.confirmedMeds ?? []).forEach(m => lines.push(`${m}, given ✓`));
+        (visitData.skippedMeds ?? []).forEach(m => lines.push(`${m}, not given ⚠️`));
         return lines.join("\n");
       }
-      return client.meds.map(m => `${m.name} ${m.dose} — taken ✓`).join("\n");
+      return client.meds.map(m => `${m.name} ${m.dose}, taken ✓`).join("\n");
     }
 
     function buildFallback() {
@@ -5268,7 +5209,7 @@ function ContinuCareSummaryScreen({
           <div style={{ color: "#fff", fontWeight: 700, fontSize: 22, marginTop: 16 }}>Shift Complete</div>
           <div style={{ color: COLORS.teal, fontSize: 14, marginTop: 6 }}>ContinuCare+ Summary Submitted ✓</div>
           <div style={{ marginTop: 12, background: "rgba(34,197,94,0.12)", borderRadius: 10, padding: "8px 16px", display: "inline-block" }}>
-            <span style={{ color: COLORS.green, fontWeight: 700, fontSize: 12 }}>CQC AUDIT TRAIL — COMPLETE</span>
+            <span style={{ color: COLORS.green, fontWeight: 700, fontSize: 12 }}>CQC AUDIT TRAIL, COMPLETE</span>
           </div>
           <button onClick={onDone} style={{ marginTop: 24, padding: "14px 0", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "DM Sans, sans-serif", width: "100%", display: "block" }}>
             Return to Today's Care
@@ -5487,6 +5428,7 @@ export default function CAREiApp() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [queuedCount, setQueuedCount] = useState(0);
   const [carerName, setCarerName] = useState("Sarah Johnson");
+  const [showDevNav, setShowDevNav] = useState(false);
   const [carerAgency, setCarerAgency] = useState<string>(() => {
     try { const a = sessionStorage.getItem("carei_account"); return a ? (JSON.parse(a).agency ?? "") : ""; } catch { return ""; }
   });
@@ -5683,7 +5625,21 @@ export default function CAREiApp() {
           fontFamily: "DM Sans, sans-serif",
         }}
       >
-        <NavPills current={screen} onNav={nav} />
+        <button
+          onClick={() => setShowDevNav(v => !v)}
+          title="Dev navigation"
+          style={{
+            position: "fixed", top: 14, right: 14, zIndex: 9999,
+            width: 26, height: 26, borderRadius: "50%",
+            background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)",
+            color: "rgba(255,255,255,0.4)", fontSize: 11,
+            cursor: "pointer", fontFamily: "DM Sans, sans-serif",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          ⚙
+        </button>
+        {showDevNav && <NavPills current={screen} onNav={nav} />}
 
         {/* Phone frame */}
         <div
@@ -5720,7 +5676,7 @@ export default function CAREiApp() {
             {isOffline && screen !== "admin-dashboard" && (
               <div style={{ position: "absolute", top: 24, left: 0, right: 0, zIndex: 100, background: "rgba(246,183,60,0.95)", padding: "6px 14px", display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 14 }}>📵</span>
-                <span style={{ color: COLORS.darkNavy, fontWeight: 700, fontSize: 12, flex: 1 }}>Offline — data will sync on reconnect</span>
+                <span style={{ color: COLORS.darkNavy, fontWeight: 700, fontSize: 12, flex: 1 }}>Offline, data will sync on reconnect</span>
                 {queuedCount > 0 && <span style={{ background: COLORS.darkNavy, color: COLORS.amber, borderRadius: 99, fontSize: 10, fontWeight: 700, padding: "2px 8px" }}>{queuedCount} queued</span>}
               </div>
             )}

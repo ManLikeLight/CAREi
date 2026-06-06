@@ -1977,7 +1977,7 @@ function LiveVisitScreen({
   );
 }
 
-function CopilotScreen({ onBack }: { onBack: () => void }) {
+function CopilotScreen({ onBack, carerName, carerAgency }: { onBack: () => void; carerName: string; carerAgency: string }) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
@@ -2020,7 +2020,7 @@ function CopilotScreen({ onBack }: { onBack: () => void }) {
 - ALLERGY: Penicillin (CRITICAL)
 - GP: Dr Sandra Obi
 - Medications: Amlodipine 5mg (10AM oral), Metformin 500mg (10AM oral), Atorvastatin 20mg (10AM oral)
-- Carer: Sarah Johnson, Adjoy Healthcare
+- Carer: ${carerName}${carerAgency ? `, ${carerAgency}` : ""}
 
 Provide concise, clinically relevant, professional responses. Always highlight allergy risks. Keep responses brief and actionable for a busy carer.`,
         }),
@@ -3058,7 +3058,7 @@ function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName, carerA
           <span style={{ fontSize: 22, flexShrink: 0 }}>🟢</span>
           <div>
             <div style={{ color: COLORS.green, fontWeight: 700, fontSize: 13 }}>No concerns raised</div>
-            <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>Sarah reported nothing out of the ordinary today</div>
+            <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>{carerName.split(" ")[0] || "Carer"} reported nothing out of the ordinary today</div>
           </div>
         </div>
 
@@ -5545,7 +5545,9 @@ export default function CAREiApp() {
   const [summaryReadAt, setSummaryReadAt] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [queuedCount, setQueuedCount] = useState(0);
-  const [carerName, setCarerName] = useState("Sarah Johnson");
+  const [carerName, setCarerName] = useState<string>(() => {
+    try { const a = sessionStorage.getItem("carei_account"); return a ? (JSON.parse(a).name ?? "") : ""; } catch { return ""; }
+  });
   const [carerEmail, setCarerEmail] = useState<string>(() => {
     try { const a = sessionStorage.getItem("carei_account"); return a ? (JSON.parse(a).email ?? "") : ""; } catch { return ""; }
   });
@@ -5593,7 +5595,7 @@ export default function CAREiApp() {
       case "login":
         return <LoginScreen onNext={(name, agency, email) => { setCarerName(name); setCarerAgency(agency); setCarerEmail(email); nav("today"); }} onSignUp={() => nav("signup")} />;
       case "copilot":
-        return <CopilotScreen onBack={() => nav("today")} />;
+        return <CopilotScreen onBack={() => nav("today")} carerName={carerName} carerAgency={carerAgency} />;
       case "medication":
         return <MedicationScreen onNext={() => nav("today")} />;
       case "profile":

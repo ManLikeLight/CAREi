@@ -685,7 +685,7 @@ function AuthSuccess({ message }: { message: string }) {
   );
 }
 
-function SignUpScreen({ onNext, onLogin }: { onNext: (name: string) => void; onLogin: () => void }) {
+function SignUpScreen({ onNext, onLogin }: { onNext: (name: string, agency: string) => void; onLogin: () => void }) {
   const [step, setStep] = useState<"name" | "pin" | "done">("name");
   const [fullName, setFullName] = useState("");
   const [pin, setPin] = useState(["", "", "", ""]);
@@ -695,6 +695,7 @@ function SignUpScreen({ onNext, onLogin }: { onNext: (name: string) => void; onL
   const [emailError, setEmailError] = useState("");
   const [agencyError, setAgencyError] = useState("");
   const [pinError, setPinError] = useState("");
+  const [loading, setLoading] = useState(false);
   const pinRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
 
   function handlePinChange(i: number, val: string) {
@@ -723,12 +724,26 @@ function SignUpScreen({ onNext, onLogin }: { onNext: (name: string) => void; onL
     setTimeout(() => pinRefs[0].current?.focus(), 100);
   }
 
-  function handleCreate() {
+  async function handleCreate() {
     const p = pin.join("");
     if (p.length < 4) { setPinError("Please enter all 4 digits."); return; }
-    try { sessionStorage.setItem("carei_account", JSON.stringify({ name: fullName.trim(), email: email.trim(), agency: agency.trim(), pin: p })); } catch {}
-    setStep("done");
-    setTimeout(() => onNext(fullName.trim()), 1200);
+    setPinError("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: fullName.trim(), email: email.trim(), agency: agency.trim(), pin: p }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setPinError(data.error ?? "Signup failed. Please try again."); setLoading(false); return; }
+      try { sessionStorage.setItem("carei_account", JSON.stringify({ name: data.name, email: data.email, agency: data.agency })); } catch {}
+      setStep("done");
+      setTimeout(() => onNext(data.name, data.agency), 1200);
+    } catch {
+      setPinError("Network error. Please check your connection and try again.");
+      setLoading(false);
+    }
   }
 
   const inputStyle: React.CSSProperties = {
@@ -809,7 +824,7 @@ function SignUpScreen({ onNext, onLogin }: { onNext: (name: string) => void; onL
           </div>
           <PinBoxes pin={pin} refs={pinRefs} onChange={handlePinChange} onKeyDown={handlePinKey} />
           {pinError && <div style={{ color: COLORS.red, fontSize: 13, textAlign: "center" }}>{pinError}</div>}
-          <button onClick={handleCreate} style={btnStyle}>Create Account</button>
+          <button onClick={handleCreate} disabled={loading} style={{ ...btnStyle, opacity: loading ? 0.7 : 1 }}>{loading ? "Creating account…" : "Create Account"}</button>
           <button onClick={() => setStep("name")} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>← Back</button>
         </div>
       )}
@@ -817,22 +832,21 @@ function SignUpScreen({ onNext, onLogin }: { onNext: (name: string) => void; onL
   );
 }
 
-function LoginScreen({ onNext, onSignUp }: { onNext: (name: string) => void; onSignUp: () => void }) {
+function LoginScreen({ onNext, onSignUp }: { onNext: (name: string, agency: string) => void; onSignUp: () => void }) {
+  const [email, setEmail] = useState("");
   const [pin, setPin] = useState(["", "", "", ""]);
+  const [emailError, setEmailError] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const pinRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
-
-  const account = (() => {
-    try { return JSON.parse(sessionStorage.getItem("carei_account") ?? "null") as { name: string; pin: string } | null; } catch { return null; }
-  })();
 
   function handlePinChange(i: number, val: string) {
     const next = [...pin];
     next[i] = val;
     setPin(next);
     if (val && i < 3) setTimeout(() => pinRefs[i + 1].current?.focus(), 0);
-    if (next.every(d => d)) handleVerify(next.join(""));
+    if (next.every(d => d) && email.trim()) handleVerify(next.join(""));
   }
 
   function handlePinKey(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
@@ -844,44 +858,84 @@ function LoginScreen({ onNext, onSignUp }: { onNext: (name: string) => void; onS
     }
   }
 
-  function handleVerify(code?: string) {
+  async function handleVerify(code?: string) {
     const p = code ?? pin.join("");
-    if (!account) { setError("No account found. Please sign up first."); return; }
+    if (!email.trim()) { setEmailError("Please enter your email address."); return; }
+    setEmailError("");
     if (p.length < 4) { setError("Please enter all 4 digits."); return; }
-    if (p !== account.pin) { setError("Incorrect PIN. Please try again."); setPin(["", "", "", ""]); setTimeout(() => pinRefs[0].current?.focus(), 50); return; }
     setError("");
-    setDone(true);
-    setTimeout(() => onNext(account.name), 1200);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), pin: p }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Login failed. Please try again.");
+        setPin(["", "", "", ""]);
+        setTimeout(() => pinRefs[0].current?.focus(), 50);
+        setLoading(false);
+        return;
+      }
+      try { sessionStorage.setItem("carei_account", JSON.stringify({ name: data.name, email: data.email, agency: data.agency })); } catch {}
+      setDone(true);
+      setTimeout(() => onNext(data.name, data.agency), 1200);
+    } catch {
+      setError("Network error. Please check your connection and try again.");
+      setPin(["", "", "", ""]);
+      setTimeout(() => pinRefs[0].current?.focus(), 50);
+      setLoading(false);
+    }
   }
 
+  const inputStyle: React.CSSProperties = {
+    display: "block", width: "100%", marginTop: 8, padding: "13px 16px",
+    borderRadius: 12, border: "1px solid rgba(255,255,255,0.15)",
+    background: "rgba(255,255,255,0.08)", color: "#fff",
+    fontFamily: "DM Sans, sans-serif", fontSize: 15, outline: "none", boxSizing: "border-box",
+  };
+
   return (
-    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", padding: "52px 28px 32px", gap: 28 }}>
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", padding: "52px 28px 32px", gap: 24 }}>
       <div style={{ textAlign: "center" }}>
         <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 30, color: "#fff", letterSpacing: 0.5 }}>
           CARE<span style={{ color: COLORS.teal }}>i</span>
         </div>
         <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff", marginTop: 20 }}>Welcome back</div>
-        {account ? (
-          <div style={{ color: COLORS.g2, fontSize: 14, marginTop: 6 }}>{account.name}</div>
-        ) : (
-          <div style={{ color: COLORS.amber, fontSize: 13, marginTop: 8 }}>No account found — please sign up first.</div>
-        )}
+        <div style={{ fontSize: 13, fontWeight: 500, color: COLORS.teal, marginTop: 6, letterSpacing: 0.4 }}>Intelligent Care. Every Visit.</div>
       </div>
 
       {done && <AuthSuccess message="PIN verified! Signing you in…" />}
 
       {!done && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ color: COLORS.g1, fontSize: 14, marginBottom: 20 }}>Enter your 4-digit PIN</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <div>
+            <label style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600 }}>Email address</label>
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && pinRefs[0].current?.focus()}
+              placeholder="Enter your email address"
+              type="email"
+              inputMode="email"
+              autoFocus
+              style={inputStyle}
+            />
+            {emailError && <div style={{ color: COLORS.red, fontSize: 12, marginTop: 6 }}>{emailError}</div>}
+          </div>
+          <div>
+            <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600, marginBottom: 14 }}>4-digit PIN</div>
             <PinBoxes pin={pin} refs={pinRefs} onChange={handlePinChange} onKeyDown={handlePinKey} />
           </div>
           {error && <div style={{ color: COLORS.red, fontSize: 13, textAlign: "center" }}>{error}</div>}
           <button
             onClick={() => handleVerify()}
-            style={{ width: "100%", padding: "14px 0", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer" }}
+            disabled={loading}
+            style={{ width: "100%", padding: "14px 0", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer", opacity: loading ? 0.7 : 1 }}
           >
-            Log In
+            {loading ? "Signing in…" : "Log In"}
           </button>
           <button onClick={onSignUp} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>
             New here? Sign up instead
@@ -2887,7 +2941,7 @@ function SOSOverlay({ onDismiss }: { onDismiss: () => void }) {
 
 // ─── Family Portal Screen ─────────────────────────────────────────────────────
 
-function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName }: { onBack: () => void; approvalStatus: "pending" | "approved"; onRead: () => void; carerName: string }) {
+function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName, carerAgency }: { onBack: () => void; approvalStatus: "pending" | "approved"; onRead: () => void; carerName: string; carerAgency: string }) {
   const [messageSent, setMessageSent] = useState(false);
   const [showMessage, setShowMessage] = useState(false);
   const [messageText, setMessageText] = useState("");
@@ -2909,9 +2963,12 @@ function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName }: { on
           <div style={{ color: COLORS.amber, fontWeight: 600, fontSize: 13 }}>Visit completed at 10:05</div>
           <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 4 }}>{carerName} · 9 April 2026</div>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <span style={{ fontSize: 14 }}>🔒</span>
-          <span style={{ color: COLORS.g3, fontSize: 11 }}>GDPR & CQC compliant — powered by CAREi</span>
+        <div style={{ textAlign: "center" }}>
+          {carerAgency && <div style={{ color: COLORS.g2, fontSize: 13, fontWeight: 600, marginBottom: 3 }}>Managed by {carerAgency}</div>}
+          <div style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontSize: 12 }}>🔒</span>
+            <span style={{ color: COLORS.g3, fontSize: 10 }}>GDPR & CQC compliant · Powered by CAREi</span>
+          </div>
         </div>
       </div>
     );
@@ -3030,6 +3087,18 @@ function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName }: { on
         </div>
 
         {/* CQC note */}
+        {/* Agency attribution */}
+        <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "16px", textAlign: "center", border: `1px solid rgba(79,209,197,0.12)` }}>
+          {carerAgency ? (
+            <>
+              <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>Managed by {carerAgency}</div>
+              <div style={{ color: COLORS.teal, fontSize: 11, marginTop: 4, letterSpacing: 0.3 }}>Powered by CAREi</div>
+            </>
+          ) : (
+            <div style={{ color: COLORS.teal, fontSize: 11, letterSpacing: 0.3 }}>Powered by CAREi</div>
+          )}
+        </div>
+
         <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "8px 12px", background: "rgba(255,255,255,0.04)", borderRadius: 10 }}>
           <span style={{ fontSize: 14 }}>🔒</span>
           <span style={{ color: COLORS.g3, fontSize: 11 }}>This summary is securely stored in compliance with CQC and GDPR requirements</span>
@@ -3051,7 +3120,7 @@ function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName }: { on
         <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", flexDirection: "column", justifyContent: "flex-end", zIndex: 50 }}>
           <div style={{ background: COLORS.navy, borderRadius: "20px 20px 0 0", padding: 20, animation: "slideUp 0.3s ease" }}>
             <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto 16px" }} />
-            <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 18, color: "#fff", marginBottom: 14 }}>Message Adjoy Healthcare</div>
+            <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 18, color: "#fff", marginBottom: 14 }}>Message {carerAgency || "Agency"}</div>
             {messageSent ? (
               <div style={{ background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 12, padding: 20, textAlign: "center" }}>
                 <div style={{ fontSize: 28, marginBottom: 8 }}>✓</div>
@@ -3064,7 +3133,7 @@ function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName }: { on
                 <textarea
                   value={messageText}
                   onChange={(e) => setMessageText(e.target.value)}
-                  placeholder="Write your message to the Adjoy care team..."
+                  placeholder={`Write your message to ${carerAgency ? `the ${carerAgency} care team` : "the care team"}…`}
                   rows={4}
                   style={{ width: "100%", padding: "12px 14px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.07)", color: "#fff", fontSize: 13, fontFamily: "DM Sans, sans-serif", resize: "none", boxSizing: "border-box", outline: "none" }}
                 />
@@ -3602,12 +3671,14 @@ function CarePlanScreen({ client, onBack }: { client: typeof SCHEDULE_CLIENTS[0]
 
 // ─── Emergency Contacts Screen ────────────────────────────────────────────────
 
-function EmergencyContactsScreen({ onBack }: { onBack: () => void }) {
+function EmergencyContactsScreen({ onBack, carerAgency }: { onBack: () => void; carerAgency: string }) {
+  const agencyName = carerAgency || "Care Agency";
   const contacts = [
     { name: "David Mensah", relation: "Son (Next of Kin)", phone: "07700 900123", primary: true },
     { name: "Akosua Mensah", relation: "Daughter", phone: "07700 900456", primary: false },
     { name: "Dr Sandra Obi", relation: "GP — Caversham Surgery", phone: "0118 947 0111", primary: false },
-    { name: "Adjoy Healthcare", relation: "Care Agency (24hr)", phone: "0118 321 9900", primary: false },
+    { name: agencyName, relation: "Care Agency (24hr)", phone: "0118 321 9900", primary: false },
+    { name: `Care Manager, ${agencyName}`, relation: "On-call care manager", phone: "0800 000 0000", primary: false },
     { name: "Emergency Services", relation: "Police / Ambulance / Fire", phone: "999", primary: false },
     { name: "NHS Non-Emergency", relation: "Medical advice", phone: "111", primary: false },
   ];
@@ -5416,6 +5487,9 @@ export default function CAREiApp() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [queuedCount, setQueuedCount] = useState(0);
   const [carerName, setCarerName] = useState("Sarah Johnson");
+  const [carerAgency, setCarerAgency] = useState<string>(() => {
+    try { const a = sessionStorage.getItem("carei_account"); return a ? (JSON.parse(a).agency ?? "") : ""; } catch { return ""; }
+  });
   const [lastVisitData, setLastVisitData] = useState<VisitData | undefined>(undefined);
   const [visitMedStatus, setVisitMedStatus] = useState<Record<string, "taken" | "refused" | undefined>>({});
   const [visitTasks, setVisitTasks] = useState([false, false, false]);
@@ -5450,9 +5524,9 @@ export default function CAREiApp() {
         return <SplashScreen onSignUp={() => nav("signup")} onLogin={() => nav("login")} />;
       case "otp":
       case "signup":
-        return <SignUpScreen onNext={(name) => { setCarerName(name); nav("today"); }} onLogin={() => nav("login")} />;
+        return <SignUpScreen onNext={(name, agency) => { setCarerName(name); setCarerAgency(agency); nav("today"); }} onLogin={() => nav("login")} />;
       case "login":
-        return <LoginScreen onNext={(name) => { setCarerName(name); nav("today"); }} onSignUp={() => nav("signup")} />;
+        return <LoginScreen onNext={(name, agency) => { setCarerName(name); setCarerAgency(agency); nav("today"); }} onSignUp={() => nav("signup")} />;
       case "copilot":
         return <CopilotScreen onBack={() => nav("today")} />;
       case "medication":
@@ -5468,6 +5542,7 @@ export default function CAREiApp() {
             approvalStatus={summaryApproval}
             onRead={() => { if (!summaryReadAt) setSummaryReadAt(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })); }}
             carerName={carerName}
+            carerAgency={carerAgency}
           />
         );
       case "manager-approvals":
@@ -5493,7 +5568,7 @@ export default function CAREiApp() {
         return <CarePlanScreen client={cpClient} onBack={() => nav(visitReturnScreen)} />;
       }
       case "emergency":
-        return <EmergencyContactsScreen onBack={() => nav(visitReturnScreen)} />;
+        return <EmergencyContactsScreen onBack={() => nav(visitReturnScreen)} carerAgency={carerAgency} />;
       case "admin":
         return <AdminTeaserScreen onBack={() => nav("today")} onOpenAdmin={() => nav("admin-dashboard")} />;
       case "admin-dashboard":

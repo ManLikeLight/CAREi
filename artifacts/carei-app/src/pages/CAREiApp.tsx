@@ -395,8 +395,13 @@ function SplashScreen({ onSignUp, onLogin }: { onSignUp: () => void; onLogin: ()
     <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", overflowY: "auto" }}>
       {/* Header */}
       <div style={{ padding: "28px 24px 0", textAlign: "center", flexShrink: 0 }}>
-        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 32, color: "#fff", letterSpacing: 1 }}>CAREi</div>
-        <div style={{ fontSize: 13, fontWeight: 400, background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", marginTop: 3 }}>
+        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 30, color: "#fff", letterSpacing: 1 }}>
+          CARE<span style={{ color: COLORS.teal }}>i</span>
+        </div>
+        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 26, color: "#fff", marginTop: 16, lineHeight: 1.35, letterSpacing: 0.1 }}>
+          Built for the carer,<br />by a carer
+        </div>
+        <div style={{ fontSize: 13, fontWeight: 500, color: COLORS.teal, marginTop: 10, letterSpacing: 0.5 }}>
           Intelligent Care. Every Visit.
         </div>
       </div>
@@ -684,7 +689,11 @@ function SignUpScreen({ onNext, onLogin }: { onNext: (name: string) => void; onL
   const [step, setStep] = useState<"name" | "pin" | "done">("name");
   const [fullName, setFullName] = useState("");
   const [pin, setPin] = useState(["", "", "", ""]);
+  const [email, setEmail] = useState("");
+  const [agency, setAgency] = useState("");
   const [nameError, setNameError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [agencyError, setAgencyError] = useState("");
   const [pinError, setPinError] = useState("");
   const pinRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
 
@@ -705,8 +714,11 @@ function SignUpScreen({ onNext, onLogin }: { onNext: (name: string) => void; onL
   }
 
   function handleNameNext() {
-    if (!fullName.trim()) { setNameError("Please enter your full name."); return; }
-    setNameError("");
+    let ok = true;
+    if (!fullName.trim()) { setNameError("Please enter your full name."); ok = false; } else setNameError("");
+    if (!email.trim()) { setEmailError("Please enter your email address."); ok = false; } else setEmailError("");
+    if (!agency.trim()) { setAgencyError("Please enter your agency name."); ok = false; } else setAgencyError("");
+    if (!ok) return;
     setStep("pin");
     setTimeout(() => pinRefs[0].current?.focus(), 100);
   }
@@ -714,7 +726,7 @@ function SignUpScreen({ onNext, onLogin }: { onNext: (name: string) => void; onL
   function handleCreate() {
     const p = pin.join("");
     if (p.length < 4) { setPinError("Please enter all 4 digits."); return; }
-    try { sessionStorage.setItem("carei_account", JSON.stringify({ name: fullName.trim(), pin: p })); } catch {}
+    try { sessionStorage.setItem("carei_account", JSON.stringify({ name: fullName.trim(), email: email.trim(), agency: agency.trim(), pin: p })); } catch {}
     setStep("done");
     setTimeout(() => onNext(fullName.trim()), 1200);
   }
@@ -733,32 +745,56 @@ function SignUpScreen({ onNext, onLogin }: { onNext: (name: string) => void; onL
   };
 
   return (
-    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", padding: "52px 28px 32px", gap: 28 }}>
-      <div style={{ textAlign: "center" }}>
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", overflowY: "auto", padding: "52px 28px 32px", gap: 24 }}>
+      <div style={{ textAlign: "center", flexShrink: 0 }}>
         <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 30, color: "#fff", letterSpacing: 0.5 }}>
           CARE<span style={{ color: COLORS.teal }}>i</span>
         </div>
-        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff", marginTop: 20 }}>Create your account</div>
-        <div style={{ color: COLORS.g2, fontSize: 14, marginTop: 6 }}>Join Adjoy Healthcare</div>
+        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff", marginTop: 16 }}>Create your account</div>
+        <div style={{ fontSize: 13, fontWeight: 500, color: COLORS.teal, marginTop: 6, letterSpacing: 0.4 }}>Intelligent Care. Every Visit.</div>
       </div>
 
       {step === "done" && <AuthSuccess message="Account created! Welcome aboard…" />}
 
       {step === "name" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div>
             <label style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600 }}>Full name</label>
             <input
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleNameNext()}
-              placeholder="e.g. Sarah Johnson"
+              placeholder="Enter your full name"
               autoFocus
               style={inputStyle}
             />
             {nameError && <div style={{ color: COLORS.red, fontSize: 12, marginTop: 6 }}>{nameError}</div>}
           </div>
-          <button onClick={handleNameNext} style={btnStyle}>Continue →</button>
+          <div>
+            <label style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600 }}>Email address</label>
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleNameNext()}
+              placeholder="Enter your email address"
+              type="email"
+              inputMode="email"
+              style={inputStyle}
+            />
+            {emailError && <div style={{ color: COLORS.red, fontSize: 12, marginTop: 6 }}>{emailError}</div>}
+          </div>
+          <div>
+            <label style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600 }}>Agency name</label>
+            <input
+              value={agency}
+              onChange={(e) => setAgency(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleNameNext()}
+              placeholder="Enter your agency name"
+              style={inputStyle}
+            />
+            {agencyError && <div style={{ color: COLORS.red, fontSize: 12, marginTop: 6 }}>{agencyError}</div>}
+          </div>
+          <button onClick={handleNameNext} style={{ ...btnStyle, marginTop: 4 }}>Continue →</button>
           <button onClick={onLogin} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>
             Already have an account? Log in
           </button>
@@ -2875,7 +2911,7 @@ function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName }: { on
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <span style={{ fontSize: 14 }}>🔒</span>
-          <span style={{ color: COLORS.g3, fontSize: 11 }}>GDPR & CQC compliant — managed by Adjoy Healthcare</span>
+          <span style={{ color: COLORS.g3, fontSize: 11 }}>GDPR & CQC compliant — powered by CAREi</span>
         </div>
       </div>
     );
@@ -5354,8 +5390,9 @@ export default function CAREiApp() {
   const [screen, setScreen] = useState<Screen>(() => {
     try {
       const saved = sessionStorage.getItem("carei_screen") as Screen;
+      const account = sessionStorage.getItem("carei_account");
       const valid: Screen[] = ["today","client-overview","active-visit","medication","handover","continucare-summary","care-plan","bodymap","emergency","visit-history","incident-report","rota","operations","schedule","family","family-summary","manager-approvals","copilot","profile","admin","admin-dashboard"];
-      return valid.includes(saved) ? saved : "splash";
+      return (account && valid.includes(saved)) ? saved : "splash";
     } catch {
       return "splash";
     }

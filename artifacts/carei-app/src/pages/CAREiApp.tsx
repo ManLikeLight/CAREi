@@ -4,6 +4,8 @@ import AdminDashboard from "./AdminDashboard";
 
 type Screen =
   | "otp"
+  | "signup"
+  | "login"
   | "splash"
   | "today"
   | "client-overview"
@@ -388,7 +390,7 @@ function NavPills({
 
 // ─── Screens ───────────────────────────────────────────────────────────────────
 
-function SplashScreen({ onNext }: { onNext: () => void }) {
+function SplashScreen({ onSignUp, onLogin }: { onSignUp: () => void; onLogin: () => void }) {
   return (
     <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", overflowY: "auto" }}>
       {/* Header */}
@@ -460,12 +462,20 @@ function SplashScreen({ onNext }: { onNext: () => void }) {
             <Badge key={b} color={COLORS.teal} bg="rgba(79,209,197,0.12)">{b}</Badge>
           ))}
         </div>
-        <button
-          onClick={onNext}
-          style={{ width: "100%", padding: "15px 0", borderRadius: 14, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 16, fontWeight: 700, cursor: "pointer", letterSpacing: 0.3 }}
-        >
-          Log In to CAREi
-        </button>
+        <div style={{ display: "flex", gap: 12 }}>
+          <button
+            onClick={onSignUp}
+            style={{ flex: 1, padding: "15px 0", borderRadius: 14, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer" }}
+          >
+            Sign Up
+          </button>
+          <button
+            onClick={onLogin}
+            style={{ flex: 1, padding: "15px 0", borderRadius: 14, border: `2px solid ${COLORS.teal}`, background: "transparent", color: COLORS.teal, fontFamily: "DM Sans, sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer" }}
+          >
+            Log In
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -618,244 +628,228 @@ function ClientOverviewScreen({
   );
 }
 
-function OTPScreen({ onNext }: { onNext: (name: string) => void }) {
-  const [fullName, setFullName] = useState("Sarah Johnson");
-  const [email, setEmail] = useState("sarah.johnson@adjoy.co.uk");
-  const [codeSent, setCodeSent] = useState(false);
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-  const [verified, setVerified] = useState(false);
-  const [error, setError] = useState("");
-  const refs = [
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-  ];
+function PinBoxes({ pin, refs, onChange, onKeyDown }: {
+  pin: string[];
+  refs: React.RefObject<HTMLInputElement>[];
+  onChange: (i: number, val: string) => void;
+  onKeyDown: (i: number, e: React.KeyboardEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+      {pin.map((v, i) => (
+        <input
+          key={i}
+          ref={refs[i]}
+          value={v ? "●" : ""}
+          onChange={(e) => {
+            const raw = e.target.value.replace("●", "").replace(/\D/g, "");
+            if (raw.length <= 1) onChange(i, raw);
+          }}
+          onKeyDown={(e) => onKeyDown(i, e)}
+          maxLength={1}
+          inputMode="numeric"
+          style={{
+            width: 56,
+            height: 64,
+            borderRadius: 12,
+            border: `2px solid ${v ? COLORS.teal : "rgba(255,255,255,0.2)"}`,
+            background: "rgba(255,255,255,0.07)",
+            color: v ? COLORS.teal : "transparent",
+            fontFamily: "DM Sans, sans-serif",
+            fontSize: 28,
+            fontWeight: 700,
+            textAlign: "center",
+            outline: "none",
+            caretColor: "transparent",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 
-  useEffect(() => {
-    if (verified) {
-      const t = setTimeout(() => onNext(fullName.trim() || "Sarah Johnson"), 1200);
-      return () => clearTimeout(t);
-    }
-  }, [verified, onNext, fullName]);
+function AuthSuccess({ message }: { message: string }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: 24 }}>
+      <svg width="64" height="64" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="30" fill={COLORS.teal} />
+        <polyline points="18,33 27,42 46,22" fill="none" stroke={COLORS.darkNavy} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <div style={{ color: "#fff", fontWeight: 600, fontSize: 16 }}>{message}</div>
+    </div>
+  );
+}
 
-  function handleSend() {
-    setCodeSent(true);
-    setError("");
-    setTimeout(() => refs[0].current?.focus(), 100);
-  }
+function SignUpScreen({ onNext, onLogin }: { onNext: (name: string) => void; onLogin: () => void }) {
+  const [step, setStep] = useState<"name" | "pin" | "done">("name");
+  const [fullName, setFullName] = useState("");
+  const [pin, setPin] = useState(["", "", "", ""]);
+  const [nameError, setNameError] = useState("");
+  const [pinError, setPinError] = useState("");
+  const pinRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
 
-  function handleOtpChange(i: number, val: string) {
-    if (!/^\d?$/.test(val)) return;
-    const next = [...otp];
+  function handlePinChange(i: number, val: string) {
+    const next = [...pin];
     next[i] = val;
-    setOtp(next);
-    if (val && i < 5) refs[i + 1].current?.focus();
+    setPin(next);
+    if (val && i < 3) setTimeout(() => pinRefs[i + 1].current?.focus(), 0);
   }
 
-  function handleKeyDown(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Backspace" && !otp[i] && i > 0) {
-      refs[i - 1].current?.focus();
+  function handlePinKey(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Backspace" && !pin[i] && i > 0) {
+      const next = [...pin];
+      next[i - 1] = "";
+      setPin(next);
+      setTimeout(() => pinRefs[i - 1].current?.focus(), 0);
     }
   }
 
-  function handleVerify() {
-    const code = otp.join("");
-    if (code.length === 6) {
-      setVerified(true);
-      setError("");
-    } else {
-      setError("Please enter all 6 digits.");
+  function handleNameNext() {
+    if (!fullName.trim()) { setNameError("Please enter your full name."); return; }
+    setNameError("");
+    setStep("pin");
+    setTimeout(() => pinRefs[0].current?.focus(), 100);
+  }
+
+  function handleCreate() {
+    const p = pin.join("");
+    if (p.length < 4) { setPinError("Please enter all 4 digits."); return; }
+    try { sessionStorage.setItem("carei_account", JSON.stringify({ name: fullName.trim(), pin: p })); } catch {}
+    setStep("done");
+    setTimeout(() => onNext(fullName.trim()), 1200);
+  }
+
+  const inputStyle: React.CSSProperties = {
+    display: "block", width: "100%", marginTop: 8, padding: "13px 16px",
+    borderRadius: 12, border: "1px solid rgba(255,255,255,0.15)",
+    background: "rgba(255,255,255,0.08)", color: "#fff",
+    fontFamily: "DM Sans, sans-serif", fontSize: 15, outline: "none", boxSizing: "border-box",
+  };
+
+  const btnStyle: React.CSSProperties = {
+    width: "100%", padding: "14px 0", borderRadius: 12, border: "none",
+    background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`,
+    color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer",
+  };
+
+  return (
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", padding: "52px 28px 32px", gap: 28 }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 30, color: "#fff", letterSpacing: 0.5 }}>
+          CARE<span style={{ color: COLORS.teal }}>i</span>
+        </div>
+        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff", marginTop: 20 }}>Create your account</div>
+        <div style={{ color: COLORS.g2, fontSize: 14, marginTop: 6 }}>Join Adjoy Healthcare</div>
+      </div>
+
+      {step === "done" && <AuthSuccess message="Account created! Welcome aboard…" />}
+
+      {step === "name" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <div>
+            <label style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600 }}>Full name</label>
+            <input
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleNameNext()}
+              placeholder="e.g. Sarah Johnson"
+              autoFocus
+              style={inputStyle}
+            />
+            {nameError && <div style={{ color: COLORS.red, fontSize: 12, marginTop: 6 }}>{nameError}</div>}
+          </div>
+          <button onClick={handleNameNext} style={btnStyle}>Continue →</button>
+          <button onClick={onLogin} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>
+            Already have an account? Log in
+          </button>
+        </div>
+      )}
+
+      {step === "pin" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ color: "#fff", fontWeight: 600, fontSize: 16, marginBottom: 6 }}>Choose a 4-digit PIN</div>
+            <div style={{ color: COLORS.g2, fontSize: 13 }}>You'll use this to log in each time</div>
+          </div>
+          <PinBoxes pin={pin} refs={pinRefs} onChange={handlePinChange} onKeyDown={handlePinKey} />
+          {pinError && <div style={{ color: COLORS.red, fontSize: 13, textAlign: "center" }}>{pinError}</div>}
+          <button onClick={handleCreate} style={btnStyle}>Create Account</button>
+          <button onClick={() => setStep("name")} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>← Back</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LoginScreen({ onNext, onSignUp }: { onNext: (name: string) => void; onSignUp: () => void }) {
+  const [pin, setPin] = useState(["", "", "", ""]);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+  const pinRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
+
+  const account = (() => {
+    try { return JSON.parse(sessionStorage.getItem("carei_account") ?? "null") as { name: string; pin: string } | null; } catch { return null; }
+  })();
+
+  function handlePinChange(i: number, val: string) {
+    const next = [...pin];
+    next[i] = val;
+    setPin(next);
+    if (val && i < 3) setTimeout(() => pinRefs[i + 1].current?.focus(), 0);
+    if (next.every(d => d)) handleVerify(next.join(""));
+  }
+
+  function handlePinKey(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Backspace" && !pin[i] && i > 0) {
+      const next = [...pin];
+      next[i - 1] = "";
+      setPin(next);
+      setTimeout(() => pinRefs[i - 1].current?.focus(), 0);
     }
+  }
+
+  function handleVerify(code?: string) {
+    const p = code ?? pin.join("");
+    if (!account) { setError("No account found. Please sign up first."); return; }
+    if (p.length < 4) { setError("Please enter all 4 digits."); return; }
+    if (p !== account.pin) { setError("Incorrect PIN. Please try again."); setPin(["", "", "", ""]); setTimeout(() => pinRefs[0].current?.focus(), 50); return; }
+    setError("");
+    setDone(true);
+    setTimeout(() => onNext(account.name), 1200);
   }
 
   return (
-    <div
-      style={{
-        height: "100%",
-        background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`,
-        display: "flex",
-        flexDirection: "column",
-        padding: "48px 28px 32px",
-        gap: 20,
-      }}
-    >
-      <div>
-        <div
-          style={{
-            fontFamily: "DM Serif Display, serif",
-            fontSize: 28,
-            color: "#fff",
-          }}
-        >
-          Welcome back
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", padding: "52px 28px 32px", gap: 28 }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 30, color: "#fff", letterSpacing: 0.5 }}>
+          CARE<span style={{ color: COLORS.teal }}>i</span>
         </div>
-        <div style={{ color: COLORS.g2, fontSize: 14, marginTop: 4 }}>
-          Sign in to your CAREi account
-        </div>
+        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff", marginTop: 20 }}>Welcome back</div>
+        {account ? (
+          <div style={{ color: COLORS.g2, fontSize: 14, marginTop: 6 }}>{account.name}</div>
+        ) : (
+          <div style={{ color: COLORS.amber, fontSize: 13, marginTop: 8 }}>No account found — please sign up first.</div>
+        )}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <div>
-          <label style={{ color: COLORS.g1, fontSize: 13, fontWeight: 500 }}>Full name</label>
-          <input
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            placeholder="e.g. Sarah Johnson"
-            style={{
-              display: "block",
-              width: "100%",
-              marginTop: 8,
-              padding: "12px 16px",
-              borderRadius: 12,
-              border: `1px solid rgba(255,255,255,0.15)`,
-              background: "rgba(255,255,255,0.08)",
-              color: "#fff",
-              fontFamily: "DM Sans, sans-serif",
-              fontSize: 14,
-              outline: "none",
-            }}
-          />
-        </div>
-        <div>
-          <label style={{ color: COLORS.g1, fontSize: 13, fontWeight: 500 }}>
-            Email address
-          </label>
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{
-              display: "block",
-              width: "100%",
-              marginTop: 8,
-              padding: "12px 16px",
-              borderRadius: 12,
-              border: `1px solid rgba(255,255,255,0.15)`,
-              background: "rgba(255,255,255,0.08)",
-              color: "#fff",
-              fontFamily: "DM Sans, sans-serif",
-              fontSize: 14,
-              outline: "none",
-            }}
-          />
-        </div>
-      </div>
+      {done && <AuthSuccess message="PIN verified! Signing you in…" />}
 
-      {!codeSent && (
-        <button
-          onClick={handleSend}
-          style={{
-            padding: "14px 0",
-            borderRadius: 12,
-            border: "none",
-            background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`,
-            color: COLORS.darkNavy,
-            fontFamily: "DM Sans, sans-serif",
-            fontSize: 15,
-            fontWeight: 700,
-            cursor: "pointer",
-          }}
-        >
-          Send Code
-        </button>
-      )}
-
-      {codeSent && !verified && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ color: COLORS.g1, fontSize: 13 }}>
-            Enter the 6-digit code sent to your email
+      {!done && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ color: COLORS.g1, fontSize: 14, marginBottom: 20 }}>Enter your 4-digit PIN</div>
+            <PinBoxes pin={pin} refs={pinRefs} onChange={handlePinChange} onKeyDown={handlePinKey} />
           </div>
-          <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-            {otp.map((v, i) => (
-              <input
-                key={i}
-                ref={refs[i]}
-                value={v}
-                onChange={(e) => handleOtpChange(i, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(i, e)}
-                maxLength={1}
-                style={{
-                  width: 44,
-                  height: 52,
-                  borderRadius: 10,
-                  border: `2px solid ${v ? COLORS.teal : "rgba(255,255,255,0.2)"}`,
-                  background: "rgba(255,255,255,0.08)",
-                  color: "#fff",
-                  fontFamily: "DM Sans, sans-serif",
-                  fontSize: 22,
-                  fontWeight: 700,
-                  textAlign: "center",
-                  outline: "none",
-                }}
-              />
-            ))}
-          </div>
-          {error && (
-            <div style={{ color: COLORS.red, fontSize: 13, textAlign: "center" }}>
-              {error}
-            </div>
-          )}
+          {error && <div style={{ color: COLORS.red, fontSize: 13, textAlign: "center" }}>{error}</div>}
           <button
-            onClick={handleVerify}
-            style={{
-              padding: "14px 0",
-              borderRadius: 12,
-              border: "none",
-              background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`,
-              color: COLORS.darkNavy,
-              fontFamily: "DM Sans, sans-serif",
-              fontSize: 15,
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
+            onClick={() => handleVerify()}
+            style={{ width: "100%", padding: "14px 0", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer" }}
           >
-            Verify
+            Log In
           </button>
-          <button
-            onClick={handleSend}
-            style={{
-              background: "none",
-              border: "none",
-              color: COLORS.teal,
-              fontSize: 13,
-              cursor: "pointer",
-              fontFamily: "DM Sans, sans-serif",
-            }}
-          >
-            Resend code
+          <button onClick={onSignUp} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>
+            New here? Sign up instead
           </button>
-        </div>
-      )}
-
-      {verified && (
-        <div
-          className="fade-in"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 12,
-            padding: 24,
-          }}
-        >
-          <svg width="64" height="64" viewBox="0 0 64 64">
-            <circle cx="32" cy="32" r="30" fill={COLORS.teal} />
-            <polyline
-              points="18,33 27,42 46,22"
-              fill="none"
-              stroke={COLORS.darkNavy}
-              strokeWidth="4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeDasharray="40"
-              strokeDashoffset="0"
-            />
-          </svg>
-          <div style={{ color: "#fff", fontWeight: 600, fontSize: 16 }}>
-            Verified! Signing you in...
-          </div>
         </div>
       )}
     </div>
@@ -4431,6 +4425,14 @@ function ActiveVisitScreen({
   onBodyMap,
   onCarePlan,
   onEmergency,
+  medStatus,
+  setMedStatus,
+  tasks,
+  setTasks,
+  notes,
+  setNotes,
+  fluidGlasses,
+  setFluidGlasses,
 }: {
   client: typeof SCHEDULE_CLIENTS[0];
   onComplete: (data: VisitData) => void;
@@ -4440,12 +4442,17 @@ function ActiveVisitScreen({
   onBodyMap: () => void;
   onCarePlan: () => void;
   onEmergency: () => void;
+  medStatus: Record<string, "taken" | "refused" | undefined>;
+  setMedStatus: React.Dispatch<React.SetStateAction<Record<string, "taken" | "refused" | undefined>>>;
+  tasks: boolean[];
+  setTasks: React.Dispatch<React.SetStateAction<boolean[]>>;
+  notes: string;
+  setNotes: React.Dispatch<React.SetStateAction<string>>;
+  fluidGlasses: number;
+  setFluidGlasses: React.Dispatch<React.SetStateAction<number>>;
 }) {
-  const [tasks, setTasks] = useState([false, false, false]);
-  const [notes, setNotes] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [medStatus, setMedStatus] = useState<Record<string, "taken" | "refused" | undefined>>({});
   const [showRefusalFor, setShowRefusalFor] = useState<string | null>(null);
   const [refusalReason, setRefusalReason] = useState("");
   const [refusalWhatSaid, setRefusalWhatSaid] = useState("");
@@ -4459,7 +4466,6 @@ function ActiveVisitScreen({
   const [pulse, setPulse] = useState("");
   const [o2sat, setO2sat] = useState("");
   const [vitalsSaved, setVitalsSaved] = useState(false);
-  const [fluidGlasses, setFluidGlasses] = useState(0);
   const [mealStatus, setMealStatus] = useState<"" | "Full" | "Half" | "Refused">("");
   const [showMealPrompt, setShowMealPrompt] = useState(false);
   const [mealPromptDismissed, setMealPromptDismissed] = useState(false);
@@ -5349,9 +5355,9 @@ export default function CAREiApp() {
     try {
       const saved = sessionStorage.getItem("carei_screen") as Screen;
       const valid: Screen[] = ["today","client-overview","active-visit","medication","handover","continucare-summary","care-plan","bodymap","emergency","visit-history","incident-report","rota","operations","schedule","family","family-summary","manager-approvals","copilot","profile","admin","admin-dashboard"];
-      return valid.includes(saved) ? saved : "otp";
+      return valid.includes(saved) ? saved : "splash";
     } catch {
-      return "otp";
+      return "splash";
     }
   });
   const [showSOS, setShowSOS] = useState(false);
@@ -5374,6 +5380,10 @@ export default function CAREiApp() {
   const [queuedCount, setQueuedCount] = useState(0);
   const [carerName, setCarerName] = useState("Sarah Johnson");
   const [lastVisitData, setLastVisitData] = useState<VisitData | undefined>(undefined);
+  const [visitMedStatus, setVisitMedStatus] = useState<Record<string, "taken" | "refused" | undefined>>({});
+  const [visitTasks, setVisitTasks] = useState([false, false, false]);
+  const [visitNotes, setVisitNotes] = useState("");
+  const [visitFluidGlasses, setVisitFluidGlasses] = useState(0);
 
   useEffect(() => {
     const up = () => { setIsOffline(false); setQueuedCount(0); };
@@ -5400,9 +5410,12 @@ export default function CAREiApp() {
   function renderScreen() {
     switch (screen) {
       case "splash":
-        return <SplashScreen onNext={() => nav("otp")} />;
+        return <SplashScreen onSignUp={() => nav("signup")} onLogin={() => nav("login")} />;
       case "otp":
-        return <OTPScreen onNext={(name) => { setCarerName(name); nav("today"); }} />;
+      case "signup":
+        return <SignUpScreen onNext={(name) => { setCarerName(name); nav("today"); }} onLogin={() => nav("login")} />;
+      case "login":
+        return <LoginScreen onNext={(name) => { setCarerName(name); nav("today"); }} onSignUp={() => nav("signup")} />;
       case "copilot":
         return <CopilotScreen onBack={() => nav("today")} />;
       case "medication":
@@ -5467,7 +5480,7 @@ export default function CAREiApp() {
           <ClientOverviewScreen
             client={overviewClient}
             onBack={() => nav("today")}
-            onStartVisit={() => { setVisitStatuses((s) => ({ ...s, [overviewClient.id]: "in-progress" })); nav("active-visit"); }}
+            onStartVisit={() => { setVisitStatuses((s) => ({ ...s, [overviewClient.id]: "in-progress" })); setVisitMedStatus({}); setVisitTasks([false, false, false]); setVisitNotes(""); setVisitFluidGlasses(0); nav("active-visit"); }}
           />
         );
       }
@@ -5476,13 +5489,21 @@ export default function CAREiApp() {
         return (
           <ActiveVisitScreen
             client={activeClient}
-            onComplete={(data) => { setLastVisitData(data); nav("handover"); }}
+            onComplete={(data) => { setLastVisitData(data); setVisitMedStatus({}); setVisitTasks([false, false, false]); setVisitNotes(""); setVisitFluidGlasses(0); nav("handover"); }}
             onBack={() => nav("today")}
             onSOS={() => setShowSOS(true)}
             onAssistant={() => setShowAssistant(true)}
             onBodyMap={() => { setVisitReturnScreen("active-visit"); nav("bodymap"); }}
             onCarePlan={() => { setVisitReturnScreen("active-visit"); nav("care-plan"); }}
             onEmergency={() => { setVisitReturnScreen("active-visit"); nav("emergency"); }}
+            medStatus={visitMedStatus}
+            setMedStatus={setVisitMedStatus}
+            tasks={visitTasks}
+            setTasks={setVisitTasks}
+            notes={visitNotes}
+            setNotes={setVisitNotes}
+            fluidGlasses={visitFluidGlasses}
+            setFluidGlasses={setVisitFluidGlasses}
           />
         );
       }

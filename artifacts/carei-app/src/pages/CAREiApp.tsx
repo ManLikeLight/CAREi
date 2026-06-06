@@ -443,7 +443,7 @@ function SplashScreen({ onSignUp, onLogin }: { onSignUp: () => void; onLogin: ()
         </div>
         {/* Badges */}
         <div style={{ display: "flex", gap: 7, flexWrap: "wrap", justifyContent: "center", marginTop: 26 }}>
-          {["Built for UK care compliance", "GDPR Ready", "AI Powered"].map((b) => (
+          {["AI Powered", "GDPR Ready", "Built for UK care compliance"].map((b) => (
             <span
               key={b}
               style={{
@@ -688,7 +688,7 @@ function AuthSuccess({ message }: { message: string }) {
   );
 }
 
-function SignUpScreen({ onNext, onLogin }: { onNext: (name: string, agency: string) => void; onLogin: () => void }) {
+function SignUpScreen({ onNext, onLogin }: { onNext: (name: string, agency: string, email: string) => void; onLogin: () => void }) {
   const [step, setStep] = useState<"name" | "pin" | "done">("name");
   const [fullName, setFullName] = useState("");
   const [pin, setPin] = useState(["", "", "", ""]);
@@ -742,7 +742,7 @@ function SignUpScreen({ onNext, onLogin }: { onNext: (name: string, agency: stri
       if (!res.ok) { setPinError(data.error ?? "Signup failed. Please try again."); setLoading(false); return; }
       try { sessionStorage.setItem("carei_account", JSON.stringify({ name: data.name, email: data.email, agency: data.agency })); } catch {}
       setStep("done");
-      setTimeout(() => onNext(data.name, data.agency), 1200);
+      setTimeout(() => onNext(data.name, data.agency, email.trim()), 1200);
     } catch {
       setPinError("Network error. Please check your connection and try again.");
       setLoading(false);
@@ -834,7 +834,7 @@ function SignUpScreen({ onNext, onLogin }: { onNext: (name: string, agency: stri
   );
 }
 
-function LoginScreen({ onNext, onSignUp }: { onNext: (name: string, agency: string) => void; onSignUp: () => void }) {
+function LoginScreen({ onNext, onSignUp }: { onNext: (name: string, agency: string, email: string) => void; onSignUp: () => void }) {
   const [email, setEmail] = useState("");
   const [pin, setPin] = useState(["", "", "", ""]);
   const [emailError, setEmailError] = useState("");
@@ -883,7 +883,7 @@ function LoginScreen({ onNext, onSignUp }: { onNext: (name: string, agency: stri
       }
       try { sessionStorage.setItem("carei_account", JSON.stringify({ name: data.name, email: data.email, agency: data.agency })); } catch {}
       setDone(true);
-      setTimeout(() => onNext(data.name, data.agency), 1200);
+      setTimeout(() => onNext(data.name, data.agency, data.email ?? email.trim()), 1200);
     } catch {
       setError("Network error. Please check your connection and try again.");
       setPin(["", "", "", ""]);
@@ -2669,7 +2669,7 @@ Next visit: Continue monitoring as per care plan. Follow any medication timing i
   );
 }
 
-function ProfileScreen({ onSignOut, carerName }: { onSignOut: () => void; carerName: string }) {
+function ProfileScreen({ onSignOut, carerName, carerEmail }: { onSignOut: () => void; carerName: string; carerEmail: string }) {
   return (
     <div
       style={{
@@ -2717,7 +2717,7 @@ function ProfileScreen({ onSignOut, carerName }: { onSignOut: () => void; carerN
         }}
       >
         {[
-          { icon: "📧", label: "Email", value: "sarah.johnson@adjoy.co.uk" },
+          { icon: "📧", label: "Email", value: carerEmail || "Not set" },
           { icon: "🏢", label: "Organisation", value: "Adjoy Healthcare" },
           { icon: "📋", label: "Role", value: "Senior Care Worker" },
           { icon: "📍", label: "Region", value: "Reading, Berkshire" },
@@ -2968,7 +2968,7 @@ function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName, carerA
           {carerAgency && <div style={{ color: COLORS.g2, fontSize: 13, fontWeight: 600, marginBottom: 3 }}>Managed by {carerAgency}</div>}
           <div style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "center" }}>
             <span style={{ fontSize: 12 }}>🔒</span>
-            <span style={{ color: COLORS.g3, fontSize: 10 }}>GDPR & CQC compliant · Powered by CAREi</span>
+            <span style={{ color: COLORS.g3, fontSize: 10 }}>GDPR Ready · Built for UK care compliance · Powered by CAREi</span>
           </div>
         </div>
       </div>
@@ -3151,9 +3151,9 @@ function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName, carerA
   );
 }
 
-function FamilyPortalScreen({ onBack, onSummary }: { onBack: () => void; onSummary: () => void }) {
+function FamilyPortalScreen({ onBack, onSummary, carerName }: { onBack: () => void; onSummary: () => void; carerName: string }) {
   const events = [
-    { time: "10:02", icon: "🚗", text: "Sarah arrived at Grace's home", done: true },
+    { time: "10:02", icon: "🚗", text: `${carerName.split(" ")[0]} arrived at Grace's home`, done: true },
     { time: "10:05", icon: "🛁", text: "Personal care commenced", done: true },
     { time: "10:35", icon: "🍵", text: "Breakfast prepared, porridge and tea, good intake", done: true },
     { time: "10:47", icon: "💊", text: "Medications administered: Amlodipine, Metformin, Atorvastatin", done: true },
@@ -3713,7 +3713,21 @@ function EmergencyContactsScreen({ onBack, carerAgency }: { onBack: () => void; 
 
 // ─── Admin Teaser Screen ──────────────────────────────────────────────────────
 
-function AdminTeaserScreen({ onBack, onOpenAdmin }: { onBack: () => void; onOpenAdmin: () => void }) {
+function AdminTeaserScreen({
+  onBack,
+  onOpenAdmin,
+  visitStatuses,
+  onSchedule,
+  onManagerApprovals,
+  pendingApprovals,
+}: {
+  onBack: () => void;
+  onOpenAdmin: () => void;
+  visitStatuses: Record<string, string>;
+  onSchedule: () => void;
+  onManagerApprovals: () => void;
+  pendingApprovals: number;
+}) {
   const metrics = [
     { label: "Carers on Shift", value: "7", color: COLORS.green },
     { label: "Active Alerts", value: "2", color: COLORS.red },
@@ -3728,6 +3742,12 @@ function AdminTeaserScreen({ onBack, onOpenAdmin }: { onBack: () => void; onOpen
   ];
   const statusColors: Record<string, string> = { Active: COLORS.green, Late: COLORS.red, Break: COLORS.amber, Done: COLORS.g3 };
   const statusBgs: Record<string, string> = { Active: "rgba(34,197,94,0.15)", Late: "rgba(255,90,95,0.15)", Break: "rgba(246,183,60,0.15)", Done: "rgba(100,116,139,0.12)" };
+  const visitStatusConfig: Record<string, { label: string; color: string }> = {
+    pending: { label: "Pending", color: COLORS.amber },
+    "in-progress": { label: "In Progress", color: COLORS.teal },
+    completed: { label: "Completed", color: COLORS.green },
+  };
+
   return (
     <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column" }}>
       <div style={{ padding: "20px 18px 14px", flexShrink: 0 }}>
@@ -3735,7 +3755,7 @@ function AdminTeaserScreen({ onBack, onOpenAdmin }: { onBack: () => void; onOpen
         <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>Manager Overview</div>
         <div style={{ color: COLORS.g2, fontSize: 13, marginTop: 2 }}>Adjoy Healthcare · Live</div>
       </div>
-      <div className="phone-scroll" style={{ flex: 1, padding: "0 16px 100px", display: "flex", flexDirection: "column", gap: 12 }}>
+      <div className="phone-scroll" style={{ flex: 1, minHeight: 0, padding: "0 16px 100px", display: "flex", flexDirection: "column", gap: 12 }}>
         {/* Metrics */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
           {metrics.map(m => (
@@ -3745,6 +3765,30 @@ function AdminTeaserScreen({ onBack, onOpenAdmin }: { onBack: () => void; onOpen
             </div>
           ))}
         </div>
+
+        {/* Manager Actions */}
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={onManagerApprovals}
+            style={{ flex: 1, position: "relative", padding: "12px 10px", borderRadius: 12, border: pendingApprovals > 0 ? "1px solid rgba(246,183,60,0.4)" : "1px solid rgba(255,255,255,0.1)", background: pendingApprovals > 0 ? "rgba(246,183,60,0.08)" : "rgba(255,255,255,0.06)", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}
+          >
+            {pendingApprovals > 0 && (
+              <div style={{ position: "absolute", top: 8, right: 8, width: 16, height: 16, borderRadius: "50%", background: COLORS.amber, color: COLORS.darkNavy, fontSize: 9, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {pendingApprovals}
+              </div>
+            )}
+            <span style={{ fontSize: 18 }}>✅</span>
+            <span style={{ color: pendingApprovals > 0 ? COLORS.amber : COLORS.g1, fontSize: 11, fontWeight: 700, textAlign: "center", lineHeight: 1.3, fontFamily: "DM Sans, sans-serif" }}>Manager{"\n"}Approvals</span>
+          </button>
+          <button
+            onClick={onSchedule}
+            style={{ flex: 1, padding: "12px 10px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.06)", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}
+          >
+            <span style={{ fontSize: 18 }}>📅</span>
+            <span style={{ color: COLORS.g1, fontSize: 11, fontWeight: 700, textAlign: "center", lineHeight: 1.3, fontFamily: "DM Sans, sans-serif" }}>Manage{"\n"}Schedule</span>
+          </button>
+        </div>
+
         {/* Carer strip */}
         <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 16px" }}>
           <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Live Carer Status</div>
@@ -3757,6 +3801,25 @@ function AdminTeaserScreen({ onBack, onOpenAdmin }: { onBack: () => void; onOpen
             ))}
           </div>
         </div>
+
+        {/* Live Visit Status */}
+        <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 16px" }}>
+          <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Live Visit Status</div>
+          {SCHEDULE_CLIENTS.map((client) => {
+            const status = visitStatuses[client.id] || "pending";
+            const cfg = visitStatusConfig[status] || visitStatusConfig.pending;
+            return (
+              <div key={client.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                <div>
+                  <div style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>{client.name}</div>
+                  <div style={{ color: COLORS.g2, fontSize: 11 }}>{client.time}</div>
+                </div>
+                <Badge color={cfg.color} bg={`${cfg.color}22`}>{cfg.label}</Badge>
+              </div>
+            );
+          })}
+        </div>
+
         {/* Top alert */}
         <div style={{ background: "rgba(255,90,95,0.1)", border: "1px solid rgba(255,90,95,0.3)", borderRadius: 14, padding: "14px 16px" }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
@@ -3766,6 +3829,7 @@ function AdminTeaserScreen({ onBack, onOpenAdmin }: { onBack: () => void; onOpen
           <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, marginBottom: 4 }}>Amy Mitchell, lone worker overdue</div>
           <div style={{ color: COLORS.g2, fontSize: 12 }}>Check-in 18 min overdue at Patricia Lane's address. Supervisor action required.</div>
         </div>
+
         {/* CQC summary */}
         <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 16px" }}>
           <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600, marginBottom: 10 }}>CQC Compliance Today</div>
@@ -4062,7 +4126,7 @@ function HandoverScreen({ client, onSubmit }: { client: typeof SCHEDULE_CLIENTS[
         </div>
       </div>
 
-      <div className="phone-scroll" style={{ flex: 1, padding: "0 18px 100px", display: "flex", flexDirection: "column", gap: 18 }}>
+      <div className="phone-scroll" style={{ flex: 1, minHeight: 0, padding: "0 18px 120px", display: "flex", flexDirection: "column", gap: 18 }}>
 
         {/* Mood */}
         <div>
@@ -5488,6 +5552,9 @@ export default function CAREiApp() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [queuedCount, setQueuedCount] = useState(0);
   const [carerName, setCarerName] = useState("Sarah Johnson");
+  const [carerEmail, setCarerEmail] = useState<string>(() => {
+    try { const a = sessionStorage.getItem("carei_account"); return a ? (JSON.parse(a).email ?? "") : ""; } catch { return ""; }
+  });
   const [showDevNav, setShowDevNav] = useState(false);
   const [carerAgency, setCarerAgency] = useState<string>(() => {
     try { const a = sessionStorage.getItem("carei_account"); return a ? (JSON.parse(a).agency ?? "") : ""; } catch { return ""; }
@@ -5526,17 +5593,17 @@ export default function CAREiApp() {
         return <SplashScreen onSignUp={() => nav("signup")} onLogin={() => nav("login")} />;
       case "otp":
       case "signup":
-        return <SignUpScreen onNext={(name, agency) => { setCarerName(name); setCarerAgency(agency); nav("today"); }} onLogin={() => nav("login")} />;
+        return <SignUpScreen onNext={(name, agency, email) => { setCarerName(name); setCarerAgency(agency); setCarerEmail(email); nav("today"); }} onLogin={() => nav("login")} />;
       case "login":
-        return <LoginScreen onNext={(name, agency) => { setCarerName(name); setCarerAgency(agency); nav("today"); }} onSignUp={() => nav("signup")} />;
+        return <LoginScreen onNext={(name, agency, email) => { setCarerName(name); setCarerAgency(agency); setCarerEmail(email); nav("today"); }} onSignUp={() => nav("signup")} />;
       case "copilot":
         return <CopilotScreen onBack={() => nav("today")} />;
       case "medication":
         return <MedicationScreen onNext={() => nav("today")} />;
       case "profile":
-        return <ProfileScreen onSignOut={() => nav("otp")} carerName={carerName} />;
+        return <ProfileScreen onSignOut={() => nav("otp")} carerName={carerName} carerEmail={carerEmail} />;
       case "family":
-        return <FamilyPortalScreen onBack={() => nav("today")} onSummary={() => nav("family-summary")} />;
+        return <FamilyPortalScreen onBack={() => nav("today")} onSummary={() => nav("family-summary")} carerName={carerName} />;
       case "family-summary":
         return (
           <FamilySummaryScreen
@@ -5553,7 +5620,7 @@ export default function CAREiApp() {
             approvalStatus={summaryApproval}
             onApprove={() => setSummaryApproval("approved")}
             summaryReadAt={summaryReadAt}
-            onBack={() => nav("today")}
+            onBack={() => nav("admin")}
             carerName={carerName}
           />
         );
@@ -5572,7 +5639,16 @@ export default function CAREiApp() {
       case "emergency":
         return <EmergencyContactsScreen onBack={() => nav(visitReturnScreen)} carerAgency={carerAgency} />;
       case "admin":
-        return <AdminTeaserScreen onBack={() => nav("today")} onOpenAdmin={() => nav("admin-dashboard")} />;
+        return (
+          <AdminTeaserScreen
+            onBack={() => nav("today")}
+            onOpenAdmin={() => nav("admin-dashboard")}
+            visitStatuses={visitStatuses}
+            onSchedule={() => nav("schedule")}
+            onManagerApprovals={() => nav("manager-approvals")}
+            pendingApprovals={summaryApproval === "pending" ? 1 : 0}
+          />
+        );
       case "admin-dashboard":
         return null;
       case "today":
@@ -5639,10 +5715,13 @@ export default function CAREiApp() {
       }
       case "operations":
         return (
-          <OperationsScreen
+          <AdminTeaserScreen
+            onBack={() => nav("today")}
+            onOpenAdmin={() => nav("admin-dashboard")}
             visitStatuses={visitStatuses}
             onSchedule={() => nav("schedule")}
-            onBack={() => nav("today")}
+            onManagerApprovals={() => nav("manager-approvals")}
+            pendingApprovals={summaryApproval === "pending" ? 1 : 0}
           />
         );
       case "schedule":
@@ -5650,7 +5729,7 @@ export default function CAREiApp() {
           <ScheduleScreen
             assignedCarers={assignedCarers}
             onAssign={(id, carer) => setAssignedCarers((c) => ({ ...c, [id]: carer }))}
-            onBack={() => nav("operations")}
+            onBack={() => nav("admin")}
           />
         );
       case "rota":
@@ -5664,7 +5743,7 @@ export default function CAREiApp() {
     return (
       <>
         <style>{globalStyles}</style>
-        <AdminDashboard onBack={() => nav("admin")} />
+        <AdminDashboard onBack={() => nav("admin")} onCarerView={() => nav("today")} />
       </>
     );
   }

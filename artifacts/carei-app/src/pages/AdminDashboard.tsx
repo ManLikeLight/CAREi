@@ -381,7 +381,7 @@ function AgencyAlerts() {
   );
 }
 
-export default function AdminDashboard({ onBack }: { onBack: () => void }) {
+export default function AdminDashboard({ onBack, onCarerView }: { onBack: () => void; onCarerView: () => void }) {
   const [section, setSection] = useState<Section>("carers");
 
   const navItems: { key: Section; icon: string; label: string }[] = [
@@ -420,11 +420,15 @@ export default function AdminDashboard({ onBack }: { onBack: () => void }) {
             </button>
           ))}
         </div>
-        <div style={{ padding: 16 }}>
+        <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+          <button onClick={onCarerView} style={{
+            width: "100%", padding: "10px 0", borderRadius: 10, border: `1px solid rgba(79,209,197,0.3)`,
+            background: "rgba(79,209,197,0.08)", color: C.teal, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "DM Sans, sans-serif",
+          }}>👤 Switch to Carer View</button>
           <button onClick={onBack} style={{
             width: "100%", padding: "10px 0", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)",
             background: "transparent", color: C.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif",
-          }}>← Back to App</button>
+          }}>← Manager Overview</button>
         </div>
       </div>
 

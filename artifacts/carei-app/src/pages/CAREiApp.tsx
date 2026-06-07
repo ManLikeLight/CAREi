@@ -5681,27 +5681,32 @@ function ContinuCareSummaryScreen({
   const timeline = buildTimeline();
 
   useEffect(() => {
+    const minDelay = new Promise<void>((resolve) => setTimeout(resolve, 1800));
     async function generate() {
       try {
-        const res = await fetch("/api/anthropic/summary", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            client,
-            visitDate: new Date().toLocaleDateString("en-GB"),
-            notes: visitData?.notes ?? "",
-            confirmedMeds: visitData?.confirmedMeds ?? [],
-            skippedMeds: visitData?.skippedMeds ?? [],
-            fluidMl: visitData?.fluidMl ?? 0,
-            completedTasks: visitData?.completedTasks ?? [],
-            mealStatus: visitData?.mealStatus ?? "",
-            mood: visitData?.mood ?? "",
+        const [res] = await Promise.all([
+          fetch("/api/anthropic/summary", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              client,
+              visitDate: new Date().toLocaleDateString("en-GB"),
+              notes: visitData?.notes ?? "",
+              confirmedMeds: visitData?.confirmedMeds ?? [],
+              skippedMeds: visitData?.skippedMeds ?? [],
+              fluidMl: visitData?.fluidMl ?? 0,
+              completedTasks: visitData?.completedTasks ?? [],
+              mealStatus: visitData?.mealStatus ?? "",
+              mood: visitData?.mood ?? "",
+            }),
           }),
-        });
+          minDelay,
+        ]);
         if (!res.ok) throw new Error();
         const data = await res.json();
         setHandover(data.summary ?? "");
       } catch {
+        await minDelay;
         const parts: string[] = [];
         if (visitData?.skippedMeds?.length) parts.push(`Medication not administered this visit: ${visitData.skippedMeds.join(", ")}. Reason documented — please review before next dose.`);
         if (visitData?.mealStatus && visitData.mealStatus !== "Full") parts.push(`Meal intake was ${(visitData.mealStatus ?? "").toLowerCase()} — monitor appetite at next visit.`);

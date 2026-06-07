@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Component, type ReactNode } from "react";
 import AdminDashboard from "./AdminDashboard";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -332,34 +332,58 @@ function Badge({
   );
 }
 
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
+  constructor(props: { children: ReactNode }) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(e: Error) { return { error: e.message || "Unknown error" }; }
+  render() {
+    if (this.state.error) return (
+      <div style={{ background: COLORS.darkNavy, height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, gap: 12 }}>
+        <div style={{ fontSize: 32 }}>⚠️</div>
+        <div style={{ color: COLORS.red, fontWeight: 700, fontSize: 16, fontFamily: "DM Sans, sans-serif" }}>Something went wrong</div>
+        <div style={{ color: COLORS.g2, fontSize: 11, fontFamily: "DM Sans, sans-serif", textAlign: "center", lineHeight: 1.6, maxWidth: 280 }}>{this.state.error}</div>
+        <button type="button" onClick={() => this.setState({ error: null })} style={{ marginTop: 8, padding: "10px 24px", borderRadius: 10, border: "none", background: COLORS.teal, color: COLORS.darkNavy, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Try Again</button>
+      </div>
+    );
+    return this.props.children;
+  }
+}
+
 function VoiceMicButton({ onAppend, small }: { onAppend: (t: string) => void; small?: boolean }) {
   const [rec, setRec] = useState(false);
   const [secs, setSecs] = useState(0);
   const srRef = useRef<any>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   function stop() {
-    srRef.current?.stop(); srRef.current = null;
-    if (timerRef.current) clearInterval(timerRef.current);
-    setRec(false); setSecs(0);
+    try { if (srRef.current) { srRef.current.stop(); srRef.current = null; } } catch (_) {}
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    setRec(false);
+    setSecs(0);
   }
+
   function start() {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) { onAppend("[Voice dictation requires Chrome or Edge with microphone access.]"); return; }
-    const r = new SR(); r.continuous = true; r.interimResults = false; r.lang = "en-GB";
-    r.onresult = (e: any) => {
-      let t = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) { if (e.results[i].isFinal) t += e.results[i][0].transcript; }
-      if (t) onAppend(t + " ");
-    };
-    r.onerror = stop; r.onend = stop; r.start();
-    srRef.current = r; setRec(true); setSecs(0);
-    timerRef.current = setInterval(() => setSecs((s) => s + 1), 1000);
+    if (!SR) { onAppend("[Voice dictation requires Chrome or Edge — allow microphone access and try again.]"); return; }
+    try {
+      const r = new SR();
+      r.continuous = true; r.interimResults = false; r.lang = "en-GB";
+      r.onresult = (e: any) => {
+        let t = "";
+        for (let i = e.resultIndex; i < e.results.length; i++) { if (e.results[i].isFinal) t += e.results[i][0].transcript; }
+        if (t) onAppend(t + " ");
+      };
+      r.onerror = () => { setRec(false); setSecs(0); if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } };
+      r.onend = () => { setRec(false); setSecs(0); if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } };
+      r.start();
+      srRef.current = r; setRec(true); setSecs(0);
+      timerRef.current = setInterval(() => setSecs((s) => s + 1), 1000);
+    } catch (_) { setRec(false); }
   }
-  useEffect(() => () => stop(), []);
+
   const sz = small ? 26 : 30;
   return (
-    <button onClick={rec ? stop : start} title={rec ? "Stop recording" : "Dictate"}
-      style={{ width: sz, height: sz, borderRadius: "50%", border: "none", flexShrink: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: small ? 11 : 13, fontFamily: "DM Sans, sans-serif", fontWeight: 700, background: rec ? "rgba(255,90,95,0.18)" : "rgba(79,209,197,0.12)", color: rec ? COLORS.red : COLORS.teal, outline: rec ? `1.5px solid ${COLORS.red}` : "1.5px solid rgba(79,209,197,0.35)", transition: "all 0.2s" }}>
+    <button type="button" onClick={rec ? stop : start} title={rec ? `Recording… ${secs}s — tap to stop` : "Tap to dictate"}
+      style={{ width: sz, height: sz, borderRadius: "50%", border: "none", flexShrink: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: small ? 10 : 13, fontFamily: "DM Sans, sans-serif", fontWeight: 700, background: rec ? "rgba(255,90,95,0.2)" : "rgba(79,209,197,0.12)", color: rec ? COLORS.red : COLORS.teal, outline: rec ? `1.5px solid ${COLORS.red}` : "1.5px solid rgba(79,209,197,0.35)", transition: "all 0.2s" }}>
       {rec ? `${secs}` : "🎤"}
     </button>
   );

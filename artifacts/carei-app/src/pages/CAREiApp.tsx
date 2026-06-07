@@ -333,10 +333,10 @@ function Badge({
 }
 
 function VoiceMicButton({ onAppend, small }: { onAppend: (t: string) => void; small?: boolean }) {
-  const [rec, setRec] = React.useState(false);
-  const [secs, setSecs] = React.useState(0);
-  const srRef = React.useRef<any>(null);
-  const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const [rec, setRec] = useState(false);
+  const [secs, setSecs] = useState(0);
+  const srRef = useRef<any>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   function stop() {
     srRef.current?.stop(); srRef.current = null;
     if (timerRef.current) clearInterval(timerRef.current);
@@ -355,7 +355,7 @@ function VoiceMicButton({ onAppend, small }: { onAppend: (t: string) => void; sm
     srRef.current = r; setRec(true); setSecs(0);
     timerRef.current = setInterval(() => setSecs((s) => s + 1), 1000);
   }
-  React.useEffect(() => () => stop(), []);
+  useEffect(() => () => stop(), []);
   const sz = small ? 26 : 30;
   return (
     <button onClick={rec ? stop : start} title={rec ? "Stop recording" : "Dictate"}

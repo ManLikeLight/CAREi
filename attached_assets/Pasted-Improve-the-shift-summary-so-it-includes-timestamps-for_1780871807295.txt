@@ -1,0 +1,19 @@
+Improve the shift summary so it includes timestamps for significant events and looks polished and professional, suitable for a care record that a manager and a family member will read.
+
+First, the data. Pass the real timing data from the visit into the summary: the visit start time (clock in) and end time (clock out), the actual time each medication was given or refused, the time fluid intake was recorded, and the time tasks were completed. The summary must use this real data from the visit, not placeholder times.
+
+Second, the structure. Present the summary in clear professional sections with a clean visual hierarchy:
+
+A header block showing the client name, the carer name, the visit date, and the visit start and end times, with the total visit duration.
+
+A “Visit Timeline” section that lists the significant timed events in chronological order, each with its timestamp, for example “09:12 Metformin 500mg given”, “09:20 Amlodipine 5mg given”, “09:30 Fluid intake 250ml recorded”, “09:45 Personal care completed”. Only timestamp the significant events: medications given or refused, visit start and end, fluid recordings, vitals taken, tasks completed, and any incident or safety event. Do not timestamp soft narrative observations.
+
+A “Medications” section summarising what was given, refused, or missed, each with its time and, for refusals, the recorded reason and what the client said.
+
+An “Observations” section containing the carer’s dictated or typed notes as readable prose, without timestamps, since these are narrative.
+
+A “Handover for next visit” section with the forward-looking points for the next carer.
+
+Third, the look. Make it visually professional and clean: clear section headings, generous spacing, the timeline events aligned neatly with their timestamps, and the existing navy and teal styling. The timestamps should be visually distinct, for example in a muted colour or aligned in a column, so the timeline is easy to scan. It should look like a proper care record, not a rough note. Keep it uncluttered and readable on a phone screen.
+
+The carer must still be able to edit the summary before submitting, and the timestamps and timeline should populate automatically from the visit data without the carer having to enter them manually.

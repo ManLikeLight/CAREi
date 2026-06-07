@@ -302,6 +302,13 @@ interface VisitData {
   completedTasks: string[];
   mealStatus: string;
   mood: string;
+  visitStartTime: string;
+  visitEndTime: string;
+  medTakenAt: Record<string, string>;
+  medRefusalReason: Record<string, string>;
+  fluidTime?: string;
+  vitalsSavedTime?: string;
+  taskCompletedAt: Record<string, string>;
 }
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
@@ -4789,6 +4796,10 @@ function ActiveVisitScreen({
   const [medRefusalReason, setMedRefusalReason] = useState<Record<string, string>>({});
   const [refusalOtherNote, setRefusalOtherNote] = useState("");
   const [overdoseWarnFor, setOverdoseWarnFor] = useState<string | null>(null);
+  const [taskCompletedAt, setTaskCompletedAt] = useState<Record<string, string>>({});
+  const visitStartRef = useRef<string>(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }));
+  const fluidTimeRef = useRef<string | null>(null);
+  const vitalsSavedTimeRef = useRef<string | null>(null);
 
   const loneIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const visitIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -4844,6 +4855,12 @@ function ActiveVisitScreen({
     };
   }, [isLone]);
 
+  useEffect(() => {
+    if (fluidGlasses > 0 && !fluidTimeRef.current) {
+      fluidTimeRef.current = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    }
+  }, [fluidGlasses]);
+
   const loneOverdue = isLone && loneElapsed >= 25 * 60;
   const allMedsAcknowledged = client.meds.every((m) => medStatus[m.name] !== undefined);
   const firstName = client.name.split(" ")[0];
@@ -4852,6 +4869,10 @@ function ActiveVisitScreen({
     const newTasks = [...tasks];
     newTasks[i] = !newTasks[i];
     setTasks(newTasks);
+    if (newTasks[i]) {
+      const ts = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+      setTaskCompletedAt((prev) => ({ ...prev, [VISIT_TASKS[i]]: ts }));
+    }
     if (i === MEAL_TASK_IDX && newTasks[i] && !mealPromptDismissed && mealStatus === "") {
       setShowMealPrompt(true);
     }
@@ -5215,7 +5236,7 @@ function ActiveVisitScreen({
                 <span style={{ color: COLORS.red, fontSize: 11, fontWeight: 700, lineHeight: 1.5 }}>BP above {(client as any).bpBaseline ? `${firstName}'s personal baseline (${(client as any).bpBaseline.sys}/${(client as any).bpBaseline.dia} mmHg)` : "normal range (140/90 mmHg)"} — notify your office immediately</span>
               </div>
             )}
-            <button onClick={() => { if (bpSys && bpDia) setVitalsSaved(true); }} disabled={!bpSys || !bpDia}
+            <button onClick={() => { if (bpSys && bpDia) { setVitalsSaved(true); vitalsSavedTimeRef.current = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }); } }} disabled={!bpSys || !bpDia}
               style={{ width: "100%", padding: "8px 0", borderRadius: 9, border: "none", background: bpSys && bpDia ? `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})` : "rgba(255,255,255,0.08)", color: bpSys && bpDia ? COLORS.darkNavy : COLORS.g3, fontFamily: "DM Sans, sans-serif", fontSize: 12, fontWeight: 700, cursor: bpSys && bpDia ? "pointer" : "not-allowed" }}>
               {vitalsSaved ? "✓ Vitals Saved" : "Save Vitals"}
             </button>
@@ -5314,6 +5335,13 @@ function ActiveVisitScreen({
             completedTasks: VISIT_TASKS.filter((_, i) => tasks[i]),
             mealStatus,
             mood,
+            visitStartTime: visitStartRef.current,
+            visitEndTime: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+            medTakenAt,
+            medRefusalReason,
+            fluidTime: fluidTimeRef.current ?? undefined,
+            vitalsSavedTime: vitalsSavedTimeRef.current ?? undefined,
+            taskCompletedAt,
           }) : undefined}
           style={{ width: "100%", padding: "14px 0", borderRadius: 14, border: "none", background: allMedsAcknowledged ? `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})` : "rgba(255,255,255,0.1)", color: allMedsAcknowledged ? COLORS.darkNavy : COLORS.g3, fontFamily: "DM Sans, sans-serif", fontSize: 15, fontWeight: 700, cursor: allMedsAcknowledged ? "pointer" : "not-allowed" }}
         >
@@ -5367,7 +5395,7 @@ function ActiveVisitScreen({
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
               <button onClick={() => setShowRefusalFor(null)} style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: COLORS.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Cancel</button>
-              <button onClick={() => { if (refusalReason && refusalAction) { const label = refusalReason === "Other" && refusalOtherNote.trim() ? refusalOtherNote.trim().slice(0, 22) : refusalReason; setMedRefusalReason(r => ({ ...r, [showRefusalFor!]: label })); setMedStatus((s) => ({ ...s, [showRefusalFor!]: "refused" })); setShowRefusalFor(null); } }}
+              <button onClick={() => { if (refusalReason && refusalAction) { const label = refusalReason === "Other" && refusalOtherNote.trim() ? refusalOtherNote.trim().slice(0, 22) : refusalReason; setMedRefusalReason(r => ({ ...r, [showRefusalFor!]: label })); setMedStatus((s) => ({ ...s, [showRefusalFor!]: "refused" })); setMedTakenAt(t => ({ ...t, [showRefusalFor!]: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) })); setShowRefusalFor(null); } }}
                 style={{ flex: 2, padding: "11px 0", borderRadius: 10, border: "none", background: refusalReason && refusalAction ? COLORS.amber : "rgba(255,255,255,0.08)", color: refusalReason && refusalAction ? COLORS.darkNavy : COLORS.g3, fontSize: 13, fontWeight: 700, cursor: refusalReason && refusalAction ? "pointer" : "not-allowed", fontFamily: "DM Sans, sans-serif" }}>Log Refusal</button>
             </div>
           </div>
@@ -5603,44 +5631,59 @@ function ContinuCareSummaryScreen({
   client,
   onDone,
   visitData,
+  carerName,
 }: {
   client: typeof SCHEDULE_CLIENTS[0];
   onDone: () => void;
   visitData?: VisitData;
+  carerName: string;
 }) {
-  const [loading, setLoading] = useState(true);
-  const [summary, setSummary] = useState({ observations: "", medication: "", riskSignals: "" });
   const [submitted, setSubmitted] = useState(false);
+  const [observations, setObservations] = useState(visitData?.notes?.trim() ?? "");
+  const [handover, setHandover] = useState("");
+  const [handoverLoading, setHandoverLoading] = useState(true);
+
+  const startTime = visitData?.visitStartTime ?? "—";
+  const endTime = visitData?.visitEndTime ?? "—";
+
+  function calcDuration(s: string, e: string): string | null {
+    try {
+      const [sh, sm] = s.split(":").map(Number);
+      const [eh, em] = e.split(":").map(Number);
+      const mins = (eh * 60 + em) - (sh * 60 + sm);
+      if (isNaN(mins) || mins <= 0) return null;
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      return h > 0 ? `${h}h ${m}m` : `${m} mins`;
+    } catch { return null; }
+  }
+  const duration = calcDuration(startTime, endTime);
+
+  type TLEvent = { time: string; label: string; dotColor: string };
+  function buildTimeline(): TLEvent[] {
+    const events: TLEvent[] = [];
+    if (visitData?.visitStartTime) events.push({ time: visitData.visitStartTime, label: "Visit started — carer clocked in", dotColor: COLORS.green });
+    client.meds.forEach((med) => {
+      const t = visitData?.medTakenAt?.[med.name];
+      const refused = visitData?.medRefusalReason?.[med.name];
+      if (t && !refused) events.push({ time: t, label: `${med.name} ${med.dose} administered`, dotColor: COLORS.teal });
+      else if (t && refused) events.push({ time: t, label: `${med.name} ${med.dose} — not administered (${refused})`, dotColor: COLORS.amber });
+    });
+    if (visitData?.vitalsSavedTime) events.push({ time: visitData.vitalsSavedTime, label: "Vital signs recorded", dotColor: "#a78bfa" });
+    if (visitData?.fluidTime && visitData.fluidMl > 0) events.push({ time: visitData.fluidTime, label: `Fluid intake recorded — ${visitData.fluidMl}ml`, dotColor: "#60a5fa" });
+    Object.entries(visitData?.taskCompletedAt ?? {}).forEach(([task, time]) => {
+      events.push({ time, label: `${task} — completed`, dotColor: COLORS.g2 });
+    });
+    if (visitData?.visitEndTime) events.push({ time: visitData.visitEndTime, label: "Visit ended — record submitted", dotColor: COLORS.teal });
+    events.sort((a, b) => a.time.localeCompare(b.time));
+    return events;
+  }
+  const timeline = buildTimeline();
 
   useEffect(() => {
-    function buildMedText() {
-      if (visitData?.confirmedMeds?.length || visitData?.skippedMeds?.length) {
-        const lines: string[] = [];
-        (visitData.confirmedMeds ?? []).forEach(m => lines.push(`${m}, given ✓`));
-        (visitData.skippedMeds ?? []).forEach(m => lines.push(`${m}, not given ⚠️`));
-        return lines.join("\n");
-      }
-      return client.meds.map(m => `${m.name} ${m.dose}, taken ✓`).join("\n");
-    }
-
-    function buildFallback() {
-      const parts: string[] = [];
-      if (visitData?.mood) parts.push(`Mood at visit start: ${visitData.mood}.`);
-      if (visitData?.completedTasks?.length) parts.push(`Tasks completed: ${visitData.completedTasks.join(", ")}.`);
-      if (visitData?.mealStatus) parts.push(`Meal intake: ${visitData.mealStatus}.`);
-      if (visitData?.fluidMl) parts.push(`Fluid intake: ${visitData.fluidMl}ml.`);
-      if (visitData?.notes?.trim()) parts.push(`Carer's notes: "${visitData.notes.trim()}"`);
-      const obs = parts.length ? parts.join("\n") : `Visit with ${client.name} completed. Personal care carried out as per care plan.`;
-      const risk = visitData?.notes?.trim()
-        ? `From carer's notes: "${visitData.notes.trim().slice(0, 180)}"`
-        : "No risk signals or concerns recorded this visit.";
-      setSummary({ observations: obs, medication: buildMedText(), riskSignals: risk });
-      setLoading(false);
-    }
-
     async function generate() {
       try {
-        const response = await fetch("/api/anthropic/summary", {
+        const res = await fetch("/api/anthropic/summary", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -5655,22 +5698,20 @@ function ContinuCareSummaryScreen({
             mood: visitData?.mood ?? "",
           }),
         });
-        if (!response.ok) throw new Error();
-        const data = await response.json();
-        setSummary({
-          observations: data.summary ?? "",
-          medication: buildMedText(),
-          riskSignals: visitData?.notes?.trim()
-            ? `Carer's own notes: "${visitData.notes.trim().slice(0, 200)}"`
-            : "No concerns or risk signals recorded this visit.",
-        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        setHandover(data.summary ?? "");
       } catch {
-        buildFallback();
+        const parts: string[] = [];
+        if (visitData?.skippedMeds?.length) parts.push(`Medication not administered this visit: ${visitData.skippedMeds.join(", ")}. Reason documented — please review before next dose.`);
+        if (visitData?.mealStatus && visitData.mealStatus !== "Full") parts.push(`Meal intake was ${(visitData.mealStatus ?? "").toLowerCase()} — monitor appetite at next visit.`);
+        if ((visitData?.fluidMl ?? 0) < 500 && visitData?.fluidMl !== undefined) parts.push("Fluid intake below recommended target — encourage hydration at next visit.");
+        parts.push(`Continue care as per plan for ${client.name.split(" ")[0]}. Review carer's observations above for any concerns from this visit.`);
+        setHandover(parts.join("\n\n"));
       } finally {
-        setLoading(false);
+        setHandoverLoading(false);
       }
     }
-
     generate();
   }, []);
 
@@ -5682,10 +5723,11 @@ function ContinuCareSummaryScreen({
             <circle cx="36" cy="36" r="34" fill={COLORS.teal} />
             <polyline points="20,37 30,47 52,24" fill="none" stroke={COLORS.darkNavy} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: 22, marginTop: 16 }}>Shift Complete</div>
-          <div style={{ color: COLORS.teal, fontSize: 14, marginTop: 6 }}>ContinuCare+ Summary Submitted ✓</div>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 22, marginTop: 16 }}>Visit Record Submitted</div>
+          <div style={{ color: COLORS.teal, fontSize: 14, marginTop: 6 }}>ContinuCare+ Record Filed ✓</div>
+          <div style={{ color: COLORS.g2, fontSize: 13, marginTop: 8, lineHeight: 1.6 }}>Submitted by {carerName || "Carer"}<br />{new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</div>
           <div style={{ marginTop: 12, background: "rgba(34,197,94,0.12)", borderRadius: 10, padding: "8px 16px", display: "inline-block" }}>
-            <span style={{ color: COLORS.green, fontWeight: 700, fontSize: 12 }}>CQC AUDIT TRAIL, COMPLETE</span>
+            <span style={{ color: COLORS.green, fontWeight: 700, fontSize: 12 }}>CQC AUDIT TRAIL · COMPLETE</span>
           </div>
           <button onClick={onDone} style={{ marginTop: 24, padding: "14px 0", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "DM Sans, sans-serif", width: "100%", display: "block" }}>
             Return to Today's Care
@@ -5695,42 +5737,178 @@ function ContinuCareSummaryScreen({
     );
   }
 
+  const SectionHeading = ({ icon, title }: { icon: string; title: string }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+      <span style={{ fontSize: 13 }}>{icon}</span>
+      <span style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase" }}>{title}</span>
+    </div>
+  );
+
   return (
     <div style={{ height: "100%", background: COLORS.darkNavy, display: "flex", flexDirection: "column" }}>
-      <div style={{ padding: "20px 18px 12px", flexShrink: 0 }}>
-        <Badge color={COLORS.teal} bg="rgba(79,209,197,0.15)">AI Generated ContinuCare+</Badge>
-        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 24, color: "#fff", marginTop: 8 }}>Shift Summary</div>
-        <div style={{ color: COLORS.g2, fontSize: 13, marginTop: 2 }}>{client.name} · {new Date().toLocaleDateString("en-GB")}</div>
+      {/* Compact header */}
+      <div style={{ padding: "14px 18px 10px", flexShrink: 0, borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Badge color={COLORS.teal} bg="rgba(79,209,197,0.15)">ContinuCare+</Badge>
+          <span style={{ color: COLORS.g3, fontSize: 11 }}>{new Date().toLocaleDateString("en-GB")}</span>
+        </div>
+        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 21, color: "#fff", marginTop: 5 }}>Visit Record</div>
+        <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 1 }}>Review and edit before submitting</div>
       </div>
-      <div className="phone-scroll" style={{ flex: 1, padding: "0 14px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
-        {loading ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ color: COLORS.teal, fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ display: "flex", gap: 3 }}>{[0, 1, 2].map((d) => <div key={d} className={`dot-${d + 1}`} style={{ width: 6, height: 6, borderRadius: "50%", background: COLORS.teal }} />)}</div>
-              Generating AI summary…
+
+      <div className="phone-scroll" style={{ flex: 1, padding: "14px 14px 28px", display: "flex", flexDirection: "column", gap: 12 }}>
+
+        {/* ── Header block ─────────────────────────────────────── */}
+        <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+            <div>
+              <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>{client.name}</div>
+              <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 2 }}>Domiciliary care visit</div>
             </div>
-            {[85, 70, 90, 60, 80].map((w, i) => <div key={i} style={{ height: 12, borderRadius: 6, background: "rgba(255,255,255,0.08)", width: `${w}%` }} />)}
+            {duration && (
+              <div style={{ background: "rgba(79,209,197,0.12)", borderRadius: 8, padding: "5px 10px", textAlign: "center", flexShrink: 0 }}>
+                <div style={{ color: COLORS.teal, fontWeight: 700, fontSize: 14 }}>{duration}</div>
+                <div style={{ color: COLORS.g3, fontSize: 9, marginTop: 1, textTransform: "uppercase", letterSpacing: 0.8 }}>Duration</div>
+              </div>
+            )}
           </div>
-        ) : (
-          <>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
             {[
-              { title: "Observations", icon: "📝", content: summary.observations, color: COLORS.teal },
-              { title: "Medication", icon: "💊", content: summary.medication, color: COLORS.green },
-              { title: "Risk Signals", icon: "⚠️", content: summary.riskSignals, color: COLORS.amber },
-            ].map((section) => (
-              <div key={section.title} style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: 16 }}>
-                <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-                  <span style={{ fontSize: 16 }}>{section.icon}</span>
-                  <div style={{ color: section.color, fontWeight: 700, fontSize: 13 }}>{section.title}</div>
-                </div>
-                <div style={{ color: COLORS.g1, fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-line" }}>{section.content}</div>
+              { label: "Carer", value: carerName || "—" },
+              { label: "Date", value: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) },
+              { label: "Clock in", value: startTime },
+              { label: "Clock out", value: endTime },
+            ].map(({ label, value }) => (
+              <div key={label} style={{ background: "rgba(255,255,255,0.05)", borderRadius: 8, padding: "8px 10px" }}>
+                <div style={{ color: COLORS.g3, fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>{label}</div>
+                <div style={{ color: "#fff", fontSize: 12, fontWeight: 600, marginTop: 3 }}>{value}</div>
               </div>
             ))}
-            <button onClick={() => setSubmitted(true)} style={{ width: "100%", padding: "16px 0", borderRadius: 14, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer", marginTop: 4 }}>
-              Submit & End Shift →
-            </button>
-          </>
-        )}
+          </div>
+        </div>
+
+        {/* ── Visit timeline ────────────────────────────────────── */}
+        <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: 16 }}>
+          <SectionHeading icon="🕐" title="Visit Timeline" />
+          {timeline.length === 0 ? (
+            <div style={{ color: COLORS.g3, fontSize: 12 }}>No timed events to display.</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {timeline.map((ev, idx) => (
+                <div key={idx} style={{ display: "flex", gap: 0, alignItems: "flex-start" }}>
+                  {/* Timestamp */}
+                  <div style={{ width: 44, flexShrink: 0, paddingTop: 2 }}>
+                    <span style={{ color: COLORS.g3, fontSize: 11, fontFamily: "monospace", fontWeight: 500 }}>{ev.time}</span>
+                  </div>
+                  {/* Dot + connector */}
+                  <div style={{ width: 20, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center" }}>
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: ev.dotColor, flexShrink: 0, marginTop: 4 }} />
+                    {idx < timeline.length - 1 && (
+                      <div style={{ width: 1, background: "rgba(255,255,255,0.08)", flex: 1, minHeight: 16, marginTop: 2, marginBottom: 2 }} />
+                    )}
+                  </div>
+                  {/* Event label */}
+                  <div style={{ paddingBottom: idx < timeline.length - 1 ? 12 : 0, paddingTop: 1 }}>
+                    <span style={{ color: COLORS.g1, fontSize: 12, lineHeight: 1.5 }}>{ev.label}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ── Medications ───────────────────────────────────────── */}
+        <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: 16 }}>
+          <SectionHeading icon="💊" title="Medications" />
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {client.meds.map((med) => {
+              const t = visitData?.medTakenAt?.[med.name];
+              const refusal = visitData?.medRefusalReason?.[med.name];
+              const isGiven = t && !refusal;
+              const isRefused = !!refusal;
+              const borderColor = isGiven ? COLORS.green : isRefused ? COLORS.amber : COLORS.g3;
+              const statusLabel = isGiven ? "Given" : isRefused ? "Not administered" : "Not recorded";
+              const statusColor = isGiven ? COLORS.green : isRefused ? COLORS.amber : COLORS.g3;
+              return (
+                <div key={med.name} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10, padding: "10px 12px", borderLeft: `3px solid ${borderColor}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <div>
+                      <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>{med.name}</span>
+                      <span style={{ color: COLORS.g2, fontSize: 12, marginLeft: 5 }}>{med.dose}</span>
+                      {med.isControlled && <span style={{ color: COLORS.g3, fontSize: 10, marginLeft: 6 }}>⚿ Controlled</span>}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                      {t && <span style={{ color: COLORS.g3, fontSize: 10, fontFamily: "monospace" }}>{t}</span>}
+                      <span style={{ color: statusColor, fontSize: 11, fontWeight: 700 }}>{statusLabel}</span>
+                    </div>
+                  </div>
+                  {refusal && <div style={{ color: COLORS.amber, fontSize: 11, marginTop: 5 }}>Reason: {refusal}</div>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── Observations (editable) ───────────────────────────── */}
+        <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: 16 }}>
+          <SectionHeading icon="📝" title="Observations" />
+          <div style={{ color: COLORS.g3, fontSize: 10, marginBottom: 8 }}>Carer's narrative record — edit before submitting</div>
+          {visitData?.mood && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+              <span style={{ color: COLORS.g3, fontSize: 11 }}>Mood noted as</span>
+              <span style={{ fontSize: 16 }}>{visitData.mood}</span>
+            </div>
+          )}
+          {visitData?.mealStatus && (
+            <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 8 }}>
+              <span style={{ fontSize: 11 }}>🍽</span>
+              <span style={{ color: COLORS.g2, fontSize: 12 }}>Meal intake: <strong style={{ color: visitData.mealStatus === "Full" ? COLORS.green : visitData.mealStatus === "Half" ? COLORS.amber : COLORS.red }}>{visitData.mealStatus}</strong></span>
+            </div>
+          )}
+          {(visitData?.fluidMl ?? 0) > 0 && (
+            <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 8 }}>
+              <span style={{ fontSize: 11 }}>💧</span>
+              <span style={{ color: COLORS.g2, fontSize: 12 }}>Fluid intake: <strong style={{ color: "#60a5fa" }}>{visitData!.fluidMl}ml</strong></span>
+            </div>
+          )}
+          <textarea
+            value={observations}
+            onChange={(e) => setObservations(e.target.value)}
+            rows={4}
+            placeholder={`Add observations for ${client.name.split(" ")[0]}'s record…`}
+            style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, lineHeight: 1.6, resize: "none", outline: "none", marginTop: 4 }}
+          />
+        </div>
+
+        {/* ── Handover for next visit (AI + editable) ──────────── */}
+        <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: 16 }}>
+          <SectionHeading icon="📋" title="Handover for next visit" />
+          {handoverLoading ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, color: COLORS.teal, fontSize: 12 }}>
+              <div style={{ display: "flex", gap: 3 }}>{[0, 1, 2].map((d) => <div key={d} className={`dot-${d + 1}`} style={{ width: 5, height: 5, borderRadius: "50%", background: COLORS.teal }} />)}</div>
+              Generating handover note…
+            </div>
+          ) : (
+            <>
+              <div style={{ color: COLORS.g3, fontSize: 10, marginBottom: 8 }}>AI-generated — edit before submitting</div>
+              <textarea
+                value={handover}
+                onChange={(e) => setHandover(e.target.value)}
+                rows={5}
+                placeholder="Handover notes for the next carer…"
+                style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, lineHeight: 1.6, resize: "none", outline: "none" }}
+              />
+            </>
+          )}
+        </div>
+
+        <button
+          onClick={() => setSubmitted(true)}
+          style={{ width: "100%", padding: "16px 0", borderRadius: 14, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer", marginTop: 4 }}
+        >
+          Submit Visit Record →
+        </button>
+
       </div>
     </div>
   );
@@ -6075,6 +6253,7 @@ export default function CAREiApp() {
             client={summaryClient}
             onDone={() => { setVisitStatuses((s) => ({ ...s, [summaryClient.id]: "completed" })); nav("today"); }}
             visitData={lastVisitData}
+            carerName={carerName}
           />
         );
       }

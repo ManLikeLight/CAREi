@@ -157,11 +157,12 @@ const SCHEDULE_CLIENTS = [
       { trigger: "Record mood", content: "Allow extra time for Tom to communicate, post-stroke aphasia means he needs processing time. Do not finish his sentences. Note any visible frustration or withdrawal." },
     ],
     meds: [
-      { name: "Aspirin", dose: "75mg", dueTime: "10:45", adminNote: "Give with morning meal. Monitor for dizziness.", interactions: ["Aspirin may reduce Lisinopril's blood pressure-lowering effect — monitor BP closely after both are given"] },
+      { name: "Aspirin", dose: "75mg", dueTime: "10:45", adminNote: "Give with morning meal. Monitor for dizziness.", interactions: ["Aspirin may reduce Lisinopril's blood pressure-lowering effect — monitor BP closely after both are given"], possibleDuplicate: true, duplicateNote: "Aspirin also appears in Tom's earlier visit record today. Please confirm this is the correct scheduled dose for this visit and not a duplicate before proceeding." },
       { name: "Lisinopril", dose: "10mg", dueTime: "10:45", adminNote: "Give with food. Monitor blood pressure. Report readings above baseline.", interactions: ["Aspirin may reduce Lisinopril's blood pressure-lowering effect — monitor BP closely after both are given"] },
     ],
     conditions: ["Post-Stroke", "Hypertension", "Dysphagia Risk"],
     chokingRisk: true,
+    chokingHistory: "Dysphagia confirmed — use thickened fluids as prescribed. Never rush food or drink. Remain present throughout all meals and drinks. If choking occurs: encourage coughing, call 999 immediately if airway is blocked.",
     bpBaseline: { sys: 130, dia: 82 },
     pronouns: "he/him",
   },
@@ -4787,6 +4788,7 @@ function ActiveVisitScreen({
   const [witnessInput, setWitnessInput] = useState("");
   const [medRefusalReason, setMedRefusalReason] = useState<Record<string, string>>({});
   const [refusalOtherNote, setRefusalOtherNote] = useState("");
+  const [overdoseWarnFor, setOverdoseWarnFor] = useState<string | null>(null);
 
   const loneIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const visitIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -4952,6 +4954,21 @@ function ActiveVisitScreen({
         </div>
       )}
 
+      {/* ── Compact Safety Strip ── */}
+      {((client.allergy && client.allergy !== "None known") || (client as any).chokingRisk) && (
+        <div style={{ background: "rgba(255,90,95,0.15)", padding: "6px 14px", display: "flex", alignItems: "center", gap: 8, flexShrink: 0, borderBottom: "1px solid rgba(255,90,95,0.2)" }}>
+          <span style={{ fontSize: 13, flexShrink: 0 }}>🚨</span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, flex: 1, alignItems: "center" }}>
+            {client.allergy && client.allergy !== "None known" && (
+              <span style={{ color: COLORS.red, fontSize: 11, fontWeight: 700 }}>ALLERGY: {client.allergy}</span>
+            )}
+            {(client as any).chokingRisk && (
+              <span style={{ color: COLORS.red, fontSize: 11, fontWeight: 700 }}>⚠ CHOKING RISK</span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── Mood Capture ── */}
       {!moodSet ? (
         <div style={{ padding: "10px 14px 8px", background: "rgba(79,209,197,0.05)", borderBottom: "1px solid rgba(79,209,197,0.12)", flexShrink: 0 }}>
@@ -4976,6 +4993,44 @@ function ActiveVisitScreen({
 
       {/* ── Single scroll content ── */}
       <div className="phone-scroll" style={{ flex: 1, padding: "12px 14px 110px", display: "flex", flexDirection: "column", gap: 0 }}>
+
+        {/* ── Patient Safety Alert ── */}
+        <div style={{ background: "rgba(255,90,95,0.12)", borderRadius: 14, padding: "14px 16px", border: "1px solid rgba(255,90,95,0.4)", marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <span style={{ fontSize: 17 }}>🚨</span>
+            <div style={{ color: COLORS.red, fontWeight: 700, fontSize: 14 }}>Patient Safety Alert</div>
+          </div>
+          {client.allergy && client.allergy !== "None known" ? (
+            <div style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-start" }}>
+              <span style={{ color: COLORS.red, fontWeight: 700, fontSize: 10, minWidth: 76, flexShrink: 0, paddingTop: 2 }}>ALLERGY</span>
+              <span style={{ color: "#fff", fontSize: 12, fontWeight: 700, lineHeight: 1.5 }}>{client.allergy} — do not administer under any circumstances</span>
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
+              <span style={{ color: COLORS.green, fontWeight: 700, fontSize: 10, minWidth: 76, flexShrink: 0 }}>ALLERGY</span>
+              <span style={{ color: COLORS.g2, fontSize: 12 }}>None known</span>
+            </div>
+          )}
+          {(client as any).conditions?.map((c: string) => (
+            <div key={c} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "flex-start" }}>
+              <span style={{ color: COLORS.amber, fontWeight: 700, fontSize: 10, minWidth: 76, flexShrink: 0, paddingTop: 2 }}>CONDITION</span>
+              <span style={{ color: COLORS.g1, fontSize: 12, lineHeight: 1.5 }}>{c}</span>
+            </div>
+          ))}
+          {(client as any).chokingRisk ? (
+            <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "flex-start", background: "rgba(255,90,95,0.18)", borderRadius: 8, padding: "8px 10px" }}>
+              <span style={{ fontSize: 15, flexShrink: 0 }}>⚠️</span>
+              <span style={{ color: COLORS.red, fontWeight: 700, fontSize: 11, lineHeight: 1.6 }}>
+                CHOKING RISK — {(client as any).chokingHistory || "Monitor all food and drink intake closely. Never rush meals or drinks."}
+              </span>
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: 8, marginTop: 4, alignItems: "center" }}>
+              <span style={{ color: COLORS.green, fontWeight: 700, fontSize: 10, minWidth: 76, flexShrink: 0 }}>CHOKING</span>
+              <span style={{ color: COLORS.g2, fontSize: 12 }}>No known choking history</span>
+            </div>
+          )}
+        </div>
 
         {/* SECTION 1: Care Tasks */}
         <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 8 }}>CARE TASKS</div>
@@ -5105,7 +5160,7 @@ function ActiveVisitScreen({
                 )}
                 {!curStatus && (
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={() => { const now = new Date(); now.setMinutes(Math.round(now.getMinutes() / 5) * 5, 0, 0); setSelectedTakenTime(now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })); setShowTakenTimeFor(med.name); }} style={{ flex: 1, padding: "8px 0", borderRadius: 9, border: "1px solid rgba(34,197,94,0.4)", background: "rgba(34,197,94,0.1)", color: COLORS.green, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>✓ Given</button>
+                    <button onClick={() => { const now = new Date(); now.setMinutes(Math.round(now.getMinutes() / 5) * 5, 0, 0); setSelectedTakenTime(now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })); if ((med as any).possibleDuplicate) { setOverdoseWarnFor(med.name); } else { setShowTakenTimeFor(med.name); } }} style={{ flex: 1, padding: "8px 0", borderRadius: 9, border: "1px solid rgba(34,197,94,0.4)", background: "rgba(34,197,94,0.1)", color: COLORS.green, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>✓ Given</button>
                     <button onClick={() => { setShowRefusalFor(med.name); setRefusalReason(""); setRefusalWhatSaid(""); setRefusalAction(""); setRefusalOtherNote(""); }} style={{ flex: 1, padding: "8px 0", borderRadius: 9, border: "1px solid rgba(246,183,60,0.4)", background: "rgba(246,183,60,0.1)", color: COLORS.amber, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>✗ Not Given</button>
                   </div>
                 )}
@@ -5154,10 +5209,10 @@ function ActiveVisitScreen({
                 </div>
               ))}
             </div>
-            {bpSys && bpDia && (parseInt(bpSys) > 140 || parseInt(bpDia) > 90) && (
-              <div style={{ background: "rgba(255,90,95,0.12)", border: "1px solid rgba(255,90,95,0.3)", borderRadius: 8, padding: "6px 10px", marginBottom: 8, display: "flex", gap: 6, alignItems: "center" }}>
-                <span style={{ fontSize: 12 }}>⚠️</span>
-                <span style={{ color: COLORS.red, fontSize: 11, fontWeight: 700 }}>BP above {(client as any).bpBaseline ? `baseline (${(client as any).bpBaseline.sys}/${(client as any).bpBaseline.dia})` : "threshold"} — notify office immediately</span>
+            {bpSys && bpDia && (() => { const bl = (client as any).bpBaseline; return bl ? (parseInt(bpSys) > bl.sys || parseInt(bpDia) > bl.dia) : (parseInt(bpSys) > 140 || parseInt(bpDia) > 90); })() && (
+              <div style={{ background: "rgba(255,90,95,0.12)", border: "1px solid rgba(255,90,95,0.3)", borderRadius: 8, padding: "8px 10px", marginBottom: 8, display: "flex", gap: 6, alignItems: "flex-start" }}>
+                <span style={{ fontSize: 12, flexShrink: 0, marginTop: 1 }}>⚠️</span>
+                <span style={{ color: COLORS.red, fontSize: 11, fontWeight: 700, lineHeight: 1.5 }}>BP above {(client as any).bpBaseline ? `${firstName}'s personal baseline (${(client as any).bpBaseline.sys}/${(client as any).bpBaseline.dia} mmHg)` : "normal range (140/90 mmHg)"} — notify your office immediately</span>
               </div>
             )}
             <button onClick={() => { if (bpSys && bpDia) setVitalsSaved(true); }} disabled={!bpSys || !bpDia}
@@ -5209,8 +5264,13 @@ function ActiveVisitScreen({
               {isRecording ? `⏺ ${recordingTime}s` : "🎤 Dictate"}
             </button>
           </div>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Tap Dictate or type care notes here…" rows={4}
-            style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "9px 12px", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, resize: "none", outline: "none" }} />
+          <div style={{ position: "relative" }}>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Tap Dictate or type care notes here…" rows={4}
+              style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "9px 12px", paddingBottom: 38, color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, resize: "none", outline: "none" }} />
+            <div style={{ position: "absolute", bottom: 8, right: 8 }}>
+              <VoiceMicButton onAppend={(t) => setNotes((n) => n + (n ? " " : "") + t)} small />
+            </div>
+          </div>
           {notes && (client.pronouns === "he/him" ? /\b(she|her|hers)\b/i.test(notes) : /\b(he|him|his)\b/i.test(notes)) && (
             <div style={{ marginTop: 6, padding: "8px 10px", borderRadius: 8, background: "rgba(246,183,60,0.1)", border: "1px solid rgba(246,183,60,0.3)", display: "flex", gap: 7, alignItems: "center" }}>
               <span style={{ fontSize: 14, flexShrink: 0 }}>⚠️</span>
@@ -5309,6 +5369,30 @@ function ActiveVisitScreen({
               <button onClick={() => setShowRefusalFor(null)} style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: COLORS.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Cancel</button>
               <button onClick={() => { if (refusalReason && refusalAction) { const label = refusalReason === "Other" && refusalOtherNote.trim() ? refusalOtherNote.trim().slice(0, 22) : refusalReason; setMedRefusalReason(r => ({ ...r, [showRefusalFor!]: label })); setMedStatus((s) => ({ ...s, [showRefusalFor!]: "refused" })); setShowRefusalFor(null); } }}
                 style={{ flex: 2, padding: "11px 0", borderRadius: 10, border: "none", background: refusalReason && refusalAction ? COLORS.amber : "rgba(255,255,255,0.08)", color: refusalReason && refusalAction ? COLORS.darkNavy : COLORS.g3, fontSize: 13, fontWeight: 700, cursor: refusalReason && refusalAction ? "pointer" : "not-allowed", fontFamily: "DM Sans, sans-serif" }}>Log Refusal</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Overdose Safeguard Warning Modal */}
+      {overdoseWarnFor && (
+        <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", flexDirection: "column", justifyContent: "flex-end", zIndex: 55 }}>
+          <div style={{ background: COLORS.navy, borderRadius: "20px 20px 0 0", padding: 20, maxHeight: "75%", overflowY: "auto" }}>
+            <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto 16px" }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+              <span style={{ fontSize: 24 }}>⚠️</span>
+              <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 17, color: "#fff" }}>Possible Duplicate Dose</div>
+            </div>
+            <div style={{ color: COLORS.amber, fontSize: 13, marginBottom: 14, lineHeight: 1.6 }}>
+              {(client.meds.find((m) => m.name === overdoseWarnFor) as any)?.duplicateNote || `A dose of ${overdoseWarnFor} may already have been recorded. Please check the medication log before proceeding.`}
+            </div>
+            <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 12px", marginBottom: 16, display: "flex", gap: 8, alignItems: "flex-start" }}>
+              <span style={{ fontSize: 14, flexShrink: 0 }}>ℹ️</span>
+              <span style={{ color: COLORS.g1, fontSize: 12, lineHeight: 1.6 }}>Advisory warning only — you decide whether to proceed. If unsure, contact the prescriber or your supervisor before administering.</span>
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button type="button" onClick={() => setOverdoseWarnFor(null)} style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: COLORS.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Cancel</button>
+              <button type="button" onClick={() => { const name = overdoseWarnFor; setOverdoseWarnFor(null); setShowTakenTimeFor(name); }} style={{ flex: 2, padding: "11px 0", borderRadius: 10, border: "none", background: COLORS.amber, color: COLORS.darkNavy, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>I confirm — record dose</button>
             </div>
           </div>
         </div>

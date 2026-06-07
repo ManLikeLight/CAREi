@@ -332,6 +332,39 @@ function Badge({
   );
 }
 
+function VoiceMicButton({ onAppend, small }: { onAppend: (t: string) => void; small?: boolean }) {
+  const [rec, setRec] = React.useState(false);
+  const [secs, setSecs] = React.useState(0);
+  const srRef = React.useRef<any>(null);
+  const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  function stop() {
+    srRef.current?.stop(); srRef.current = null;
+    if (timerRef.current) clearInterval(timerRef.current);
+    setRec(false); setSecs(0);
+  }
+  function start() {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) { onAppend("[Voice dictation requires Chrome or Edge with microphone access.]"); return; }
+    const r = new SR(); r.continuous = true; r.interimResults = false; r.lang = "en-GB";
+    r.onresult = (e: any) => {
+      let t = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) { if (e.results[i].isFinal) t += e.results[i][0].transcript; }
+      if (t) onAppend(t + " ");
+    };
+    r.onerror = stop; r.onend = stop; r.start();
+    srRef.current = r; setRec(true); setSecs(0);
+    timerRef.current = setInterval(() => setSecs((s) => s + 1), 1000);
+  }
+  React.useEffect(() => () => stop(), []);
+  const sz = small ? 26 : 30;
+  return (
+    <button onClick={rec ? stop : start} title={rec ? "Stop recording" : "Dictate"}
+      style={{ width: sz, height: sz, borderRadius: "50%", border: "none", flexShrink: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: small ? 11 : 13, fontFamily: "DM Sans, sans-serif", fontWeight: 700, background: rec ? "rgba(255,90,95,0.18)" : "rgba(79,209,197,0.12)", color: rec ? COLORS.red : COLORS.teal, outline: rec ? `1.5px solid ${COLORS.red}` : "1.5px solid rgba(79,209,197,0.35)", transition: "all 0.2s" }}>
+      {rec ? `${secs}` : "🎤"}
+    </button>
+  );
+}
+
 function NavPills({
   current,
   onNav,
@@ -2197,6 +2230,7 @@ Provide concise, clinically relevant, professional responses. Always highlight a
           flexShrink: 0,
         }}
       >
+        <VoiceMicButton onAppend={(t) => setInput((v) => v + t)} />
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -2636,11 +2670,16 @@ Next visit: Continue monitoring as per care plan. Follow any medication timing i
               ))}
             </div>
           ) : (
-            <textarea
-              value={summary}
-              onChange={(e) => setSummary(e.target.value)}
-              style={{ color: COLORS.g0, fontSize: 13, lineHeight: 1.7, background: "transparent", border: "none", outline: "none", width: "100%", minHeight: 200, resize: "vertical", fontFamily: "DM Sans, sans-serif" }}
-            />
+            <div style={{ position: "relative" }}>
+              <div style={{ position: "absolute", top: 0, right: 0 }}>
+                <VoiceMicButton onAppend={(t) => setSummary((v) => v + t)} small />
+              </div>
+              <textarea
+                value={summary}
+                onChange={(e) => setSummary(e.target.value)}
+                style={{ color: COLORS.g0, fontSize: 13, lineHeight: 1.7, background: "transparent", border: "none", outline: "none", width: "100%", minHeight: 200, resize: "vertical", fontFamily: "DM Sans, sans-serif", paddingRight: 32 }}
+              />
+            </div>
           )}
         </div>
 
@@ -3128,13 +3167,18 @@ function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName, carerA
               </div>
             ) : (
               <>
-                <textarea
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                  placeholder={`Write your message to ${carerAgency ? `the ${carerAgency} care team` : "the care team"}…`}
-                  rows={4}
-                  style={{ width: "100%", padding: "12px 14px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.07)", color: "#fff", fontSize: 13, fontFamily: "DM Sans, sans-serif", resize: "none", boxSizing: "border-box", outline: "none" }}
-                />
+                <div style={{ position: "relative" }}>
+                  <textarea
+                    value={messageText}
+                    onChange={(e) => setMessageText(e.target.value)}
+                    placeholder={`Write your message to ${carerAgency ? `the ${carerAgency} care team` : "the care team"}…`}
+                    rows={4}
+                    style={{ width: "100%", padding: "12px 14px", paddingRight: 38, borderRadius: 12, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.07)", color: "#fff", fontSize: 13, fontFamily: "DM Sans, sans-serif", resize: "none", boxSizing: "border-box", outline: "none" }}
+                  />
+                  <div style={{ position: "absolute", top: 8, right: 8 }}>
+                    <VoiceMicButton onAppend={(t) => setMessageText((v) => v + t)} small />
+                  </div>
+                </div>
                 <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
                   <button onClick={() => setShowMessage(false)} style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: COLORS.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Cancel</button>
                   <button onClick={() => { if (messageText.trim()) setMessageSent(true); }} style={{ flex: 2, padding: "12px 0", borderRadius: 12, border: "none", background: messageText.trim() ? `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})` : "rgba(255,255,255,0.1)", color: messageText.trim() ? COLORS.darkNavy : COLORS.g3, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Send Message</button>
@@ -4079,7 +4123,10 @@ function IncidentReportScreen({ onBack, onSubmit }: { onBack: () => void; onSubm
 
         {/* Description */}
         <div>
-          <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 8 }}>DESCRIPTION * <span style={{ color: COLORS.g3, fontWeight: 400 }}>(what happened, exactly)</span></label>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600 }}>DESCRIPTION * <span style={{ color: COLORS.g3, fontWeight: 400 }}>(what happened, exactly)</span></label>
+            <VoiceMicButton onAppend={(t) => setDescription((v) => v + t)} small />
+          </div>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -4101,7 +4148,10 @@ function IncidentReportScreen({ onBack, onSubmit }: { onBack: () => void; onSubm
 
         {/* Who was notified */}
         <div>
-          <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 8 }}>WHO WAS NOTIFIED <span style={{ color: COLORS.g3, fontWeight: 400 }}>(optional)</span></label>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600 }}>WHO WAS NOTIFIED <span style={{ color: COLORS.g3, fontWeight: 400 }}>(optional)</span></label>
+            <VoiceMicButton onAppend={(t) => setNotified((v) => v + t)} small />
+          </div>
           <input
             value={notified}
             onChange={(e) => setNotified(e.target.value)}
@@ -4196,7 +4246,10 @@ function HandoverScreen({ client, onSubmit }: { client: typeof SCHEDULE_CLIENTS[
 
         {/* Observations */}
         <div>
-          <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 8 }}>KEY OBSERVATIONS <span style={{ color: COLORS.g3, fontWeight: 400 }}>(optional)</span></label>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600 }}>KEY OBSERVATIONS <span style={{ color: COLORS.g3, fontWeight: 400 }}>(optional)</span></label>
+            <VoiceMicButton onAppend={(t) => setObservations((v) => v + t)} small />
+          </div>
           <textarea value={observations} onChange={(e) => setObservations(e.target.value)} placeholder={`Anything the next carer should know about ${client.name.split(" ")[0]}…`} rows={3} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.05)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, resize: "none", outline: "none", boxSizing: "border-box" }} />
           {observations && (client.pronouns === "he/him" ? /\b(she|her|hers)\b/i.test(observations) : /\b(he|him|his)\b/i.test(observations)) && (
             <div style={{ marginTop: 6, padding: "8px 10px", borderRadius: 8, background: "rgba(246,183,60,0.1)", border: "1px solid rgba(246,183,60,0.3)", display: "flex", gap: 7, alignItems: "center" }}>
@@ -4208,13 +4261,19 @@ function HandoverScreen({ client, onSubmit }: { client: typeof SCHEDULE_CLIENTS[
 
         {/* Pending tasks */}
         <div>
-          <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 8 }}>TASKS LEFT FOR NEXT CARER <span style={{ color: COLORS.g3, fontWeight: 400 }}>(optional)</span></label>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600 }}>TASKS LEFT FOR NEXT CARER <span style={{ color: COLORS.g3, fontWeight: 400 }}>(optional)</span></label>
+            <VoiceMicButton onAppend={(t) => setPendingTasks((v) => v + t)} small />
+          </div>
           <textarea value={pendingTasks} onChange={(e) => setPendingTasks(e.target.value)} placeholder="e.g. Evening medication, call with daughter due at 6pm…" rows={2} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.05)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, resize: "none", outline: "none", boxSizing: "border-box" }} />
         </div>
 
         {/* Concerns */}
         <div>
-          <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 8 }}>ANY CONCERNS TO FLAG? <span style={{ color: COLORS.g3, fontWeight: 400 }}>(optional)</span></label>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600 }}>ANY CONCERNS TO FLAG? <span style={{ color: COLORS.g3, fontWeight: 400 }}>(optional)</span></label>
+            <VoiceMicButton onAppend={(t) => setConcerns((v) => v + t)} small />
+          </div>
           <textarea value={concerns} onChange={(e) => setConcerns(e.target.value)} placeholder="Leave blank if none. Include anything that needs supervisor attention." rows={2} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${concerns ? "rgba(246,183,60,0.35)" : "rgba(255,255,255,0.12)"}`, background: concerns ? "rgba(246,183,60,0.05)" : "rgba(255,255,255,0.05)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, resize: "none", outline: "none", boxSizing: "border-box" }} />
         </div>
         </div>
@@ -5193,14 +5252,22 @@ function ActiveVisitScreen({
                     <button key={r} onClick={() => setRefusalReason(r)} style={{ padding: "5px 10px", borderRadius: 99, border: `1px solid ${refusalReason === r ? COLORS.amber : "rgba(255,255,255,0.12)"}`, background: refusalReason === r ? "rgba(246,183,60,0.15)" : "transparent", color: refusalReason === r ? COLORS.amber : COLORS.g2, fontSize: 11, fontWeight: refusalReason === r ? 700 : 400, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>{r}</button>
                   ))}
                   {refusalReason === "Other" && (
-                    <textarea value={refusalOtherNote} onChange={(e) => setRefusalOtherNote(e.target.value)} placeholder="Please describe the reason…" rows={2}
-                      style={{ width: "100%", marginTop: 6, padding: "7px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.05)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 12, resize: "none", outline: "none", boxSizing: "border-box" }} />
+                    <div style={{ width: "100%", marginTop: 6, position: "relative" }}>
+                      <textarea value={refusalOtherNote} onChange={(e) => setRefusalOtherNote(e.target.value)} placeholder="Please describe the reason…" rows={2}
+                        style={{ width: "100%", padding: "7px 10px", paddingRight: 34, borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.05)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 12, resize: "none", outline: "none", boxSizing: "border-box" }} />
+                      <div style={{ position: "absolute", top: 6, right: 6 }}>
+                        <VoiceMicButton onAppend={(t) => setRefusalOtherNote((v) => v + t)} small />
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
               {refusalReason === "Client refused" && (
                 <div>
-                  <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 6 }}>WHAT DID THE CLIENT SAY? <span style={{ color: COLORS.g3, fontWeight: 400 }}>(optional)</span></label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600 }}>WHAT DID THE CLIENT SAY? <span style={{ color: COLORS.g3, fontWeight: 400 }}>(optional)</span></label>
+                    <VoiceMicButton onAppend={(t) => setRefusalWhatSaid((v) => v + t)} small />
+                  </div>
                   <input value={refusalWhatSaid} onChange={(e) => setRefusalWhatSaid(e.target.value)} placeholder="e.g. 'I don't want it today'…"
                     style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.05)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 12, outline: "none", boxSizing: "border-box" }} />
                 </div>
@@ -5330,7 +5397,10 @@ function ActiveVisitScreen({
                     </div>
                   </div>
                   <div>
-                    <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 6 }}>BRIEF DESCRIPTION <span style={{ color: COLORS.g3, fontWeight: 400 }}>(optional)</span></label>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                      <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600 }}>BRIEF DESCRIPTION <span style={{ color: COLORS.g3, fontWeight: 400 }}>(optional)</span></label>
+                      <VoiceMicButton onAppend={(t) => setIncidentNote((v) => v + t)} small />
+                    </div>
                     <textarea value={incidentNote} onChange={(e) => setIncidentNote(e.target.value)} placeholder="What happened? What action did you take?" rows={3}
                       style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.05)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 12, outline: "none", resize: "none", boxSizing: "border-box" }} />
                   </div>
@@ -5412,6 +5482,7 @@ function CAREiAssistantModal({ onClose, clientName }: { onClose: () => void; cli
         </div>
         {/* Input */}
         <div style={{ display: "flex", gap: 8 }}>
+          <VoiceMicButton onAppend={(t) => setInput((v) => v + t)} />
           <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSend(input)} placeholder="Ask about this client…" style={{ flex: 1, padding: "11px 14px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.07)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, outline: "none" }} />
           <button onClick={() => handleSend(input)} style={{ width: 44, height: 44, borderRadius: 12, border: "none", background: "linear-gradient(135deg, #3B82F6, #1D4ED8)", color: "#fff", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
         </div>

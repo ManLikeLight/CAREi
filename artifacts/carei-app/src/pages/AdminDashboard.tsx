@@ -381,7 +381,7 @@ function AgencyAlerts() {
   );
 }
 
-export default function AdminDashboard({ onBack, onCarerView }: { onBack: () => void; onCarerView: () => void }) {
+export default function AdminDashboard({ onBack, onCarerView, carerAgency }: { onBack: () => void; onCarerView: () => void; carerAgency?: string }) {
   const [section, setSection] = useState<Section>("carers");
 
   const navItems: { key: Section; icon: string; label: string }[] = [
@@ -438,7 +438,7 @@ export default function AdminDashboard({ onBack, onCarerView }: { onBack: () => 
         <div style={{ padding: "18px 28px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: C.dark, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
           <div>
             <div style={{ color: "#fff", fontWeight: 700, fontSize: 20 }}>{titles[section]}</div>
-            <div style={{ color: C.g2, fontSize: 13, marginTop: 2 }}>Adjoy Healthcare · {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</div>
+            <div style={{ color: C.g2, fontSize: 13, marginTop: 2 }}>{carerAgency || "Your agency"} · {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</div>
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             <div style={{ display: "flex", gap: 16 }}>

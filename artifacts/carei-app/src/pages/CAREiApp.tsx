@@ -2740,7 +2740,7 @@ Next visit: Continue monitoring as per care plan. Follow any medication timing i
   );
 }
 
-function ProfileScreen({ onSignOut, carerName, carerEmail }: { onSignOut: () => void; carerName: string; carerEmail: string }) {
+function ProfileScreen({ onSignOut, carerName, carerEmail, carerAgency }: { onSignOut: () => void; carerName: string; carerEmail: string; carerAgency: string }) {
   return (
     <div
       style={{
@@ -2771,7 +2771,7 @@ function ProfileScreen({ onSignOut, carerName, carerEmail }: { onSignOut: () => 
         </div>
         <div style={{ textAlign: "center" }}>
           <div style={{ color: "#fff", fontWeight: 700, fontSize: 20 }}>{carerName}</div>
-          <div style={{ color: COLORS.g2, fontSize: 14, marginTop: 2 }}>Adjoy Healthcare</div>
+          {carerAgency ? <div style={{ color: COLORS.g2, fontSize: 14, marginTop: 2 }}>{carerAgency}</div> : null}
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
           <Badge color={COLORS.green} bg="rgba(34,197,94,0.15)">DBS Checked</Badge>
@@ -2789,7 +2789,7 @@ function ProfileScreen({ onSignOut, carerName, carerEmail }: { onSignOut: () => 
       >
         {[
           { icon: "📧", label: "Email", value: carerEmail || "Not set" },
-          { icon: "🏢", label: "Organisation", value: "Adjoy Healthcare" },
+          { icon: "🏢", label: "Organisation", value: carerAgency || "—" },
           { icon: "📋", label: "Role", value: "Senior Care Worker" },
           { icon: "📍", label: "Region", value: "Reading, Berkshire" },
         ].map((item, i, arr) => (
@@ -3224,7 +3224,7 @@ function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName, carerA
   );
 }
 
-function FamilyPortalScreen({ onBack, onSummary, carerName, client }: { onBack: () => void; onSummary: () => void; carerName: string; client: typeof SCHEDULE_CLIENTS[0] }) {
+function FamilyPortalScreen({ onBack, onSummary, carerName, carerAgency, client }: { onBack: () => void; onSummary: () => void; carerName: string; carerAgency: string; client: typeof SCHEDULE_CLIENTS[0] }) {
   const firstName = client.name.split(" ")[0];
   const medNames = client.meds.map(m => `${m.name} ${m.dose}`).join(", ");
   const events = [
@@ -3277,7 +3277,7 @@ function FamilyPortalScreen({ onBack, onSummary, carerName, client }: { onBack: 
             💬 Message Agency
           </button>
           <button style={{ flex: 1, padding: "11px 0", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: COLORS.g2, fontFamily: "DM Sans, sans-serif", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-            📞 Call Adjoy
+            📞 Call {carerAgency || "Agency"}
           </button>
         </div>
       </div>
@@ -3832,6 +3832,7 @@ function AdminTeaserScreen({
   onSchedule,
   onManagerApprovals,
   pendingApprovals,
+  carerAgency,
 }: {
   onBack: () => void;
   onOpenAdmin: () => void;
@@ -3839,6 +3840,7 @@ function AdminTeaserScreen({
   onSchedule: () => void;
   onManagerApprovals: () => void;
   pendingApprovals: number;
+  carerAgency: string;
 }) {
   const metrics = [
     { label: "Carers on Shift", value: "7", color: COLORS.green },
@@ -3865,7 +3867,7 @@ function AdminTeaserScreen({
       <div style={{ padding: "20px 18px 14px", flexShrink: 0 }}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0, marginBottom: 12 }}>‹</button>
         <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>Manager Overview</div>
-        <div style={{ color: COLORS.g2, fontSize: 13, marginTop: 2 }}>Adjoy Healthcare · Live</div>
+        <div style={{ color: COLORS.g2, fontSize: 13, marginTop: 2 }}>{carerAgency ? `${carerAgency} · ` : ""}Live</div>
       </div>
       <div className="phone-scroll" style={{ flex: 1, minHeight: 0, padding: "0 16px 100px", display: "flex", flexDirection: "column", gap: 12 }}>
         {/* Metrics */}
@@ -6044,10 +6046,12 @@ function ScheduleScreen({
   assignedCarers,
   onAssign,
   onBack,
+  carerAgency,
 }: {
   assignedCarers: Record<string, string>;
   onAssign: (clientId: string, carer: string) => void;
   onBack: () => void;
+  carerAgency: string;
 }) {
   const CARERS = ["Sarah", "John", "Amina", "Unassigned"];
 
@@ -6059,7 +6063,7 @@ function ScheduleScreen({
           <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0 }}>‹</button>
           <div>
             <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 24, color: "#fff" }}>Schedule</div>
-            <div style={{ color: COLORS.g2, fontSize: 12 }}>Today's visits · Adjoy Healthcare</div>
+            <div style={{ color: COLORS.g2, fontSize: 12 }}>Today's visits{carerAgency ? ` · ${carerAgency}` : ""}</div>
           </div>
         </div>
       </div>
@@ -6181,10 +6185,10 @@ export default function CAREiApp() {
       case "medication":
         return <MedicationScreen onNext={() => nav("today")} />;
       case "profile":
-        return <ProfileScreen onSignOut={() => nav("otp")} carerName={carerName} carerEmail={carerEmail} />;
+        return <ProfileScreen onSignOut={() => nav("otp")} carerName={carerName} carerEmail={carerEmail} carerAgency={carerAgency} />;
       case "family": {
         const familyClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
-        return <FamilyPortalScreen onBack={() => nav("today")} onSummary={() => nav("family-summary")} carerName={carerName} client={familyClient} />;
+        return <FamilyPortalScreen onBack={() => nav("today")} onSummary={() => nav("family-summary")} carerName={carerName} carerAgency={carerAgency} client={familyClient} />;
       }
       case "family-summary": {
         const familyClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
@@ -6232,6 +6236,7 @@ export default function CAREiApp() {
             onSchedule={() => nav("schedule")}
             onManagerApprovals={() => nav("manager-approvals")}
             pendingApprovals={summaryApproval === "pending" ? 1 : 0}
+            carerAgency={carerAgency}
           />
         );
       case "admin-dashboard":
@@ -6312,6 +6317,7 @@ export default function CAREiApp() {
             onSchedule={() => nav("schedule")}
             onManagerApprovals={() => nav("manager-approvals")}
             pendingApprovals={summaryApproval === "pending" ? 1 : 0}
+            carerAgency={carerAgency}
           />
         );
       case "schedule":
@@ -6320,6 +6326,7 @@ export default function CAREiApp() {
             assignedCarers={assignedCarers}
             onAssign={(id, carer) => setAssignedCarers((c) => ({ ...c, [id]: carer }))}
             onBack={() => nav("admin")}
+            carerAgency={carerAgency}
           />
         );
       case "rota":
@@ -6333,7 +6340,7 @@ export default function CAREiApp() {
     return (
       <>
         <style>{globalStyles}</style>
-        <AdminDashboard onBack={() => nav("admin")} onCarerView={() => nav("today")} />
+        <AdminDashboard onBack={() => nav("admin")} onCarerView={() => nav("today")} carerAgency={carerAgency} />
       </>
     );
   }

@@ -1,0 +1,12 @@
+CAREi is used by many different care agencies, not just one. The carer’s real agency name is already captured at sign-up and held in the carerAgency variable (and stored in sessionStorage under carei_account as agency). Some screens still hardcode “Adjoy Healthcare” instead of showing the logged-in carer’s actual agency. Search the entire codebase, both CAREiApp.tsx and AdminDashboard.tsx, and find every hardcoded “Adjoy Healthcare” or “Adjoy” in user-facing text. Replace each with the carer’s real agency.
+
+Apply this:
+In ProfileScreen, the organisation shown under the carer’s name and the “Organisation” row both currently read “Adjoy Healthcare”. Pass carerAgency into ProfileScreen as a prop and use it in both places. If carerAgency is empty, fall back to showing nothing rather than a placeholder agency name.
+In ScheduleScreen, the header subtitle “Today’s visits · Adjoy Healthcare” should use the carer’s agency. ScheduleScreen does not currently receive it, so pass carerAgency in as a prop and use it. If empty, just show “Today’s visits”.
+In AdminTeaserScreen, the header subtitle “Adjoy Healthcare · Live” should use the carer’s agency. Pass carerAgency in as a prop and use it. If empty, show “Live” on its own.
+In FamilyPortalScreen, the “Call Adjoy” button should read “Call [agency]” using the carer’s agency. FamilyPortalScreen already receives client and carerName, so also pass carerAgency in and use it. If empty, the button should read “Call Agency”.
+Search AdminDashboard.tsx for any other hardcoded “Adjoy” in headers, labels, or demo text and replace it the same way, using the carer’s agency where the prop is available, or a neutral term like “your agency” where it is not.
+
+Do not change the signed pilot agency names if they appear anywhere as genuine data records (for example a real client list entry). Only replace the app’s own chrome and headings that assume the user works for Adjoy.
+
+After making the changes, list every instance you found and what you changed it to, and confirm which components you added the carerAgency prop to.

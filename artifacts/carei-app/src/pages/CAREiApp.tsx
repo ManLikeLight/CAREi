@@ -5639,9 +5639,15 @@ function ContinuCareSummaryScreen({
   carerName: string;
 }) {
   const [submitted, setSubmitted] = useState(false);
+  const [screenLoading, setScreenLoading] = useState(true);
   const [observations, setObservations] = useState(visitData?.notes?.trim() ?? "");
   const [handover, setHandover] = useState("");
   const [handoverLoading, setHandoverLoading] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setScreenLoading(false), 1800);
+    return () => clearTimeout(t);
+  }, []);
 
   const startTime = visitData?.visitStartTime ?? "—";
   const endTime = visitData?.visitEndTime ?? "—";
@@ -5719,6 +5725,34 @@ function ContinuCareSummaryScreen({
     }
     generate();
   }, []);
+
+  if (screenLoading) {
+    return (
+      <div style={{ height: "100%", background: COLORS.darkNavy, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20, padding: 32 }}>
+        <div style={{ textAlign: "center" }}>
+          <Badge color={COLORS.teal} bg="rgba(79,209,197,0.15)">ContinuCare+</Badge>
+          <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff", marginTop: 16, marginBottom: 6 }}>Generating shift summary…</div>
+          <div style={{ display: "flex", justifyContent: "center", gap: 5, marginBottom: 24 }}>
+            {[0, 1, 2].map((d) => (
+              <div key={d} className={`dot-${d + 1}`} style={{ width: 8, height: 8, borderRadius: "50%", background: COLORS.teal }} />
+            ))}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, width: 260 }}>
+            {[
+              { icon: "🕐", label: "Building visit timeline…" },
+              { icon: "💊", label: "Compiling medication record…" },
+              { icon: "📋", label: "Preparing handover note…" },
+            ].map(({ icon, label }) => (
+              <div key={label} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "rgba(255,255,255,0.05)", borderRadius: 10 }}>
+                <span style={{ fontSize: 15 }}>{icon}</span>
+                <span style={{ color: COLORS.g2, fontSize: 13 }}>{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (submitted) {
     return (

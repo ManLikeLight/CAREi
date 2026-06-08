@@ -183,8 +183,8 @@ const SCHEDULE_CLIENTS = [
     communication: "Aisha speaks English and Urdu. Use simple language and offer choices. She is private, always explain what you are doing before doing it.",
     mobilityNote: "Independent walking, monitor for dizziness (hypoglycaemia risk)",
     medNote: "Metformin 500mg AFTER meals, never on empty stomach",
-    vitalSignsRequired: false,
-    vitalSignsThreshold: "",
+    vitalSignsRequired: true,
+    vitalSignsThreshold: "Report to supervisor if BP is elevated above Aisha's baseline (138/85 mmHg) or if systolic drops below 90. Monitor for hypoglycaemia — dizziness or confusion may indicate low blood sugar.",
     lastHandoverBullets: [
       "Aisha in good spirits, engaged positively with carer. Blood sugar 7.2 mmol/L before Metformin.",
       "No changes since last visit, foot inspection normal, no redness, wounds or swelling noted.",
@@ -4025,7 +4025,7 @@ function ManagerApprovalsScreen({
         { label: "Tasks completed", value: `${tasksDone} / ${tasksTotal}` },
         { label: "Medications given", value: medsTotal === 0 ? "None required" : medsSkipped > 0 ? `${medsDone} / ${medsTotal} — ${medsSkipped} not given` : `${medsDone} / ${medsTotal}, all as prescribed` },
         { label: "Meal status", value: mealLabel || "Not recorded" },
-        { label: "BP recorded", value: bpReading || (activeClient?.vitalSignsRequired ? "Not recorded" : "Not required") },
+        { label: "BP recorded", value: bpReading || ((activeClient?.vitalSignsRequired || (activeClient as any)?.bpBaseline) ? "Not recorded" : "Not required") },
         { label: "Concerns raised", value: concernText },
         ...(carerNote ? [{ label: "Carer's note", value: `"${carerNote.length > 60 ? carerNote.slice(0, 60) + "…" : carerNote}"` }] : []),
       ]
@@ -4838,7 +4838,7 @@ function ActiveVisitScreen({
   const [refusalReason, setRefusalReason] = useState("");
   const [refusalWhatSaid, setRefusalWhatSaid] = useState("");
   const [refusalAction, setRefusalAction] = useState("");
-  const [isLone, setIsLone] = useState(false);
+  const [isLone, setIsLone] = useState(true);
   const [loneElapsed, setLoneElapsed] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -4929,7 +4929,8 @@ function ActiveVisitScreen({
   useEffect(() => {
     if (fluidGlasses > 0 && !fluidTimeRef.current) {
       const ts = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-      fluidTimeRef.current = ts < visitStartRef.current ? visitStartRef.current : ts;
+      const toM = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+      fluidTimeRef.current = toM(ts) < toM(visitStartRef.current) ? visitStartRef.current : ts;
     }
   }, [fluidGlasses]);
 
@@ -4937,13 +4938,16 @@ function ActiveVisitScreen({
   const allMedsAcknowledged = client.meds.every((m) => medStatus[m.name] !== undefined);
   const firstName = client.name.split(" ")[0];
 
+  function timeToMins(t: string) { const [h, m] = t.split(":").map(Number); return h * 60 + m; }
+  function clampToStart(ts: string) { return timeToMins(ts) < timeToMins(visitStartRef.current) ? visitStartRef.current : ts; }
+
   function handleTaskCheck(i: number) {
     const newTasks = [...tasks];
     newTasks[i] = !newTasks[i];
     setTasks(newTasks);
     if (newTasks[i]) {
       const ts = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-      const clamped = ts < visitStartRef.current ? visitStartRef.current : ts;
+      const clamped = clampToStart(ts);
       setTaskCompletedAt((prev) => ({ ...prev, [VISIT_TASKS[i]]: clamped }));
     }
     if (i === MEAL_TASK_IDX && newTasks[i] && !mealPromptDismissed && mealStatus === "") {
@@ -4998,7 +5002,7 @@ function ActiveVisitScreen({
           <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0 }}>‹</button>
           <div style={{ textAlign: "center" }}>
             <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>Active Visit</div>
-            <div style={{ color: COLORS.g2, fontSize: 11, fontVariantNumeric: "tabular-nums" }}>⏱ {formatTime(elapsed)}</div>
+            <div style={{ color: COLORS.g2, fontSize: 11, fontVariantNumeric: "tabular-nums" }}>⏱ {formatTime(elapsed)} · <span style={{ color: COLORS.teal }}>Clocked in {visitStartRef.current}</span></div>
           </div>
           <button onClick={onSOS} style={{ background: COLORS.red, border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, fontSize: 12, padding: "5px 10px", cursor: "pointer" }}>SOS</button>
         </div>
@@ -5329,8 +5333,8 @@ function ActiveVisitScreen({
         {/* SECTION 3: Care Notes */}
         <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 8 }}>CARE NOTES</div>
 
-        {/* Vital Signs, contextual: only for Tom */}
-        {client.vitalSignsRequired && (
+        {/* Vital Signs: shown for any client with a BP baseline or who requires vitals */}
+        {((client as any).bpBaseline || client.vitalSignsRequired) && (
           <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "12px 14px", borderLeft: `3px solid ${COLORS.teal}`, marginBottom: 10 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
               <span style={{ fontSize: 14 }}>🩺</span>
@@ -5380,7 +5384,7 @@ function ActiveVisitScreen({
                 </div>
               );
             })()}
-            <button onClick={() => { if (bpSys && bpDia) { setVitalsSaved(true); const vts = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }); vitalsSavedTimeRef.current = vts < visitStartRef.current ? visitStartRef.current : vts; } }} disabled={!bpSys || !bpDia}
+            <button onClick={() => { if (bpSys && bpDia) { setVitalsSaved(true); const vts = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }); vitalsSavedTimeRef.current = clampToStart(vts); } }} disabled={!bpSys || !bpDia}
               style={{ width: "100%", padding: "8px 0", borderRadius: 9, border: "none", background: bpSys && bpDia ? `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})` : "rgba(255,255,255,0.08)", color: bpSys && bpDia ? COLORS.darkNavy : COLORS.g3, fontFamily: "DM Sans, sans-serif", fontSize: 12, fontWeight: 700, cursor: bpSys && bpDia ? "pointer" : "not-allowed" }}>
               {vitalsSaved ? "✓ Vitals Saved" : "Save Vitals"}
             </button>

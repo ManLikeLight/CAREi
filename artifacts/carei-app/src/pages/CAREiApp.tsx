@@ -121,11 +121,12 @@ const SCHEDULE_CLIENTS = [
       { trigger: "Record mood", content: "Use the PBS framework: Green (calm/engaging), Amber (repetitive questioning/pacing), Red (physical behaviour). Document what helped in the notes." },
     ],
     meds: [
-      { name: "Aspirin", dose: "75mg", dueTime: "09:15", adminNote: "Give with food. Monitor for stomach discomfort.", interactions: [], possibleDuplicate: true, duplicateNote: "Aspirin may also be prescribed in Mary's afternoon regimen. Please confirm this is the correct morning dose for this visit and check the medication administration record." },
-      { name: "Donepezil", dose: "10mg", dueTime: "09:30", adminNote: "Give after breakfast. Monitor for nausea or sleep disturbance.", isControlled: true, interactions: [], possibleDuplicate: true, duplicateNote: "Donepezil is a once-daily medication. Please check the medication administration record to confirm today's dose has not already been given before proceeding." },
+      { name: "Aspirin", dose: "75mg", dueTime: "09:15", dosingGapHours: 24, timeSensitive: false, adminNote: "Give with food. Monitor for stomach discomfort.", interactions: [], possibleDuplicate: true, duplicateNote: "Aspirin may also be prescribed in Mary's afternoon regimen. Please confirm this is the correct morning dose for this visit and check the medication administration record." },
+      { name: "Donepezil", dose: "10mg", dueTime: "09:30", dosingGapHours: 24, timeSensitive: false, adminNote: "Give after breakfast. Monitor for nausea or sleep disturbance.", isControlled: true, interactions: [], possibleDuplicate: true, duplicateNote: "Donepezil is a once-daily medication. Please check the medication administration record to confirm today's dose has not already been given before proceeding." },
     ],
     conditions: ["Dementia", "Osteoporosis", "Hypothyroidism"],
     chokingRisk: false,
+    bpBaseline: { sys: 125, dia: 78 },
     pronouns: "she/her",
   },
   {
@@ -157,8 +158,8 @@ const SCHEDULE_CLIENTS = [
       { trigger: "Record mood", content: "Allow extra time for Tom to communicate, post-stroke aphasia means he needs processing time. Do not finish his sentences. Note any visible frustration or withdrawal." },
     ],
     meds: [
-      { name: "Aspirin", dose: "75mg", dueTime: "10:45", adminNote: "Give with morning meal. Monitor for dizziness.", interactions: ["Aspirin may reduce Lisinopril's blood pressure-lowering effect — monitor BP closely after both are given"], possibleDuplicate: true, duplicateNote: "Aspirin also appears in Tom's earlier visit record today. Please confirm this is the correct scheduled dose for this visit and not a duplicate before proceeding." },
-      { name: "Lisinopril", dose: "10mg", dueTime: "10:45", adminNote: "Give with food. Monitor blood pressure. Report readings above baseline.", interactions: ["Aspirin may reduce Lisinopril's blood pressure-lowering effect — monitor BP closely after both are given"] },
+      { name: "Aspirin", dose: "75mg", dueTime: "10:45", dosingGapHours: 24, timeSensitive: false, adminNote: "Give with morning meal. Monitor for dizziness.", interactions: ["Aspirin may reduce Lisinopril's blood pressure-lowering effect — monitor BP closely after both are given"], possibleDuplicate: true, duplicateNote: "Aspirin also appears in Tom's earlier visit record today. Please confirm this is the correct scheduled dose for this visit and not a duplicate before proceeding." },
+      { name: "Lisinopril", dose: "10mg", dueTime: "10:45", dosingGapHours: 24, timeSensitive: true, adminNote: "Give with food. Monitor blood pressure. Report readings above baseline.", interactions: ["Aspirin may reduce Lisinopril's blood pressure-lowering effect — monitor BP closely after both are given"] },
     ],
     conditions: ["Post-Stroke", "Hypertension", "Dysphagia Risk"],
     chokingRisk: true,
@@ -195,11 +196,12 @@ const SCHEDULE_CLIENTS = [
       { trigger: "Record mood", content: "Always explain each step before doing it, Aisha values being in control of her care. Note any signs of withdrawal or reduced engagement; these may indicate low blood sugar." },
     ],
     meds: [
-      { name: "Metformin", dose: "500mg", dueTime: "12:15", adminNote: "⚠ Give AFTER meals only, never on an empty stomach. Monitor for nausea for 30 mins after.", interactions: [], possibleDuplicate: true, duplicateNote: "Metformin may be prescribed more than once daily. Please confirm this is the correct lunchtime dose for this visit and check the medication administration record." },
-      { name: "Lisinopril", dose: "10mg", dueTime: "12:15", adminNote: "Give with food. Monitor blood pressure and report readings above 140/90.", interactions: [], possibleDuplicate: true, duplicateNote: "Lisinopril is a once-daily medication. Please confirm today's dose has not already been recorded before administering." },
+      { name: "Metformin", dose: "500mg", dueTime: "12:15", dosingGapHours: 6, timeSensitive: true, adminNote: "⚠ Give AFTER meals only, never on an empty stomach. Monitor for nausea for 30 mins after.", interactions: [], possibleDuplicate: true, duplicateNote: "Metformin may be prescribed more than once daily. Please confirm this is the correct lunchtime dose for this visit and check the medication administration record." },
+      { name: "Lisinopril", dose: "10mg", dueTime: "12:15", dosingGapHours: 24, timeSensitive: false, adminNote: "Give with food. Monitor blood pressure and report readings above 140/90.", interactions: [], possibleDuplicate: true, duplicateNote: "Lisinopril is a once-daily medication. Please confirm today's dose has not already been recorded before administering." },
     ],
     conditions: ["Type 2 Diabetes", "Hypertension", "Peripheral Neuropathy"],
     chokingRisk: false,
+    bpBaseline: { sys: 138, dia: 85 },
     pronouns: "she/her",
   },
 ];
@@ -3978,12 +3980,16 @@ function ManagerApprovalsScreen({
   summaryReadAt,
   onBack,
   carerName,
+  visitData,
+  activeClient,
 }: {
   approvalStatus: "pending" | "approved";
   onApprove: () => void;
   summaryReadAt: string | null;
   onBack: () => void;
   carerName: string;
+  visitData?: VisitData;
+  activeClient?: typeof SCHEDULE_CLIENTS[0];
 }) {
   const [approvedAt, setApprovedAt] = useState<string | null>(null);
 
@@ -3993,6 +3999,41 @@ function ManagerApprovalsScreen({
   }
 
   const isApproved = approvalStatus === "approved";
+  const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  const clientName = activeClient?.name ?? "Client";
+  const clientFirstName = clientName.split(" ")[0];
+
+  const tasksTotal = 3;
+  const tasksDone = visitData ? visitData.completedTasks.length : 0;
+  const medsTotal = activeClient ? activeClient.meds.length : 0;
+  const medsDone = visitData ? visitData.confirmedMeds.length : 0;
+  const medsSkipped = visitData ? visitData.skippedMeds.length : 0;
+  const visitRange = visitData ? `${visitData.visitStartTime}–${visitData.visitEndTime}` : "—";
+  const carerNote = visitData?.notes?.trim() || null;
+  const bpReading = visitData?.vitalsSavedTime ? "Recorded" : null;
+  const mealLabel = visitData?.mealStatus || null;
+  const hasConcerns = visitData ? visitData.skippedMeds.length > 0 || visitData.mood === "Distressed" || visitData.mood === "Anxious" : false;
+  const concernText = visitData
+    ? [
+        visitData.skippedMeds.length > 0 ? `${visitData.skippedMeds.length} medication(s) not given` : "",
+        visitData.mood === "Distressed" || visitData.mood === "Anxious" ? `Mood recorded: ${visitData.mood}` : "",
+      ].filter(Boolean).join(" · ") || "None"
+    : "—";
+
+  const summaryRows = visitData
+    ? [
+        { label: "Tasks completed", value: `${tasksDone} / ${tasksTotal}` },
+        { label: "Medications given", value: medsTotal === 0 ? "None required" : medsSkipped > 0 ? `${medsDone} / ${medsTotal} — ${medsSkipped} not given` : `${medsDone} / ${medsTotal}, all as prescribed` },
+        { label: "Meal status", value: mealLabel || "Not recorded" },
+        { label: "BP recorded", value: bpReading || (activeClient?.vitalSignsRequired ? "Not recorded" : "Not required") },
+        { label: "Concerns raised", value: concernText },
+        ...(carerNote ? [{ label: "Carer's note", value: `"${carerNote.length > 60 ? carerNote.slice(0, 60) + "…" : carerNote}"` }] : []),
+      ]
+    : [
+        { label: "Tasks completed", value: "Awaiting shift data" },
+        { label: "Medications given", value: "Awaiting shift data" },
+        { label: "Concerns raised", value: "Awaiting shift data" },
+      ];
 
   return (
     <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column" }}>
@@ -4012,29 +4053,54 @@ function ManagerApprovalsScreen({
               {isApproved ? "Summary released to family" : "Awaiting your approval"}
             </div>
             <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 2 }}>
-              {isApproved ? `Approved${approvedAt ? ` at ${approvedAt}` : ""}` : "Review the summary below before releasing to family"}
+              {isApproved ? `Approved${approvedAt ? ` at ${approvedAt}` : ""}` : visitData ? "Review the shift summary below before releasing to family" : "No completed shift on record yet"}
             </div>
           </div>
         </div>
 
-        {/* Summary preview */}
-        <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, overflow: "hidden" }}>
-          <div style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-            <div style={{ color: "#fff", fontWeight: 700, fontSize: 13 }}>Mary Johnson, 9 Apr 2026</div>
-            <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 2 }}>Carer: {carerName} · Visit 09:00–10:05</div>
+        {/* No shift data yet */}
+        {!visitData && (
+          <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "20px 16px", textAlign: "center" }}>
+            <div style={{ fontSize: 28, marginBottom: 8 }}>📋</div>
+            <div style={{ color: COLORS.g2, fontSize: 13 }}>No completed shift to review</div>
+            <div style={{ color: COLORS.g3, fontSize: 11, marginTop: 4 }}>A summary will appear here once a carer completes and submits a visit</div>
           </div>
-          {[
-            { label: "Tasks completed", value: "6 / 6" },
-            { label: "Medications given", value: "2 / 2, all as prescribed" },
-            { label: "Concerns raised", value: "None" },
-            { label: "Carer's note", value: '"Mary was in really good spirits…"' },
-          ].map((row) => (
-            <div key={row.label} style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-              <span style={{ color: COLORS.g2, fontSize: 12 }}>{row.label}</span>
-              <span style={{ color: COLORS.g1, fontSize: 12, fontWeight: 500, maxWidth: "55%", textAlign: "right" }}>{row.value}</span>
+        )}
+
+        {/* Summary preview */}
+        {visitData && (
+          <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, overflow: "hidden" }}>
+            <div style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+              <div style={{ color: "#fff", fontWeight: 700, fontSize: 13 }}>{clientName}, {today}</div>
+              <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 2 }}>Carer: {carerName} · Visit {visitRange}</div>
             </div>
-          ))}
-        </div>
+            {summaryRows.map((row) => (
+              <div key={row.label} style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                <span style={{ color: COLORS.g2, fontSize: 12 }}>{row.label}</span>
+                <span style={{ color: hasConcerns && row.label === "Concerns raised" ? COLORS.amber : COLORS.g1, fontSize: 12, fontWeight: 500, maxWidth: "55%", textAlign: "right" }}>{row.value}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Medication detail strip */}
+        {visitData && (visitData.confirmedMeds.length > 0 || visitData.skippedMeds.length > 0) && (
+          <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "12px 14px" }}>
+            <div style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, marginBottom: 8 }}>MEDICATION LOG</div>
+            {visitData.confirmedMeds.map((name) => (
+              <div key={name} style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                <span style={{ color: COLORS.g1, fontSize: 12 }}>{name}</span>
+                <span style={{ color: COLORS.green, fontSize: 11, fontWeight: 700 }}>✓ Given {visitData.medTakenAt[name] ? `at ${visitData.medTakenAt[name]}` : ""}</span>
+              </div>
+            ))}
+            {visitData.skippedMeds.map((name) => (
+              <div key={name} style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                <span style={{ color: COLORS.g1, fontSize: 12 }}>{name}</span>
+                <span style={{ color: COLORS.amber, fontSize: 11, fontWeight: 700 }}>✗ {visitData.medRefusalReason[name] || "Not given"}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Read receipt */}
         <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "12px 14px" }}>
@@ -4055,7 +4121,7 @@ function ManagerApprovalsScreen({
         </div>
 
         {/* Checklist before approving */}
-        {!isApproved && (
+        {!isApproved && visitData && (
           <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "12px 14px" }}>
             <div style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, marginBottom: 10 }}>APPROVAL CHECKLIST</div>
             {[
@@ -4075,7 +4141,7 @@ function ManagerApprovalsScreen({
         )}
 
         {/* Approve button */}
-        {!isApproved && (
+        {!isApproved && visitData && (
           <button onClick={handleApprove} style={{ width: "100%", padding: "15px 0", borderRadius: 14, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
             ✓ Approve & Release to Family
           </button>
@@ -4083,7 +4149,7 @@ function ManagerApprovalsScreen({
         {isApproved && (
           <div style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 14, padding: "14px 18px", textAlign: "center" }}>
             <div style={{ color: COLORS.green, fontWeight: 700, fontSize: 14 }}>Released ✓</div>
-            <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 4 }}>Mary's family can now view today's summary in the Family Portal</div>
+            <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 4 }}>{clientFirstName}'s family can now view today's summary in the Family Portal</div>
           </div>
         )}
       </div>
@@ -4797,6 +4863,7 @@ function ActiveVisitScreen({
   const [showWitnessFor, setShowWitnessFor] = useState<string | null>(null);
   const [witnessInput, setWitnessInput] = useState("");
   const [witnessNames, setWitnessNames] = useState<Record<string, string>>({});
+  const [dismissedMedAlerts, setDismissedMedAlerts] = useState<Set<string>>(new Set());
   const [medRefusalReason, setMedRefusalReason] = useState<Record<string, string>>({});
   const [refusalOtherNote, setRefusalOtherNote] = useState("");
   const [overdoseWarnFor, setOverdoseWarnFor] = useState<string | null>(null);
@@ -5138,6 +5205,58 @@ function ActiveVisitScreen({
 
         {/* SECTION 2: Medications Due */}
         <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 8 }}>MEDICATIONS DUE</div>
+
+        {/* Medication due-time alert banners (driven by elapsed timer) */}
+        {(() => {
+          const now = new Date();
+          const alerts = client.meds.flatMap((med) => {
+            if (medStatus[med.name]) return [];
+            const dueTime = (med as any).dueTime as string | undefined;
+            if (!dueTime) return [];
+            const [h, m] = dueTime.split(":").map(Number);
+            const due = new Date(); due.setHours(h, m, 0, 0);
+            const diff = (due.getTime() - now.getTime()) / 60000;
+            const isTS = !!(med as any).timeSensitive;
+            let level = "";
+            if (diff > 0 && diff <= 5) level = "soon";
+            else if (diff <= 0 && diff > -5 && isTS) level = "now";
+            else if (diff <= -5 && isTS) level = "missed";
+            else if (diff <= -30 && !isTS) level = "overdue";
+            if (!level) return [];
+            const key = `${med.name}-${level}`;
+            if (dismissedMedAlerts.has(key)) return [];
+            return [{ name: med.name, level, diff: Math.ceil(diff), isTS }];
+          });
+          if (alerts.length === 0) return null;
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+              {alerts.map((a) => {
+                const isMissed = a.level === "missed";
+                const color = a.level === "soon" ? COLORS.amber : a.level === "now" ? COLORS.teal : COLORS.red;
+                const bg = a.level === "soon" ? "rgba(246,183,60,0.1)" : a.level === "now" ? "rgba(79,209,197,0.08)" : "rgba(255,90,95,0.1)";
+                const border = a.level === "soon" ? "rgba(246,183,60,0.35)" : a.level === "now" ? "rgba(79,209,197,0.35)" : "rgba(255,90,95,0.35)";
+                const icon = a.level === "soon" ? "🔔" : a.level === "now" ? "⚡" : "🚨";
+                const msg = a.level === "soon"
+                  ? `${a.name} due in ${a.diff} min${a.isTS ? " — time-sensitive, administer within the 5-min window" : ""}`
+                  : a.level === "now"
+                  ? `${a.name} is due NOW — time-sensitive (give within 5 min of due time)`
+                  : a.level === "missed"
+                  ? `${a.name} time window has passed without administration — supervisor notified`
+                  : `${a.name} is overdue — record administration or document reason for not giving`;
+                return (
+                  <div key={a.name} style={{ background: bg, border: `1px solid ${border}`, borderRadius: 10, padding: "8px 10px", display: "flex", gap: 8, alignItems: "flex-start" }}>
+                    <span style={{ fontSize: 14, flexShrink: 0 }}>{icon}</span>
+                    <span style={{ color, fontSize: 11, fontWeight: 700, flex: 1, lineHeight: 1.5 }}>{msg}</span>
+                    {!isMissed && (
+                      <button onClick={() => setDismissedMedAlerts((s) => new Set([...s, `${a.name}-${a.level}`]))} style={{ background: "none", border: "none", color: COLORS.g3, fontSize: 16, cursor: "pointer", padding: "0 2px", lineHeight: 1, flexShrink: 0 }}>×</button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+
         {(() => { const ints = [...new Set(client.meds.flatMap(m => ((m as any).interactions as string[]) || []).filter(Boolean))]; return ints.length > 0 ? (
           <div style={{ background: "rgba(255,90,95,0.1)", borderRadius: 10, padding: "10px 12px", marginBottom: 8, border: "1px solid rgba(255,90,95,0.3)" }}>
             <div style={{ display: "flex", gap: 7, alignItems: "center", marginBottom: 4 }}>
@@ -5241,12 +5360,26 @@ function ActiveVisitScreen({
                 </div>
               ))}
             </div>
-            {bpSys && bpDia && (() => { const bl = (client as any).bpBaseline; return bl ? (parseInt(bpSys) > bl.sys || parseInt(bpDia) > bl.dia) : (parseInt(bpSys) > 140 || parseInt(bpDia) > 90); })() && (
-              <div style={{ background: "rgba(255,90,95,0.12)", border: "1px solid rgba(255,90,95,0.3)", borderRadius: 8, padding: "8px 10px", marginBottom: 8, display: "flex", gap: 6, alignItems: "flex-start" }}>
-                <span style={{ fontSize: 12, flexShrink: 0, marginTop: 1 }}>⚠️</span>
-                <span style={{ color: COLORS.red, fontSize: 11, fontWeight: 700, lineHeight: 1.5 }}>BP above {(client as any).bpBaseline ? `${firstName}'s personal baseline (${(client as any).bpBaseline.sys}/${(client as any).bpBaseline.dia} mmHg)` : "normal range (140/90 mmHg)"} — notify your office immediately</span>
-              </div>
-            )}
+            {bpSys && bpDia && (() => {
+              const sys = parseInt(bpSys); const dia = parseInt(bpDia);
+              const bl = (client as any).bpBaseline as { sys: number; dia: number } | undefined;
+              const isHigh = bl ? (sys > bl.sys + 15 || dia > bl.dia + 10) : (sys > 140 || dia > 90);
+              const isLow = sys < 90 || dia < 60;
+              if (!isHigh && !isLow) return null;
+              return (
+                <div style={{ background: "rgba(255,90,95,0.12)", border: "1px solid rgba(255,90,95,0.3)", borderRadius: 8, padding: "8px 10px", marginBottom: 8, display: "flex", gap: 6, alignItems: "flex-start" }}>
+                  <span style={{ fontSize: 12, flexShrink: 0, marginTop: 1 }}>⚠️</span>
+                  <span style={{ color: COLORS.red, fontSize: 11, fontWeight: 700, lineHeight: 1.5 }}>
+                    {isLow
+                      ? `BP is low (${sys}/${dia} mmHg) — advisory: monitor for dizziness and do not leave unattended. Notify office.`
+                      : bl
+                        ? `BP elevated above ${firstName}'s personal baseline (${bl.sys}/${bl.dia} mmHg) — advisory: notify your office immediately`
+                        : `BP elevated above normal range (140/90 mmHg) — advisory: notify your office immediately`
+                    }
+                  </span>
+                </div>
+              );
+            })()}
             <button onClick={() => { if (bpSys && bpDia) { setVitalsSaved(true); const vts = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }); vitalsSavedTimeRef.current = vts < visitStartRef.current ? visitStartRef.current : vts; } }} disabled={!bpSys || !bpDia}
               style={{ width: "100%", padding: "8px 0", borderRadius: 9, border: "none", background: bpSys && bpDia ? `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})` : "rgba(255,255,255,0.08)", color: bpSys && bpDia ? COLORS.darkNavy : COLORS.g3, fontFamily: "DM Sans, sans-serif", fontSize: 12, fontWeight: 700, cursor: bpSys && bpDia ? "pointer" : "not-allowed" }}>
               {vitalsSaved ? "✓ Vitals Saved" : "Save Vitals"}
@@ -6219,7 +6352,8 @@ export default function CAREiApp() {
           />
         );
       }
-      case "manager-approvals":
+      case "manager-approvals": {
+        const approvalClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
         return (
           <ManagerApprovalsScreen
             approvalStatus={summaryApproval}
@@ -6227,8 +6361,11 @@ export default function CAREiApp() {
             summaryReadAt={summaryReadAt}
             onBack={() => nav("admin")}
             carerName={carerName}
+            visitData={lastVisitData}
+            activeClient={approvalClient}
           />
         );
+      }
       case "bodymap": {
         const bClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
         return <BodyMapScreen clientName={bClient.name} onBack={() => nav(visitReturnScreen)} />;

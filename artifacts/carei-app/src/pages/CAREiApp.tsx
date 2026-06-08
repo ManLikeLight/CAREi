@@ -4857,7 +4857,8 @@ function ActiveVisitScreen({
 
   useEffect(() => {
     if (fluidGlasses > 0 && !fluidTimeRef.current) {
-      fluidTimeRef.current = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+      const ts = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+      fluidTimeRef.current = ts < visitStartRef.current ? visitStartRef.current : ts;
     }
   }, [fluidGlasses]);
 
@@ -4871,7 +4872,8 @@ function ActiveVisitScreen({
     setTasks(newTasks);
     if (newTasks[i]) {
       const ts = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-      setTaskCompletedAt((prev) => ({ ...prev, [VISIT_TASKS[i]]: ts }));
+      const clamped = ts < visitStartRef.current ? visitStartRef.current : ts;
+      setTaskCompletedAt((prev) => ({ ...prev, [VISIT_TASKS[i]]: clamped }));
     }
     if (i === MEAL_TASK_IDX && newTasks[i] && !mealPromptDismissed && mealStatus === "") {
       setShowMealPrompt(true);
@@ -5236,7 +5238,7 @@ function ActiveVisitScreen({
                 <span style={{ color: COLORS.red, fontSize: 11, fontWeight: 700, lineHeight: 1.5 }}>BP above {(client as any).bpBaseline ? `${firstName}'s personal baseline (${(client as any).bpBaseline.sys}/${(client as any).bpBaseline.dia} mmHg)` : "normal range (140/90 mmHg)"} — notify your office immediately</span>
               </div>
             )}
-            <button onClick={() => { if (bpSys && bpDia) { setVitalsSaved(true); vitalsSavedTimeRef.current = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }); } }} disabled={!bpSys || !bpDia}
+            <button onClick={() => { if (bpSys && bpDia) { setVitalsSaved(true); const vts = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }); vitalsSavedTimeRef.current = vts < visitStartRef.current ? visitStartRef.current : vts; } }} disabled={!bpSys || !bpDia}
               style={{ width: "100%", padding: "8px 0", borderRadius: 9, border: "none", background: bpSys && bpDia ? `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})` : "rgba(255,255,255,0.08)", color: bpSys && bpDia ? COLORS.darkNavy : COLORS.g3, fontFamily: "DM Sans, sans-serif", fontSize: 12, fontWeight: 700, cursor: bpSys && bpDia ? "pointer" : "not-allowed" }}>
               {vitalsSaved ? "✓ Vitals Saved" : "Save Vitals"}
             </button>
@@ -5681,7 +5683,12 @@ function ContinuCareSummaryScreen({
       events.push({ time, label: `${task} — completed`, dotColor: COLORS.g2 });
     });
     if (visitData?.visitEndTime) events.push({ time: visitData.visitEndTime, label: "Visit ended — record submitted", dotColor: COLORS.teal });
-    events.sort((a, b) => a.time.localeCompare(b.time));
+    const priority = (e: TLEvent) =>
+      e.label.startsWith("Visit started") ? 0 : e.label.startsWith("Visit ended") ? 2 : 1;
+    events.sort((a, b) => {
+      const timeCmp = a.time.localeCompare(b.time);
+      return timeCmp !== 0 ? timeCmp : priority(a) - priority(b);
+    });
     return events;
   }
   const timeline = buildTimeline();

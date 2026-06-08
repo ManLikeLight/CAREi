@@ -30,3 +30,9 @@ id = "Km47x5RtjUoWAGSnRXvq2"
 uri = "file://CAREi-source.zip"
 type = "unspecified"
 title = "CAREi Source Code"
+
+[[outputs]]
+id = "eFgt9DPcTaVvhTxldpUbr"
+uri = "file://CAREiApp.txt"
+type = "text"
+title = "CAREiApp.tsx — full source"

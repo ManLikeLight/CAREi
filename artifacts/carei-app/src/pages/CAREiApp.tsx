@@ -306,6 +306,7 @@ interface VisitData {
   visitEndTime: string;
   medTakenAt: Record<string, string>;
   medRefusalReason: Record<string, string>;
+  medWitnessNames: Record<string, string>;
   fluidTime?: string;
   vitalsSavedTime?: string;
   taskCompletedAt: Record<string, string>;
@@ -1711,7 +1712,7 @@ function LiveVisitScreen({
               Fall, med error, skin change
             </div>
           </div>
-          <Badge color={COLORS.amber} bg="rgba(246,183,60,0.15)">CQC</Badge>
+          <Badge color={COLORS.amber} bg="rgba(246,183,60,0.15)">Audit</Badge>
           <div style={{ marginLeft: "auto", color: COLORS.amber, fontSize: 18 }}>›</div>
         </div>
 
@@ -1722,7 +1723,7 @@ function LiveVisitScreen({
             <div style={{ color: COLORS.red, fontWeight: 700, fontSize: 14 }}>Skin Integrity / Body Map</div>
             <div style={{ color: COLORS.g2, fontSize: 12 }}>Mark pressure sores, bruising, skin changes</div>
           </div>
-          <Badge color={COLORS.red} bg="rgba(255,90,95,0.15)">CQC</Badge>
+          <Badge color={COLORS.red} bg="rgba(255,90,95,0.15)">Audit</Badge>
           <div style={{ marginLeft: "auto", color: COLORS.red, fontSize: 18 }}>›</div>
         </div>
 
@@ -1852,7 +1853,7 @@ function LiveVisitScreen({
       {showSignature && (
         <div style={{ position: "absolute", inset: 0, background: "rgba(15,29,52,0.97)", zIndex: 80, display: "flex", flexDirection: "column", padding: "24px 18px" }}>
           <div style={{ color: "#fff", fontFamily: "DM Serif Display, serif", fontSize: 22, marginBottom: 6 }}>Carer Signature</div>
-          <div style={{ color: COLORS.g2, fontSize: 13, marginBottom: 20 }}>Sign to confirm this visit record. This signature is stored in the CQC audit trail.</div>
+          <div style={{ color: COLORS.g2, fontSize: 13, marginBottom: 20 }}>Sign to confirm this visit record. This signature is stored in the audit trail.</div>
           <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: 4, border: "1px solid rgba(255,255,255,0.15)", marginBottom: 14 }}>
             <canvas ref={sigCanvasRef} width={320} height={160} style={{ display: "block", borderRadius: 10, cursor: "crosshair", touchAction: "none" }}
               onMouseDown={sigStart} onMouseMove={sigMove} onMouseUp={sigEnd} onMouseLeave={sigEnd}
@@ -2628,7 +2629,7 @@ Next visit: Continue monitoring as per care plan. Follow any medication timing i
             Handover submitted by {carerName}<br />Read receipt confirmed by next carer
           </div>
           <div style={{ marginTop: 12, background: "rgba(34,197,94,0.12)", borderRadius: 10, padding: "8px 16px", display: "inline-block" }}>
-            <span style={{ color: COLORS.green, fontWeight: 700, fontSize: 12 }}>CQC AUDIT TRAIL, COMPLETE</span>
+            <span style={{ color: COLORS.green, fontWeight: 700, fontSize: 12 }}>AUDIT TRAIL COMPLETE</span>
           </div>
           <button onClick={onDone} style={{ marginTop: 24, padding: "14px 32px", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>
             Return to Dashboard
@@ -3155,7 +3156,7 @@ function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName, carerA
           </div>
         </div>
 
-        {/* CQC note */}
+        {/* Compliance note */}
         {/* Agency attribution */}
         <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "16px", textAlign: "center", border: `1px solid rgba(79,209,197,0.12)` }}>
           {carerAgency ? (
@@ -3170,7 +3171,7 @@ function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName, carerA
 
         <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "8px 12px", background: "rgba(255,255,255,0.04)", borderRadius: 10 }}>
           <span style={{ fontSize: 14 }}>🔒</span>
-          <span style={{ color: COLORS.g3, fontSize: 11 }}>This summary is securely stored in compliance with CQC and GDPR requirements</span>
+          <span style={{ color: COLORS.g3, fontSize: 11 }}>This summary is securely stored in compliance with UK care regulation and GDPR requirements</span>
         </div>
       </div>
 
@@ -3357,7 +3358,7 @@ function BodyMapScreen({ clientName, onBack }: { clientName: string; onBack: () 
     <div style={{ height: "100%", background: COLORS.darkNavy, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 32 }}>
       <div style={{ fontSize: 48 }}>✅</div>
       <div style={{ color: "#fff", fontWeight: 700, fontSize: 20 }}>Body Map Saved</div>
-      <div style={{ color: COLORS.g2, fontSize: 13, textAlign: "center" }}>{marks.length} mark{marks.length !== 1 ? "s" : ""} recorded and added to CQC audit trail</div>
+      <div style={{ color: COLORS.g2, fontSize: 13, textAlign: "center" }}>{marks.length} mark{marks.length !== 1 ? "s" : ""} recorded and added to the audit trail</div>
       <button onClick={onBack} style={{ padding: "14px 32px", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Back to Visit</button>
     </div>
   );
@@ -3371,7 +3372,7 @@ function BodyMapScreen({ clientName, onBack }: { clientName: string; onBack: () 
             <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 20, color: "#fff" }}>Skin Integrity Map</div>
             <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>Tap a body zone to mark it · {clientName}</div>
           </div>
-          <Badge color={COLORS.red} bg="rgba(255,90,95,0.12)">CQC</Badge>
+          <Badge color={COLORS.red} bg="rgba(255,90,95,0.12)">Audit</Badge>
         </div>
         <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
           {(["front", "back"] as const).map(v => (
@@ -3441,7 +3442,7 @@ function BodyMapScreen({ clientName, onBack }: { clientName: string; onBack: () 
               </div>
             ) : (
               <button onClick={() => photoInputRef.current?.click()} style={{ width: "100%", padding: "10px 0", borderRadius: 10, border: "1px dashed rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.04)", color: COLORS.g2, fontFamily: "DM Sans, sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer", marginBottom: 8 }}>
-                📷 Add Photo (CQC recommended)
+                📷 Add Photo (recommended for compliance)
               </button>
             )}
           </div>
@@ -3769,7 +3770,7 @@ function CarePlanScreen({ client, onBack }: { client: typeof SCHEDULE_CLIENTS[0]
             <span style={{ fontSize: 18 }}>🦺</span>
             <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>Safety Plan</div>
           </div>
-          <div style={{ color: COLORS.g3, fontSize: 11, marginBottom: 12 }}>Tailored to {firstName} · CQC compliant</div>
+          <div style={{ color: COLORS.g3, fontSize: 11, marginBottom: 12 }}>Tailored to {firstName} · compliant with UK care regulations</div>
           {safetyPlanItems && safetyPlanItems.map((item: string, i: number) => (
             <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-start" }}>
               <div style={{ width: 4, height: 4, borderRadius: "50%", background: COLORS.red, marginTop: 6, flexShrink: 0 }} />
@@ -3845,7 +3846,7 @@ function AdminTeaserScreen({
   const metrics = [
     { label: "Carers on Shift", value: "7", color: COLORS.green },
     { label: "Active Alerts", value: "2", color: COLORS.red },
-    { label: "CQC Score", value: "94%", color: COLORS.teal },
+    { label: "Compliance Score", value: "94%", color: COLORS.teal },
   ];
   const carers = [
     { name: "Sarah J.", status: "Active" },
@@ -3944,9 +3945,9 @@ function AdminTeaserScreen({
           <div style={{ color: COLORS.g2, fontSize: 12 }}>Check-in 18 min overdue at Patricia Lane's address. Supervisor action required.</div>
         </div>
 
-        {/* CQC summary */}
+        {/* Compliance summary */}
         <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 16px" }}>
-          <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600, marginBottom: 10 }}>CQC Compliance Today</div>
+          <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Compliance Today</div>
           {[["Medication confirmations", 96], ["Visit sign-offs", 91], ["Handover notes", 88]].map(([l, v]) => (
             <div key={l} style={{ marginBottom: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
@@ -4110,7 +4111,7 @@ function IncidentReportScreen({ onBack, onSubmit }: { onBack: () => void; onSubm
       <div style={{ height: "100%", background: COLORS.darkNavy, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 32 }}>
         <div style={{ width: 72, height: 72, borderRadius: "50%", background: "rgba(34,197,94,0.15)", border: "2px solid rgba(34,197,94,0.4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>✓</div>
         <div style={{ color: "#fff", fontWeight: 700, fontSize: 20, textAlign: "center" }}>Incident Logged</div>
-        <div style={{ color: COLORS.g2, fontSize: 13, textAlign: "center", lineHeight: 1.6 }}>This report has been added to the CQC audit trail and your supervisor has been notified.</div>
+        <div style={{ color: COLORS.g2, fontSize: 13, textAlign: "center", lineHeight: 1.6 }}>This report has been added to the audit trail and your supervisor has been notified.</div>
         <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: "12px 16px", width: "100%" }}>
           <div style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, marginBottom: 6 }}>REFERENCE</div>
           <div style={{ color: COLORS.teal, fontSize: 14, fontWeight: 700 }}>INC-{Math.floor(Math.random() * 9000 + 1000)}-2026</div>
@@ -4128,7 +4129,7 @@ function IncidentReportScreen({ onBack, onSubmit }: { onBack: () => void; onSubm
           <span style={{ fontSize: 24 }}>⚠️</span>
           <div>
             <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 20, color: "#fff" }}>Report Incident</div>
-            <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 1 }}>This will be logged to the CQC audit trail</div>
+            <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 1 }}>This will be logged to the audit trail</div>
           </div>
         </div>
       </div>
@@ -4795,6 +4796,7 @@ function ActiveVisitScreen({
   const [medTakenAt, setMedTakenAt] = useState<Record<string, string>>({});
   const [showWitnessFor, setShowWitnessFor] = useState<string | null>(null);
   const [witnessInput, setWitnessInput] = useState("");
+  const [witnessNames, setWitnessNames] = useState<Record<string, string>>({});
   const [medRefusalReason, setMedRefusalReason] = useState<Record<string, string>>({});
   const [refusalOtherNote, setRefusalOtherNote] = useState("");
   const [overdoseWarnFor, setOverdoseWarnFor] = useState<string | null>(null);
@@ -5172,9 +5174,14 @@ function ActiveVisitScreen({
                     <div style={{ color: COLORS.g2, fontSize: 11, lineHeight: 1.4 }}>{med.adminNote}</div>
                   </div>
                   {curStatus && (
-                    <Badge color={curStatus === "taken" ? COLORS.green : COLORS.amber} bg={curStatus === "taken" ? "rgba(34,197,94,0.15)" : "rgba(246,183,60,0.15)"}>
-                      {curStatus === "taken" ? `✓ Given ${medTakenAt[med.name] || ""}`.trim() : `⚠ ${medRefusalReason[med.name] || "Not given"}`}
-                    </Badge>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
+                      <Badge color={curStatus === "taken" ? COLORS.green : COLORS.amber} bg={curStatus === "taken" ? "rgba(34,197,94,0.15)" : "rgba(246,183,60,0.15)"}>
+                        {curStatus === "taken" ? `✓ Given ${medTakenAt[med.name] || ""}`.trim() : `⚠ ${medRefusalReason[med.name] || "Not given"}`}
+                      </Badge>
+                      {curStatus === "taken" && isControlled && witnessNames[med.name] && (
+                        <span style={{ color: "#a78bfa", fontSize: 10, fontWeight: 600 }}>👥 Witnessed: {witnessNames[med.name]}</span>
+                      )}
+                    </div>
                   )}
                 </div>
                 {isControlled && !curStatus && (
@@ -5343,6 +5350,7 @@ function ActiveVisitScreen({
             visitEndTime: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
             medTakenAt,
             medRefusalReason,
+            medWitnessNames: witnessNames,
             fluidTime: fluidTimeRef.current ?? undefined,
             vitalsSavedTime: vitalsSavedTimeRef.current ?? undefined,
             taskCompletedAt,
@@ -5359,7 +5367,7 @@ function ActiveVisitScreen({
           <div style={{ background: COLORS.navy, borderRadius: "20px 20px 0 0", padding: 20, animation: "slideUp 0.3s ease" }}>
             <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto 16px" }} />
             <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 18, color: "#fff", marginBottom: 4 }}>Medication Refusal Log</div>
-            <div style={{ color: COLORS.amber, fontSize: 12, marginBottom: 16 }}>{showRefusalFor}, This will be logged to the CQC audit trail</div>
+            <div style={{ color: COLORS.amber, fontSize: 12, marginBottom: 16 }}>{showRefusalFor} — This will be logged to the audit trail</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
                 <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 6 }}>REASON *</label>
@@ -5493,6 +5501,7 @@ function ActiveVisitScreen({
                 if (!witnessInput.trim()) return;
                 setMedTakenAt(t => ({ ...t, [showWitnessFor!]: selectedTakenTime }));
                 setMedStatus(s => ({ ...s, [showWitnessFor!]: "taken" }));
+                setWitnessNames(w => ({ ...w, [showWitnessFor!]: witnessInput.trim() }));
                 setShowWitnessFor(null);
               }} style={{ flex: 2, padding: "11px 0", borderRadius: 10, border: "none", background: witnessInput.trim() ? "linear-gradient(90deg, #a78bfa, #7c3aed)" : "rgba(255,255,255,0.08)", color: witnessInput.trim() ? "#fff" : COLORS.g3, fontSize: 13, fontWeight: 700, cursor: witnessInput.trim() ? "pointer" : "not-allowed", fontFamily: "DM Sans, sans-serif" }}>Both Signed, Confirm</button>
             </div>
@@ -5510,13 +5519,13 @@ function ActiveVisitScreen({
                 <div style={{ fontSize: 36, marginBottom: 12 }}>✅</div>
                 <div style={{ color: "#fff", fontWeight: 700, fontSize: 17, marginBottom: 4 }}>Incident Flagged</div>
                 <div style={{ color: COLORS.amber, fontSize: 13, marginBottom: 6 }}>Ref: INC-{Date.now().toString().slice(-6)}</div>
-                <div style={{ color: COLORS.g2, fontSize: 12, lineHeight: 1.5, marginBottom: 20 }}>Your supervisor has been notified. This is logged to the CQC audit trail.</div>
+                <div style={{ color: COLORS.g2, fontSize: 12, lineHeight: 1.5, marginBottom: 20 }}>Your supervisor has been notified. This is logged to the audit trail.</div>
                 <button onClick={() => setShowInlineIncident(false)} style={{ padding: "12px 32px", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Done</button>
               </div>
             ) : (
               <>
                 <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 18, color: "#fff", marginBottom: 4 }}>Report Incident</div>
-                <div style={{ color: COLORS.g2, fontSize: 12, marginBottom: 16 }}>This will be logged to supervisor and CQC audit trail immediately.</div>
+                <div style={{ color: COLORS.g2, fontSize: 12, marginBottom: 16 }}>This will be logged to supervisor and audit trail immediately.</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <div>
                     <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 6 }}>SEVERITY</label>
@@ -5775,7 +5784,7 @@ function ContinuCareSummaryScreen({
           <div style={{ color: COLORS.teal, fontSize: 14, marginTop: 6 }}>ContinuCare+ Record Filed ✓</div>
           <div style={{ color: COLORS.g2, fontSize: 13, marginTop: 8, lineHeight: 1.6 }}>Submitted by {carerName || "Carer"}<br />{new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</div>
           <div style={{ marginTop: 12, background: "rgba(34,197,94,0.12)", borderRadius: 10, padding: "8px 16px", display: "inline-block" }}>
-            <span style={{ color: COLORS.green, fontWeight: 700, fontSize: 12 }}>CQC AUDIT TRAIL · COMPLETE</span>
+            <span style={{ color: COLORS.green, fontWeight: 700, fontSize: 12 }}>AUDIT TRAIL COMPLETE</span>
           </div>
           <button onClick={onDone} style={{ marginTop: 24, padding: "14px 0", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "DM Sans, sans-serif", width: "100%", display: "block" }}>
             Return to Today's Care
@@ -5872,6 +5881,7 @@ function ContinuCareSummaryScreen({
             {client.meds.map((med) => {
               const t = visitData?.medTakenAt?.[med.name];
               const refusal = visitData?.medRefusalReason?.[med.name];
+              const witness = visitData?.medWitnessNames?.[med.name];
               const isGiven = t && !refusal;
               const isRefused = !!refusal;
               const borderColor = isGiven ? COLORS.green : isRefused ? COLORS.amber : COLORS.g3;
@@ -5883,7 +5893,7 @@ function ContinuCareSummaryScreen({
                     <div>
                       <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>{med.name}</span>
                       <span style={{ color: COLORS.g2, fontSize: 12, marginLeft: 5 }}>{med.dose}</span>
-                      {med.isControlled && <span style={{ color: COLORS.g3, fontSize: 10, marginLeft: 6 }}>⚿ Controlled</span>}
+                      {med.isControlled && <span style={{ color: "#a78bfa", fontSize: 10, marginLeft: 6, fontWeight: 700 }}>⚿ CONTROLLED</span>}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
                       {t && <span style={{ color: COLORS.g3, fontSize: 10, fontFamily: "monospace" }}>{t}</span>}
@@ -5891,6 +5901,12 @@ function ContinuCareSummaryScreen({
                     </div>
                   </div>
                   {refusal && <div style={{ color: COLORS.amber, fontSize: 11, marginTop: 5 }}>Reason: {refusal}</div>}
+                  {isGiven && witness && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 5 }}>
+                      <span style={{ fontSize: 11 }}>👥</span>
+                      <span style={{ color: "#a78bfa", fontSize: 11 }}>Witnessed by: {witness}</span>
+                    </div>
+                  )}
                 </div>
               );
             })}

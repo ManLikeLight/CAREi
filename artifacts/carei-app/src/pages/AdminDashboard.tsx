@@ -35,7 +35,7 @@ const AUDIT = [
   { time: "09:42", event: "Medication flagged: out of stock note",   carer: "James Osei",    s: "warn" },
   { time: "09:30", event: "Visit started: Robert Turner",            carer: "James Osei",    s: "ok"   },
   { time: "09:00", event: "Visit started: Frank Novak",              carer: "Tom Bridges",   s: "ok"   },
-  { time: "07:55", event: "CQC flag: medication gap not documented", carer: "System",        s: "fail" },
+  { time: "07:55", event: "Compliance flag: medication gap not documented", carer: "System",        s: "fail" },
 ];
 
 const ALERTS = [
@@ -45,7 +45,7 @@ const ALERTS = [
   { id: 2, sev: "High", type: "AI Flag", title: "Potential drug interaction: Robert Turner",
     detail: "AI Copilot flagged a possible interaction between Warfarin and Ibuprofen. Review before next visit.",
     time: "10:15" },
-  { id: 3, sev: "Medium", type: "CQC", title: "Handover note missing: Margaret Cole",
+  { id: 3, sev: "Medium", type: "Compliance", title: "Handover note missing: Margaret Cole",
     detail: "No ContinuCare+ handover submitted for Margaret Cole's 08:00 visit. Documentation gap flagged.",
     time: "09:50" },
   { id: 4, sev: "Low", type: "Schedule", title: "James Osei 8 min behind schedule",
@@ -232,7 +232,7 @@ function ClientRoster() {
   );
 }
 
-function CQCAuditTrail() {
+function AuditTrail() {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 16 }}>
       {/* Event log */}
@@ -260,7 +260,7 @@ function CQCAuditTrail() {
       {/* Compliance meters */}
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 14, padding: 20, textAlign: "center" }}>
-          <Ring pct={94} label="Overall CQC Score" />
+          <Ring pct={94} label="Overall Compliance Score" />
         </div>
         <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 14, padding: 16 }}>
           {[["Medication Confirmations", 96], ["Visit Sign-offs", 91], ["ContinuCare+ Handovers", 88], ["Lone Worker Check-ins", 82]].map(([l, v]) => (
@@ -387,14 +387,14 @@ export default function AdminDashboard({ onBack, onCarerView, carerAgency }: { o
   const navItems: { key: Section; icon: string; label: string }[] = [
     { key: "carers",  icon: "👥", label: "Carer Overview" },
     { key: "clients", icon: "📋", label: "Client Roster" },
-    { key: "cqc",    icon: "✅", label: "CQC Audit Trail" },
+    { key: "cqc",    icon: "✅", label: "Audit Trail" },
     { key: "alerts", icon: "🔔", label: "Agency Alerts" },
   ];
 
   const titles: Record<Section, string> = {
     carers:  "Carer Overview",
     clients: "Client Roster",
-    cqc:     "CQC Audit Trail",
+    cqc:     "Audit Trail",
     alerts:  "Agency Alerts",
   };
 
@@ -442,7 +442,7 @@ export default function AdminDashboard({ onBack, onCarerView, carerAgency }: { o
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             <div style={{ display: "flex", gap: 16 }}>
-              {[["7", "Carers on Shift"], ["2", "Active Alerts"], ["94%", "CQC Score"]].map(([v, l]) => (
+              {[["7", "Carers on Shift"], ["2", "Active Alerts"], ["94%", "Compliance Score"]].map(([v, l]) => (
                 <div key={l} style={{ textAlign: "center" }}>
                   <div style={{ color: C.teal, fontWeight: 700, fontSize: 20 }}>{v}</div>
                   <div style={{ color: C.g3, fontSize: 10 }}>{l}</div>
@@ -456,7 +456,7 @@ export default function AdminDashboard({ onBack, onCarerView, carerAgency }: { o
         <div style={{ flex: 1, overflowY: "auto", padding: "24px 28px" }}>
           {section === "carers"  && <CarerOverview />}
           {section === "clients" && <ClientRoster />}
-          {section === "cqc"    && <CQCAuditTrail />}
+          {section === "cqc"    && <AuditTrail />}
           {section === "alerts" && <AgencyAlerts />}
         </div>
       </div>

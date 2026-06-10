@@ -6070,8 +6070,11 @@ function ContinuCareSummaryScreen({
 
         {/* ── Observations (editable) ───────────────────────────── */}
         <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: 16 }}>
-          <SectionHeading icon="📝" title="Observations" />
-          <div style={{ color: COLORS.g3, fontSize: 10, marginBottom: 8 }}>Carer's narrative record — edit before submitting</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+            <SectionHeading icon="📝" title="Observations" />
+            <span style={{ color: COLORS.teal, fontSize: 11, fontWeight: 600 }}>✏ Editable</span>
+          </div>
+          <div style={{ color: COLORS.g3, fontSize: 10, marginBottom: 10 }}>Carer's narrative record — tap to edit before submitting</div>
           {visitData?.mood && (
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
               <span style={{ color: COLORS.g3, fontSize: 11 }}>Mood noted as</span>
@@ -6094,14 +6097,17 @@ function ContinuCareSummaryScreen({
             value={observations}
             onChange={(e) => setObservations(e.target.value)}
             rows={4}
-            placeholder={`Add observations for ${client.name.split(" ")[0]}'s record…`}
-            style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, lineHeight: 1.6, resize: "none", outline: "none", marginTop: 4 }}
+            placeholder={`Describe ${client.name.split(" ")[0]}'s condition, behaviour and any concerns from this visit…`}
+            style={{ width: "100%", background: "rgba(255,255,255,0.08)", border: `1px solid rgba(79,209,197,0.35)`, borderRadius: 10, padding: "10px 12px", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, lineHeight: 1.6, resize: "none", outline: "none", marginTop: 4, boxSizing: "border-box" as const }}
           />
         </div>
 
         {/* ── Handover for next visit (AI + editable) ──────────── */}
         <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: 16 }}>
-          <SectionHeading icon="📋" title="Handover for next visit" />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+            <SectionHeading icon="📋" title="Handover for next visit" />
+            {!handoverLoading && <span style={{ color: COLORS.teal, fontSize: 11, fontWeight: 600 }}>✏ Editable</span>}
+          </div>
           {handoverLoading ? (
             <div style={{ display: "flex", alignItems: "center", gap: 8, color: COLORS.teal, fontSize: 12 }}>
               <div style={{ display: "flex", gap: 3 }}>{[0, 1, 2].map((d) => <div key={d} className={`dot-${d + 1}`} style={{ width: 5, height: 5, borderRadius: "50%", background: COLORS.teal }} />)}</div>
@@ -6109,13 +6115,13 @@ function ContinuCareSummaryScreen({
             </div>
           ) : (
             <>
-              <div style={{ color: COLORS.g3, fontSize: 10, marginBottom: 8 }}>AI-generated — edit before submitting</div>
+              <div style={{ color: COLORS.g3, fontSize: 10, marginBottom: 8 }}>AI-generated — tap to edit before submitting</div>
               <textarea
                 value={handover}
                 onChange={(e) => setHandover(e.target.value)}
                 rows={5}
                 placeholder="Handover notes for the next carer…"
-                style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, lineHeight: 1.6, resize: "none", outline: "none" }}
+                style={{ width: "100%", background: "rgba(255,255,255,0.08)", border: `1px solid rgba(79,209,197,0.35)`, borderRadius: 10, padding: "10px 12px", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, lineHeight: 1.6, resize: "none", outline: "none", boxSizing: "border-box" as const }}
               />
             </>
           )}

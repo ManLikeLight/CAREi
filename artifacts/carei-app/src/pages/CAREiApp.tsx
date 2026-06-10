@@ -6551,9 +6551,16 @@ function AgencySettingsScreen({ onBack, managerName, agencyName }: { onBack: () 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
             <div>
               <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>Professional</div>
-              <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>Up to 20 carers · Unlimited clients</div>
+              <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>£8 per carer / month · Unlimited clients</div>
             </div>
             <span style={{ background: "rgba(79,209,197,0.15)", color: COLORS.teal, fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 99 }}>Active</span>
+          </div>
+          <div style={{ background: "rgba(79,209,197,0.07)", borderRadius: 10, padding: "10px 12px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ color: COLORS.g2, fontSize: 11 }}>Active carers this month</div>
+              <div style={{ color: "#fff", fontWeight: 700, fontSize: 18, marginTop: 2 }}>3 carers × £8 <span style={{ color: COLORS.teal, fontSize: 13 }}>= £24/mo</span></div>
+            </div>
+            <span style={{ color: COLORS.g3, fontSize: 11 }}>Scales with your team</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
             {["Unlimited visit recording", "AI Copilot for all carers", "Family Portal", "Compliance Dashboard", "Manager Approvals workflow", "Full audit trail export"].map(f => (
@@ -6563,7 +6570,7 @@ function AgencySettingsScreen({ onBack, managerName, agencyName }: { onBack: () 
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 12, color: COLORS.g3, fontSize: 11 }}>Next billing: 1 July 2026 · £89/month</div>
+          <div style={{ marginTop: 12, color: COLORS.g3, fontSize: 11 }}>Next billing: 1 July 2026 · £24 (3 active carers)</div>
         </div>
 
         <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 16px" }}>

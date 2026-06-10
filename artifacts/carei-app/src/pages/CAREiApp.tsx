@@ -1021,7 +1021,7 @@ function LoginScreen({ onNext, onSignUp }: { onNext: (name: string, agency: stri
         setLoading(false);
         return;
       }
-      let role: "manager" | "carer" = "manager";
+      let role: "manager" | "carer" = "carer";
       try {
         const stored = JSON.parse(sessionStorage.getItem("carei_account") ?? "{}");
         if (stored.role === "carer" || stored.role === "manager") role = stored.role;
@@ -1060,14 +1060,14 @@ function LoginScreen({ onNext, onSignUp }: { onNext: (name: string, agency: stri
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 1, textAlign: "center" as const }}>DEMO ACCOUNTS</div>
             {([
-              { role: "manager" as const, icon: "🏢", label: "Agency Manager", sub: "Adjoy Healthcare · Manager Portal" },
               { role: "carer" as const, icon: "👩‍⚕️", label: "Care Worker", sub: "Adjoy Healthcare · Sarah O'Brien" },
+              { role: "manager" as const, icon: "🏢", label: "Agency Manager", sub: "Adjoy Healthcare · Manager Portal" },
             ] as { role: "manager" | "carer"; icon: string; label: string; sub: string }[]).map(acc => (
               <button
                 key={acc.role}
                 onClick={() => handleDemoLogin(acc.role)}
                 disabled={demoLoading !== null}
-                style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: 14, border: `1.5px solid ${acc.role === "manager" ? "rgba(79,209,197,0.4)" : "rgba(255,255,255,0.12)"}`, background: acc.role === "manager" ? "rgba(79,209,197,0.08)" : "rgba(255,255,255,0.04)", cursor: "pointer", textAlign: "left" as const, width: "100%", opacity: demoLoading !== null && demoLoading !== acc.role ? 0.45 : 1, transition: "opacity 0.2s" }}
+                style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: 14, border: `1.5px solid ${acc.role === "carer" ? "rgba(79,209,197,0.4)" : "rgba(255,255,255,0.12)"}`, background: acc.role === "carer" ? "rgba(79,209,197,0.08)" : "rgba(255,255,255,0.04)", cursor: "pointer", textAlign: "left" as const, width: "100%", opacity: demoLoading !== null && demoLoading !== acc.role ? 0.45 : 1, transition: "opacity 0.2s" }}
               >
                 <span style={{ fontSize: 26, flexShrink: 0 }}>{acc.icon}</span>
                 <div style={{ flex: 1 }}>
@@ -2842,7 +2842,7 @@ Next visit: Continue monitoring as per care plan. Follow any medication timing i
   );
 }
 
-function ProfileScreen({ onSignOut, onSettings, carerName, carerEmail, carerAgency, userRole }: { onSignOut: () => void; onSettings?: () => void; carerName: string; carerEmail: string; carerAgency: string; userRole: "manager" | "carer" | null }) {
+function ProfileScreen({ onSignOut, onSettings, onSwitchRole, carerName, carerEmail, carerAgency, userRole }: { onSignOut: () => void; onSettings?: () => void; onSwitchRole?: () => void; carerName: string; carerEmail: string; carerAgency: string; userRole: "manager" | "carer" | null }) {
   return (
     <div
       style={{
@@ -2913,6 +2913,31 @@ function ProfileScreen({ onSignOut, onSettings, carerName, carerEmail, carerAgen
           </div>
         ))}
       </div>
+
+      {onSwitchRole && (
+        <button
+          onClick={onSwitchRole}
+          style={{
+            width: "100%",
+            padding: "13px 0",
+            borderRadius: 12,
+            border: `1px solid rgba(79,209,197,0.35)`,
+            background: "rgba(79,209,197,0.08)",
+            color: COLORS.teal,
+            fontFamily: "DM Sans, sans-serif",
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+          }}
+        >
+          <span>🏢</span>
+          {userRole === "carer" ? "Switch to Manager View" : "Switch to Carer View"}
+        </button>
+      )}
 
       <div style={{ display: "flex", gap: 8 }}>
         <button
@@ -7269,7 +7294,15 @@ export default function CAREiApp() {
         return <MedicationScreen onNext={() => nav("today")} client={medClient} />;
       }
       case "profile":
-        return <ProfileScreen onSignOut={() => nav("otp")} onSettings={userRole === "manager" ? () => nav("agency-settings") : undefined} carerName={carerName} carerEmail={carerEmail} carerAgency={carerAgency} userRole={userRole} />;
+        return <ProfileScreen
+          onSignOut={() => nav("otp")}
+          onSettings={userRole === "manager" ? () => nav("agency-settings") : undefined}
+          onSwitchRole={() => { setUserRole(r => r === "carer" ? "manager" : "carer"); nav(userRole === "carer" ? "manager-portal" : "today"); }}
+          carerName={carerName}
+          carerEmail={carerEmail}
+          carerAgency={carerAgency}
+          userRole={userRole}
+        />;
       case "family": {
         const familyClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
         return <FamilyPortalScreen onBack={() => nav("today")} onSummary={() => nav("family-summary")} carerName={carerName} carerAgency={carerAgency} client={familyClient} />;

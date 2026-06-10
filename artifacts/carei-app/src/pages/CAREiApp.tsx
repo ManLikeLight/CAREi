@@ -2403,7 +2403,7 @@ Provide concise, clinically relevant, professional responses. Always highlight a
   );
 }
 
-function MedicationScreen({ onNext }: { onNext: () => void }) {
+function MedicationScreen({ onNext, client }: { onNext: () => void; client: typeof SCHEDULE_CLIENTS[0] }) {
   const [medStatus, setMedStatus] = useState<Record<string, string>>({});
   const [monitoringElapsed, setMonitoringElapsed] = useState(0);
   const [monitoringConfirmed, setMonitoringConfirmed] = useState(false);
@@ -2412,7 +2412,7 @@ function MedicationScreen({ onNext }: { onNext: () => void }) {
   const monitorWindowMins = 30;
   const monitorRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const allActioned = CLIENT.meds.every((m) => medStatus[m.name]);
+  const allActioned = client.meds.every((m) => medStatus[m.name]);
 
   useEffect(() => {
     if (allActioned && !monitoringConfirmed) {
@@ -2440,37 +2440,39 @@ function MedicationScreen({ onNext }: { onNext: () => void }) {
           Medication Confirmation
         </div>
         <div style={{ color: COLORS.g2, fontSize: 13, marginTop: 4 }}>
-          Grace Mensah · {new Date().toLocaleDateString("en-GB")}
+          {client.name} · {new Date().toLocaleDateString("en-GB")}
         </div>
       </div>
 
-      {/* Allergy banner */}
-      <div
-        style={{
-          margin: "0 14px 12px",
-          background: "rgba(255,90,95,0.15)",
-          border: `1px solid rgba(255,90,95,0.4)`,
-          borderRadius: 12,
-          padding: "10px 14px",
-          display: "flex",
-          gap: 10,
-          alignItems: "center",
-          flexShrink: 0,
-        }}
-      >
-        <span style={{ fontSize: 20 }}>⚠️</span>
-        <div>
-          <div style={{ color: COLORS.red, fontWeight: 700, fontSize: 13 }}>
-            ALLERGY: Penicillin
-          </div>
-          <div style={{ color: "rgba(255,90,95,0.8)", fontSize: 11 }}>
-            Do not administer any penicillin-based antibiotics
+      {/* Allergy banner — only shown when there is a known allergy */}
+      {client.allergy && client.allergy !== "None known" && (
+        <div
+          style={{
+            margin: "0 14px 12px",
+            background: "rgba(255,90,95,0.15)",
+            border: `1px solid rgba(255,90,95,0.4)`,
+            borderRadius: 12,
+            padding: "10px 14px",
+            display: "flex",
+            gap: 10,
+            alignItems: "center",
+            flexShrink: 0,
+          }}
+        >
+          <span style={{ fontSize: 20 }}>⚠️</span>
+          <div>
+            <div style={{ color: COLORS.red, fontWeight: 700, fontSize: 13 }}>
+              ALLERGY: {client.allergy.split(":")[0]}
+            </div>
+            <div style={{ color: "rgba(255,90,95,0.8)", fontSize: 11 }}>
+              {client.allergy.includes(":") ? client.allergy : `Do not administer ${client.allergy}-based medications`}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="phone-scroll" style={{ flex: 1, padding: "0 14px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
-        {CLIENT.meds.map((med) => (
+        {client.meds.map((med) => (
           <div
             key={med.name}
             style={{
@@ -2562,7 +2564,7 @@ function MedicationScreen({ onNext }: { onNext: () => void }) {
               </div>
             </div>
             <div style={{ color: COLORS.g1, fontSize: 12, lineHeight: 1.5, marginBottom: 10 }}>
-              Observe the client for {monitorWindowMins} minutes. Check for dizziness (Amlodipine), nausea (Metformin) or muscle pain (Atorvastatin). Do not leave until the window is complete.
+              Observe {client.name.split(" ")[0]} for {monitorWindowMins} minutes. Monitor for any adverse reactions to medications just given. Do not leave until the window is complete.
             </div>
             <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 99, height: 6, marginBottom: 10, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${monitorPct}%`, background: monitorDone ? COLORS.green : COLORS.teal, borderRadius: 99, transition: "width 1s linear" }} />
@@ -2612,7 +2614,7 @@ function MedicationScreen({ onNext }: { onNext: () => void }) {
             marginTop: 8,
           }}
         >
-          {!allActioned ? `Action all medications (${Object.keys(medStatus).length}/${CLIENT.meds.length})` : "Continue to Summary →"}
+          {!allActioned ? `Action all medications (${Object.keys(medStatus).length}/${client.meds.length})` : "Continue to Summary →"}
         </button>
       </div>
 
@@ -2840,7 +2842,7 @@ Next visit: Continue monitoring as per care plan. Follow any medication timing i
   );
 }
 
-function ProfileScreen({ onSignOut, carerName, carerEmail, carerAgency, userRole }: { onSignOut: () => void; carerName: string; carerEmail: string; carerAgency: string; userRole: "manager" | "carer" | null }) {
+function ProfileScreen({ onSignOut, onSettings, carerName, carerEmail, carerAgency, userRole }: { onSignOut: () => void; onSettings?: () => void; carerName: string; carerEmail: string; carerAgency: string; userRole: "manager" | "carer" | null }) {
   return (
     <div
       style={{
@@ -2914,19 +2916,20 @@ function ProfileScreen({ onSignOut, carerName, carerEmail, carerAgency, userRole
 
       <div style={{ display: "flex", gap: 8 }}>
         <button
+          onClick={onSettings}
           style={{
             flex: 1,
             padding: "12px 0",
             borderRadius: 12,
             border: "1px solid rgba(255,255,255,0.1)",
             background: "transparent",
-            color: COLORS.g1,
+            color: onSettings ? COLORS.g1 : COLORS.g3,
             fontFamily: "DM Sans, sans-serif",
             fontSize: 14,
-            cursor: "pointer",
+            cursor: onSettings ? "pointer" : "default",
           }}
         >
-          Settings
+          {userRole === "manager" ? "Agency Settings" : "Settings"}
         </button>
         <button
           onClick={onSignOut}
@@ -3146,13 +3149,30 @@ function FamilySummaryScreen({ onBack, approvalStatus, onRead, carerName, carerA
     );
   }
 
-  const tasks = [
+  const firstName = client.name.split(" ")[0];
+  const isStroke = client.condition === "Post Stroke";
+  const isDiabetes = client.condition === "Diabetes";
+  const tasks = isStroke ? [
+    { icon: "🛁", label: "Personal care", detail: "Washing, dressing, oral hygiene with carer support", done: true },
+    { icon: "💊", label: "Morning medications given", detail: client.meds.map(m => `${m.name} ${m.dose}`).join(" · "), done: true },
+    { icon: "🍵", label: "Breakfast", detail: `${firstName} ate approximately half of breakfast. Swallowing monitored, no difficulties.`, done: true },
+    { icon: "🏋️", label: "Transfer & mobility", detail: "Hoist used for all transfers. Physiotherapy exercises completed.", done: true },
+    { icon: "🩺", label: "Blood pressure check", detail: "BP recorded and within normal range.", done: true },
+    { icon: "💬", label: "Communication support", detail: `${firstName} communicated well. No signs of distress or frustration noted.`, done: true },
+  ] : isDiabetes ? [
     { icon: "🛁", label: "Personal care", detail: "Washing, dressing, oral hygiene", done: true },
-    { icon: "💊", label: "Morning medications given", detail: "Aspirin 75mg · Donepezil 10mg", done: true },
-    { icon: "🍵", label: "Breakfast", detail: "Porridge with honey and a cup of tea, good appetite", done: true },
-    { icon: "🚶", label: "Mobility support", detail: "Short walk to the living room with frame, no difficulty", done: true },
-    { icon: "🩺", label: "Health check", detail: "Blood pressure 138/84 mmHg, within normal range", done: true },
-    { icon: "🧩", label: "Activity", detail: "Enjoyed a short puzzle, 15 minutes, engaged well", done: true },
+    { icon: "🍽️", label: "Meal & nutrition", detail: `${firstName} had a balanced meal. Blood sugar monitored before Metformin.`, done: true },
+    { icon: "💊", label: "Medications given", detail: client.meds.map(m => `${m.name} ${m.dose}`).join(" · "), done: true },
+    { icon: "🦶", label: "Foot inspection", detail: "Both feet checked — no redness, wounds or swelling noted.", done: true },
+    { icon: "🩺", label: "Health monitoring", detail: "Blood sugar and BP recorded, within expected range.", done: true },
+    { icon: "🧩", label: "Activity", detail: `${firstName} engaged well. Good spirits throughout the visit.`, done: true },
+  ] : [
+    { icon: "🛁", label: "Personal care", detail: "Washing, dressing, oral hygiene", done: true },
+    { icon: "💊", label: "Morning medications given", detail: client.meds.map(m => `${m.name} ${m.dose}`).join(" · "), done: true },
+    { icon: "🍵", label: "Breakfast", detail: `${firstName} had a good appetite. Finished breakfast and morning drink.`, done: true },
+    { icon: "🚶", label: "Mobility support", detail: `${firstName} mobilised with support. No falls or incidents.`, done: true },
+    { icon: "🩺", label: "Health check", detail: "No concerns noted. Skin intact, no pressure marks.", done: true },
+    { icon: "🧩", label: "Activity", detail: `${firstName} engaged well. Good mood throughout.`, done: true },
   ];
 
   const meds = client.meds.map((m, i) => ({ name: m.name, dose: m.dose, time: `09:${14 + i * 2}`, status: "given" }));
@@ -3569,12 +3589,25 @@ function BodyMapScreen({ clientName, onBack }: { clientName: string; onBack: () 
 
 function VisitHistoryScreen({ clientName, onBack }: { clientName: string; onBack: () => void }) {
   const firstName = clientName.split(" ")[0];
+  const seed = clientName.charCodeAt(0) % 3;
+  const carerSets = [
+    ["Sarah O'Brien", "John Mensah", "Amina Diallo"],
+    ["John Mensah", "Sarah O'Brien", "Priya Sharma"],
+    ["Amina Diallo", "Kemi Adeyemi", "Sarah O'Brien"],
+  ];
+  const [c1, c2, c3] = carerSets[seed];
+  const taskSets = [
+    ["Personal care, Meds, Breakfast", "Personal care, Meds", "Personal care, Meds, Physio", "Personal care, Meds", "Personal care, Meds, Activity"],
+    ["Personal care, Meds, BP check", "Personal care, Meds, Nutrition", "Personal care, Meds, Mobility", "Personal care, Meds", "Personal care, Meds, Activity"],
+    ["Personal care, Meds, Blood sugar", "Personal care, Meds, Nutrition", "Personal care, Meds, Foot check", "Personal care, Meds", "Personal care, Meds, Activity"],
+  ];
+  const tset = taskSets[seed];
   const history = [
-    { date: "12 Mar 2026", time: "10:00–11:30", carer: "Sarah Johnson", tasks: "Personal care, Meds, Breakfast", note: `${firstName} in good spirits. No concerns.` },
-    { date: "11 Mar 2026", time: "10:00–11:15", carer: "Amy Mitchell",  tasks: "Personal care, Meds",           note: "Client tired, ate half breakfast. BP 146/90." },
-    { date: "10 Mar 2026", time: "10:15–11:45", carer: "Sarah Johnson", tasks: "Personal care, Meds, Physio",   note: "Physio exercises completed. Skin intact." },
-    { date: "09 Mar 2026", time: "10:00–11:00", carer: "Kemi Adeyemi",  tasks: "Personal care, Meds",           note: "No concerns noted." },
-    { date: "08 Mar 2026", time: "10:00–11:30", carer: "Sarah Johnson", tasks: "Personal care, Meds, Activity",  note: `${firstName} engaged well. Good mood.` },
+    { date: "12 Mar 2026", time: "09:00–10:30", carer: c1, tasks: tset[0], note: `${firstName} in good spirits. No concerns.` },
+    { date: "11 Mar 2026", time: "09:00–10:15", carer: c2, tasks: tset[1], note: `${firstName} a little tired, ate about half breakfast. No incidents.` },
+    { date: "10 Mar 2026", time: "09:15–10:45", carer: c1, tasks: tset[2], note: `Tasks completed as planned. Skin intact and no pressure marks noted.` },
+    { date: "09 Mar 2026", time: "09:00–10:00", carer: c3, tasks: tset[3], note: "No concerns noted. Good visit." },
+    { date: "08 Mar 2026", time: "09:00–10:30", carer: c1, tasks: tset[4], note: `${firstName} engaged well with activity. Good mood throughout.` },
   ];
   return (
     <div style={{ height: "100%", background: COLORS.darkNavy, display: "flex", flexDirection: "column" }}>
@@ -6629,7 +6662,7 @@ function ClientManagementScreen({ onBack, agencyName, teamCarers }: { onBack: ()
             <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", gap: 20 }}>
               <div>
                 <div style={{ color: COLORS.g3, fontSize: 9, fontWeight: 600, letterSpacing: 0.5 }}>ASSIGNED CARER</div>
-                <div style={{ color: COLORS.g1, fontSize: 12, marginTop: 2 }}>Sarah O'Brien</div>
+                <div style={{ color: COLORS.g1, fontSize: 12, marginTop: 2 }}>{teamCarers.find(tc => tc.status === "active") ? (teamCarers.filter(tc => tc.status === "active")[SCHEDULE_CLIENTS.indexOf(c) % teamCarers.filter(tc => tc.status === "active").length]?.name ?? "Sarah O'Brien") : "Sarah O'Brien"}</div>
               </div>
               <div>
                 <div style={{ color: COLORS.g3, fontSize: 9, fontWeight: 600, letterSpacing: 0.5 }}>VISIT TIME</div>
@@ -6710,6 +6743,15 @@ function AgencySettingsScreen({ onBack, managerName, agencyName, carerCount }: {
   const [notifs, setNotifs] = useState({ loneWorker: true, missedMed: true, incident: true, pendingApproval: true, shiftStart: false, familyMessage: true });
   const [notifSaved, setNotifSaved] = useState(false);
   const [activeTab, setActiveTab] = useState<"profile" | "billing" | "notifications" | "security">("profile");
+  const [securityToast, setSecurityToast] = useState<string | null>(null);
+  const [showPinChange, setShowPinChange] = useState(false);
+  const [newPin, setNewPin] = useState("");
+  const [pinSaved, setPinSaved] = useState(false);
+
+  function showToast(msg: string) {
+    setSecurityToast(msg);
+    setTimeout(() => setSecurityToast(null), 3200);
+  }
 
   const monthlyTotal = carerCount * 8;
   const BILLING_HISTORY = [
@@ -6724,7 +6766,7 @@ function AgencySettingsScreen({ onBack, managerName, agencyName, carerCount }: {
   };
 
   return (
-    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column" }}>
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", position: "relative" as const }}>
       <div style={{ padding: "18px 18px 0", flexShrink: 0 }}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0, marginBottom: 10 }}>‹</button>
         <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>Agency Settings</div>
@@ -6862,12 +6904,12 @@ function AgencySettingsScreen({ onBack, managerName, agencyName, carerCount }: {
             <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 16px" }}>
               <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 12 }}>SECURITY</div>
               {[
-                { icon: "🔑", label: "Change Manager PIN", sub: "Update your login PIN" },
-                { icon: "📱", label: "Two-Factor Auth", sub: "Enabled via email OTP" },
-                { icon: "📋", label: "Activity Log", sub: "All manager actions recorded" },
-                { icon: "🗑", label: "Delete Account", sub: "Permanently remove agency and all data", danger: true },
+                { icon: "🔑", label: "Change Manager PIN", sub: "Update your login PIN", action: () => setShowPinChange(true) },
+                { icon: "📱", label: "Two-Factor Auth", sub: "Enabled via email OTP", action: () => showToast("✓ 2FA is active — a one-time code is sent to your email at each login") },
+                { icon: "📋", label: "Activity Log", sub: "All manager actions recorded", action: () => showToast("📋 Activity log download started — check your email shortly") },
+                { icon: "🗑", label: "Delete Account", sub: "Permanently remove agency and all data", danger: true, action: () => showToast("To delete your account, please contact support@carei.co.uk") },
               ].map((item, i, arr) => (
-                <div key={i} style={{ display: "flex", gap: 12, alignItems: "center", paddingBottom: i < arr.length - 1 ? 12 : 0, marginBottom: i < arr.length - 1 ? 12 : 0, borderBottom: i < arr.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
+                <div key={i} onClick={(item as any).action} style={{ display: "flex", gap: 12, alignItems: "center", paddingBottom: i < arr.length - 1 ? 12 : 0, marginBottom: i < arr.length - 1 ? 12 : 0, borderBottom: i < arr.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none", cursor: "pointer" }}>
                   <span style={{ fontSize: 18 }}>{item.icon}</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ color: (item as any).danger ? COLORS.red : COLORS.g1, fontSize: 13, fontWeight: 500 }}>{item.label}</div>
@@ -6880,11 +6922,11 @@ function AgencySettingsScreen({ onBack, managerName, agencyName, carerCount }: {
             <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 16px" }}>
               <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 12 }}>DATA & PRIVACY</div>
               {[
-                { icon: "📤", label: "Export Agency Data", sub: "Download all visit records, MAR charts, audit trail" },
-                { icon: "👤", label: "Subject Access Requests", sub: "Process GDPR requests from clients or carers" },
-                { icon: "🔒", label: "Data Retention Policy", sub: "7 years (UK domiciliary care standard)" },
+                { icon: "📤", label: "Export Agency Data", sub: "Download all visit records, MAR charts, audit trail", action: () => showToast("📤 Export started — you'll receive a download link by email within 5 minutes") },
+                { icon: "👤", label: "Subject Access Requests", sub: "Process GDPR requests from clients or carers", action: () => showToast("Send SAR requests to privacy@carei.co.uk — we respond within 30 days as required by UK GDPR") },
+                { icon: "🔒", label: "Data Retention Policy", sub: "7 years (UK domiciliary care standard)", action: () => showToast("📋 CAREi retains all care records for 7 years in line with CQC and UK domiciliary care requirements") },
               ].map((item, i, arr) => (
-                <div key={i} style={{ display: "flex", gap: 12, alignItems: "center", paddingBottom: i < arr.length - 1 ? 12 : 0, marginBottom: i < arr.length - 1 ? 12 : 0, borderBottom: i < arr.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
+                <div key={i} onClick={(item as any).action} style={{ display: "flex", gap: 12, alignItems: "center", paddingBottom: i < arr.length - 1 ? 12 : 0, marginBottom: i < arr.length - 1 ? 12 : 0, borderBottom: i < arr.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none", cursor: "pointer" }}>
                   <span style={{ fontSize: 18 }}>{item.icon}</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 500 }}>{item.label}</div>
@@ -6901,6 +6943,38 @@ function AgencySettingsScreen({ onBack, managerName, agencyName, carerCount }: {
           </>
         )}
       </div>
+
+      {/* Toast notification */}
+      {securityToast && (
+        <div style={{ position: "absolute" as const, bottom: 24, left: 16, right: 16, background: COLORS.navy, border: "1px solid rgba(79,209,197,0.3)", borderRadius: 12, padding: "13px 16px", zIndex: 200, boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}>
+          <div style={{ color: COLORS.teal, fontSize: 13, lineHeight: 1.5 }}>{securityToast}</div>
+        </div>
+      )}
+
+      {/* PIN change bottom sheet */}
+      {showPinChange && (
+        <div style={{ position: "absolute" as const, inset: 0, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "flex-end", zIndex: 300 }}>
+          <div style={{ background: COLORS.navy, width: "100%", borderRadius: "20px 20px 0 0", padding: "20px 20px 40px", border: "1px solid rgba(255,255,255,0.1)", borderBottom: "none" }}>
+            <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto 16px" }} />
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 17, marginBottom: 4 }}>Change Manager PIN</div>
+            <div style={{ color: COLORS.g2, fontSize: 13, marginBottom: 16 }}>Enter a new 4-digit PIN for your account</div>
+            <input
+              type="password"
+              maxLength={4}
+              inputMode="numeric"
+              value={newPin}
+              onChange={e => { setNewPin(e.target.value.replace(/\D/g, "")); setPinSaved(false); }}
+              placeholder="New 4-digit PIN"
+              style={{ width: "100%", padding: "13px 14px", borderRadius: 10, border: `1px solid ${newPin.length === 4 ? "rgba(79,209,197,0.5)" : "rgba(255,255,255,0.15)"}`, background: "rgba(255,255,255,0.08)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 18, letterSpacing: 8, outline: "none", boxSizing: "border-box" as const, marginBottom: 12 }}
+            />
+            {pinSaved && <div style={{ color: COLORS.green, fontSize: 13, marginBottom: 10, fontWeight: 600 }}>✓ PIN updated successfully</div>}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => { setShowPinChange(false); setNewPin(""); setPinSaved(false); }} style={{ flex: 1, padding: "13px 0", borderRadius: 12, border: "1px solid rgba(255,255,255,0.15)", background: "transparent", color: COLORS.g2, fontFamily: "DM Sans, sans-serif", fontSize: 14, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => { if (newPin.length === 4) { setPinSaved(true); setTimeout(() => { setShowPinChange(false); setNewPin(""); setPinSaved(false); }, 1400); } }} disabled={newPin.length !== 4} style={{ flex: 2, padding: "13px 0", borderRadius: 12, border: "none", background: newPin.length === 4 ? `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})` : "rgba(255,255,255,0.1)", color: newPin.length === 4 ? COLORS.darkNavy : COLORS.g3, fontFamily: "DM Sans, sans-serif", fontSize: 14, fontWeight: 700, cursor: newPin.length === 4 ? "pointer" : "not-allowed" }}>Save PIN</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -7190,10 +7264,12 @@ export default function CAREiApp() {
         />;
       case "copilot":
         return <CopilotScreen onBack={() => nav("today")} carerName={carerName} carerAgency={carerAgency} />;
-      case "medication":
-        return <MedicationScreen onNext={() => nav("today")} />;
+      case "medication": {
+        const medClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
+        return <MedicationScreen onNext={() => nav("today")} client={medClient} />;
+      }
       case "profile":
-        return <ProfileScreen onSignOut={() => nav("otp")} carerName={carerName} carerEmail={carerEmail} carerAgency={carerAgency} userRole={userRole} />;
+        return <ProfileScreen onSignOut={() => nav("otp")} onSettings={userRole === "manager" ? () => nav("agency-settings") : undefined} carerName={carerName} carerEmail={carerEmail} carerAgency={carerAgency} userRole={userRole} />;
       case "family": {
         const familyClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
         return <FamilyPortalScreen onBack={() => nav("today")} onSummary={() => nav("family-summary")} carerName={carerName} carerAgency={carerAgency} client={familyClient} />;

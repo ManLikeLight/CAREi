@@ -214,11 +214,11 @@ const SCHEDULE_CLIENTS = [
 
 // ─── Multi-Tenant Demo Data ───────────────────────────────────────────────────
 
-const DEMO_CARERS: { id: string; name: string; email: string; role: string; status: "active" | "invited"; lastActive: string; visits: number; initials: string }[] = [
-  { id: "c1", name: "Sarah O'Brien", email: "sarah.obrien@agency.com", role: "Senior Carer", status: "active", lastActive: "Today, 10:02", visits: 142, initials: "SO" },
-  { id: "c2", name: "John Mensah", email: "john.mensah@agency.com", role: "Carer", status: "active", lastActive: "Today, 08:45", visits: 98, initials: "JM" },
-  { id: "c3", name: "Amina Diallo", email: "amina.diallo@agency.com", role: "Care Assistant", status: "active", lastActive: "Yesterday", visits: 67, initials: "AD" },
-  { id: "c4", name: "Priya Sharma", email: "priya.sharma@agency.com", role: "Carer", status: "invited", lastActive: "—", visits: 0, initials: "PS" },
+const DEMO_CARERS: { id: string; name: string; email: string; role: string; status: "active" | "invited" | "suspended"; lastActive: string; visits: number; initials: string; dbs: string; compliance: number }[] = [
+  { id: "c1", name: "Sarah O'Brien", email: "sarah.obrien@agency.com", role: "Senior Carer", status: "active", lastActive: "Today, 10:02", visits: 142, initials: "SO", dbs: "Mar 2027", compliance: 97 },
+  { id: "c2", name: "John Mensah", email: "john.mensah@agency.com", role: "Carer", status: "active", lastActive: "Today, 08:45", visits: 98, initials: "JM", dbs: "Sep 2026", compliance: 91 },
+  { id: "c3", name: "Amina Diallo", email: "amina.diallo@agency.com", role: "Care Assistant", status: "active", lastActive: "Yesterday", visits: 67, initials: "AD", dbs: "Jun 2027", compliance: 88 },
+  { id: "c4", name: "Priya Sharma", email: "priya.sharma@agency.com", role: "Carer", status: "invited", lastActive: "—", visits: 0, initials: "PS", dbs: "—", compliance: 0 },
 ];
 
 // ─── CSS Injected Globally ──────────────────────────────────────────────────────
@@ -1023,6 +1023,9 @@ function LoginScreen({ onNext, onSignUp }: { onNext: (name: string, agency: stri
           </button>
           <button onClick={onSignUp} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>
             New here? Sign up instead
+          </button>
+          <button style={{ background: "none", border: "none", color: COLORS.g3, fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif", marginTop: -8 }}>
+            Forgot PIN? Contact your manager or email support@carei.co.uk
           </button>
         </div>
       )}
@@ -2566,7 +2569,7 @@ function MedicationScreen({ onNext }: { onNext: () => void }) {
   );
 }
 
-function SummaryScreen({ onDone, carerName }: { onDone: () => void; carerName: string }) {
+function SummaryScreen({ onDone, carerName, carerAgency }: { onDone: () => void; carerName: string; carerAgency: string }) {
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -2621,7 +2624,7 @@ Next visit: Continue monitoring as per care plan. Follow any medication timing i
         </div>
         <div style={{ background: "rgba(79,209,197,0.08)", borderRadius: 14, padding: 16, border: "1px solid rgba(79,209,197,0.2)", marginBottom: 24 }}>
           <div style={{ color: COLORS.teal, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>Submitted by</div>
-          <div style={{ color: COLORS.g1, fontSize: 13 }}>{carerName} · Adjoy Healthcare</div>
+          <div style={{ color: COLORS.g1, fontSize: 13 }}>{carerName} · {carerAgency || "CAREi Platform"}</div>
           <div style={{ color: COLORS.g3, fontSize: 11, marginTop: 2 }}>Visit ended · {ts}</div>
         </div>
         <div style={{ color: COLORS.g2, fontSize: 13, textAlign: "center", marginBottom: 16 }}>Next carer, tap below to confirm you have read this note</div>
@@ -2758,7 +2761,7 @@ Next visit: Continue monitoring as per care plan. Follow any medication timing i
   );
 }
 
-function ProfileScreen({ onSignOut, carerName, carerEmail, carerAgency }: { onSignOut: () => void; carerName: string; carerEmail: string; carerAgency: string }) {
+function ProfileScreen({ onSignOut, carerName, carerEmail, carerAgency, userRole }: { onSignOut: () => void; carerName: string; carerEmail: string; carerAgency: string; userRole: "manager" | "carer" | null }) {
   return (
     <div
       style={{
@@ -2808,8 +2811,8 @@ function ProfileScreen({ onSignOut, carerName, carerEmail, carerAgency }: { onSi
         {[
           { icon: "📧", label: "Email", value: carerEmail || "Not set" },
           { icon: "🏢", label: "Organisation", value: carerAgency || "—" },
-          { icon: "📋", label: "Role", value: "Senior Care Worker" },
-          { icon: "📍", label: "Region", value: "Reading, Berkshire" },
+          { icon: "📋", label: "Role", value: userRole === "manager" ? "Care Manager" : "Care Worker" },
+          { icon: "🌍", label: "Region", value: "United Kingdom" },
         ].map((item, i, arr) => (
           <div
             key={item.label}
@@ -4719,8 +4722,8 @@ function TodayCareScreen({
         {/* Stats */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 16 }}>
           {[
-            { label: "Visits", value: "3" },
-            { label: "Hours", value: "3.5" },
+            { label: "Visits", value: String(SCHEDULE_CLIENTS.length) },
+            { label: "Hours", value: String(SCHEDULE_CLIENTS.reduce((sum, c) => { const parts = c.time.split(" – "); const toH = (t: string) => { const [h, m] = t.split(":").map(Number); return h + (m || 0) / 60; }; return sum + (toH(parts[1]) - toH(parts[0])); }, 0).toFixed(1)) },
             { label: "Done", value: String(doneCount) },
           ].map((s) => (
             <div key={s.label} style={{ background: "rgba(255,255,255,0.07)", borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
@@ -6278,12 +6281,17 @@ function ManagerPortalScreen({
   );
 }
 
-function TeamManagementScreen({ onBack, onInvite, agencyName, carers }: {
+function TeamManagementScreen({ onBack, onInvite, agencyName, carers, onDeactivate }: {
   onBack: () => void; onInvite: () => void; agencyName: string;
   carers: typeof DEMO_CARERS;
+  onDeactivate: (id: string) => void;
 }) {
+  const [selectedCarer, setSelectedCarer] = useState<typeof DEMO_CARERS[0] | null>(null);
+  const [editRole, setEditRole] = useState("");
+  const [roleSaved, setRoleSaved] = useState(false);
+
   return (
-    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column" }}>
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", position: "relative" as const }}>
       <div style={{ padding: "18px 18px 12px", flexShrink: 0 }}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0, marginBottom: 10 }}>‹</button>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
@@ -6297,23 +6305,31 @@ function TeamManagementScreen({ onBack, onInvite, agencyName, carers }: {
       <div className="phone-scroll" style={{ flex: 1, padding: "4px 18px 30px", display: "flex", flexDirection: "column", gap: 10 }}>
         {carers.map(carer => {
           const isActive = carer.status === "active";
+          const isSuspended = carer.status === "suspended";
           const isInvited = carer.status === "invited";
-          const badgeColor = isActive ? COLORS.green : COLORS.amber;
-          const badgeBg = isActive ? "rgba(34,197,94,0.12)" : "rgba(246,183,60,0.12)";
-          const borderColor = isActive ? "rgba(34,197,94,0.15)" : "rgba(246,183,60,0.15)";
-          const statusLabel = isActive ? "Active" : "Invited";
+          const badgeColor = isActive ? COLORS.green : isSuspended ? COLORS.red : COLORS.amber;
+          const badgeBg = isActive ? "rgba(34,197,94,0.12)" : isSuspended ? "rgba(255,90,95,0.12)" : "rgba(246,183,60,0.12)";
+          const borderColor = isActive ? "rgba(34,197,94,0.15)" : isSuspended ? "rgba(255,90,95,0.15)" : "rgba(246,183,60,0.15)";
+          const statusLabel = isActive ? "Active" : isSuspended ? "Suspended" : "Invited";
           return (
-            <div key={carer.id} style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 16px", border: `1px solid ${borderColor}` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: isInvited ? 0 : 10 }}>
+            <div
+              key={carer.id}
+              onClick={() => { setSelectedCarer(carer); setEditRole(carer.role); setRoleSaved(false); }}
+              style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 16px", border: `1px solid ${borderColor}`, cursor: "pointer", opacity: isSuspended ? 0.65 : 1 }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: (isInvited || isSuspended) ? 0 : 10 }}>
                 <div style={{ width: 42, height: 42, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.darkNavy, fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{carer.initials}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{carer.name}</div>
                   <div style={{ color: COLORS.g2, fontSize: 12 }}>{carer.role}</div>
                 </div>
-                <span style={{ background: badgeBg, color: badgeColor, fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 99 }}>{statusLabel}</span>
+                <div style={{ display: "flex", flexDirection: "column" as const, alignItems: "flex-end", gap: 4 }}>
+                  <span style={{ background: badgeBg, color: badgeColor, fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 99 }}>{statusLabel}</span>
+                  <span style={{ color: COLORS.g3, fontSize: 10 }}>Tap to manage ›</span>
+                </div>
               </div>
-              {!isInvited && (
-                <div style={{ display: "flex", gap: 16, paddingLeft: 54 }}>
+              {isActive && (
+                <div style={{ display: "flex", gap: 12, paddingLeft: 54 }}>
                   <div>
                     <div style={{ color: COLORS.g3, fontSize: 9, fontWeight: 600, letterSpacing: 0.5 }}>LAST ACTIVE</div>
                     <div style={{ color: COLORS.g1, fontSize: 12, marginTop: 2 }}>{carer.lastActive}</div>
@@ -6322,16 +6338,21 @@ function TeamManagementScreen({ onBack, onInvite, agencyName, carers }: {
                     <div style={{ color: COLORS.g3, fontSize: 9, fontWeight: 600, letterSpacing: 0.5 }}>VISITS</div>
                     <div style={{ color: COLORS.g1, fontSize: 12, marginTop: 2 }}>{carer.visits}</div>
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: COLORS.g3, fontSize: 9, fontWeight: 600, letterSpacing: 0.5 }}>EMAIL</div>
-                    <div style={{ color: COLORS.g1, fontSize: 11, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{carer.email}</div>
+                  <div>
+                    <div style={{ color: COLORS.g3, fontSize: 9, fontWeight: 600, letterSpacing: 0.5 }}>DBS EXPIRY</div>
+                    <div style={{ color: COLORS.g1, fontSize: 12, marginTop: 2 }}>{carer.dbs}</div>
+                  </div>
+                  <div>
+                    <div style={{ color: COLORS.g3, fontSize: 9, fontWeight: 600, letterSpacing: 0.5 }}>COMPLIANCE</div>
+                    <div style={{ color: carer.compliance >= 90 ? COLORS.green : COLORS.amber, fontWeight: 700, fontSize: 12, marginTop: 2 }}>{carer.compliance}%</div>
                   </div>
                 </div>
               )}
-              {isInvited && (
+              {(isInvited || isSuspended) && (
                 <div style={{ marginTop: 8, paddingLeft: 54 }}>
                   <div style={{ color: COLORS.g2, fontSize: 11 }}>{carer.email}</div>
-                  <div style={{ color: COLORS.amber, fontSize: 11, marginTop: 3 }}>✉️ Invite sent · awaiting account setup</div>
+                  {isInvited && <div style={{ color: COLORS.amber, fontSize: 11, marginTop: 3 }}>✉️ Invite sent · awaiting account setup</div>}
+                  {isSuspended && <div style={{ color: COLORS.red, fontSize: 11, marginTop: 3 }}>⏸ Access suspended</div>}
                 </div>
               )}
             </div>
@@ -6339,11 +6360,48 @@ function TeamManagementScreen({ onBack, onInvite, agencyName, carers }: {
         })}
         <div style={{ background: "rgba(79,209,197,0.06)", borderRadius: 12, padding: "12px 14px", border: "1px solid rgba(79,209,197,0.15)", marginTop: 4 }}>
           <div style={{ color: COLORS.teal, fontSize: 12, fontWeight: 600, marginBottom: 3 }}>ℹ️ How carer access works</div>
-          <div style={{ color: COLORS.g2, fontSize: 12, lineHeight: 1.55 }}>
-            Carers you invite will receive a link to set up their PIN. Once active, they can only see the clients and visits assigned to them by you.
-          </div>
+          <div style={{ color: COLORS.g2, fontSize: 12, lineHeight: 1.55 }}>Carers you invite will receive a link to set up their PIN. Once active, they can only see the clients and visits assigned to them by you.</div>
         </div>
       </div>
+
+      {selectedCarer && (
+        <div style={{ position: "absolute" as const, inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", zIndex: 100 }} onClick={(e) => { if (e.target === e.currentTarget) setSelectedCarer(null); }}>
+          <div style={{ background: COLORS.navy, width: "100%", borderRadius: "20px 20px 0 0", padding: "20px 20px 44px", display: "flex", flexDirection: "column" as const, gap: 14, border: "1px solid rgba(255,255,255,0.1)", borderBottom: "none" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>{selectedCarer.name}</div>
+                <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>{selectedCarer.email}</div>
+              </div>
+              <button onClick={() => setSelectedCarer(null)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, color: COLORS.g2, fontSize: 13, padding: "5px 10px", cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>✕ Close</button>
+            </div>
+            <div>
+              <div style={{ color: COLORS.g2, fontSize: 11, marginBottom: 6 }}>ROLE</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <select value={editRole} onChange={e => { setEditRole(e.target.value); setRoleSaved(false); }} style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.08)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, outline: "none", cursor: "pointer" }}>
+                  {["Senior Carer", "Carer", "Care Assistant", "Lead Carer", "Night Carer"].map(r => <option key={r} value={r} style={{ background: COLORS.navy }}>{r}</option>)}
+                </select>
+                <button onClick={() => setRoleSaved(true)} style={{ padding: "10px 14px", borderRadius: 10, border: "none", background: roleSaved ? "rgba(34,197,94,0.2)" : COLORS.teal, color: roleSaved ? COLORS.green : COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                  {roleSaved ? "✓ Saved" : "Save"}
+                </button>
+              </div>
+            </div>
+            {selectedCarer.status !== "active" && (
+              <button onClick={() => setSelectedCarer(null)} style={{ width: "100%", padding: "12px 0", borderRadius: 12, border: "1px solid rgba(79,209,197,0.3)", background: "rgba(79,209,197,0.1)", color: COLORS.teal, fontFamily: "DM Sans, sans-serif", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                ✉️ Resend Invite
+              </button>
+            )}
+            {selectedCarer.status === "active" ? (
+              <button onClick={() => { onDeactivate(selectedCarer.id); setSelectedCarer(null); }} style={{ width: "100%", padding: "12px 0", borderRadius: 12, border: "1px solid rgba(255,90,95,0.3)", background: "rgba(255,90,95,0.08)", color: COLORS.red, fontFamily: "DM Sans, sans-serif", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                ⏸ Suspend Access
+              </button>
+            ) : selectedCarer.status === "suspended" ? (
+              <button onClick={() => { onDeactivate(selectedCarer.id); setSelectedCarer(null); }} style={{ width: "100%", padding: "12px 0", borderRadius: 12, border: "1px solid rgba(34,197,94,0.3)", background: "rgba(34,197,94,0.08)", color: COLORS.green, fontFamily: "DM Sans, sans-serif", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                ▶ Reactivate Carer
+              </button>
+            ) : null}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -6436,10 +6494,29 @@ function InviteCarerScreen({ onBack, onInvited, agencyName }: {
   );
 }
 
-function ClientManagementScreen({ onBack, agencyName }: { onBack: () => void; agencyName: string }) {
+function ClientManagementScreen({ onBack, agencyName, teamCarers }: { onBack: () => void; agencyName: string; teamCarers: typeof DEMO_CARERS }) {
   const [showAdd, setShowAdd] = useState(false);
-  const [newClientName, setNewClientName] = useState("");
-  const [addedClients, setAddedClients] = useState<string[]>([]);
+  const [addedClients, setAddedClients] = useState<{ name: string; dob: string; address: string; condition: string; gp: string; carer: string; contact: string }[]>([]);
+  const [form, setForm] = useState({ name: "", dob: "", address: "", condition: "", gp: "", carer: "Unassigned", contact: "" });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const inputBase: React.CSSProperties = {
+    width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.07)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, outline: "none", boxSizing: "border-box",
+  };
+
+  function handleAdd() {
+    const e: Record<string, string> = {};
+    if (!form.name.trim()) e.name = "Full name is required";
+    if (!form.dob.trim()) e.dob = "Date of birth is required";
+    if (Object.keys(e).length) { setErrors(e); return; }
+    setAddedClients(p => [...p, { ...form }]);
+    setShowAdd(false);
+    setForm({ name: "", dob: "", address: "", condition: "", gp: "", carer: "Unassigned", contact: "" });
+    setErrors({});
+  }
+
+  const activeCarers = teamCarers.filter(c => c.status === "active");
 
   return (
     <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", position: "relative" as const }}>
@@ -6480,28 +6557,55 @@ function ClientManagementScreen({ onBack, agencyName }: { onBack: () => void; ag
             </div>
           </div>
         ))}
-        {addedClients.map((clientName, i) => (
+        {addedClients.map((cl, i) => (
           <div key={`new-${i}`} style={{ background: "rgba(34,197,94,0.06)", borderRadius: 14, padding: "14px 16px", border: "1px solid rgba(34,197,94,0.25)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(34,197,94,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>👤</div>
               <div style={{ flex: 1 }}>
-                <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{clientName}</div>
-                <div style={{ color: COLORS.g2, fontSize: 12 }}>New client · Care plan setup pending</div>
+                <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{cl.name}</div>
+                <div style={{ color: COLORS.g2, fontSize: 12 }}>{cl.dob ? `DOB: ${cl.dob}` : "New client"}{cl.condition ? ` · ${cl.condition}` : " · Care plan pending"}</div>
               </div>
               <span style={{ background: "rgba(246,183,60,0.12)", color: COLORS.amber, fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 99 }}>Setup</span>
             </div>
+            {cl.carer !== "Unassigned" && (
+              <div style={{ marginTop: 8, paddingLeft: 56, color: COLORS.g2, fontSize: 12 }}>Assigned to: {cl.carer}</div>
+            )}
           </div>
         ))}
       </div>
       {showAdd && (
         <div style={{ position: "absolute" as const, inset: 0, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "flex-end", zIndex: 100 }}>
-          <div style={{ background: COLORS.navy, width: "100%", borderRadius: "20px 20px 0 0", padding: "24px 20px 44px", display: "flex", flexDirection: "column", gap: 14, border: "1px solid rgba(255,255,255,0.1)", borderBottom: "none" }}>
+          <div className="phone-scroll" style={{ background: COLORS.navy, width: "100%", borderRadius: "20px 20px 0 0", padding: "20px 20px 44px", display: "flex", flexDirection: "column" as const, gap: 12, border: "1px solid rgba(255,255,255,0.1)", borderBottom: "none", maxHeight: "88%", overflowY: "auto" as const }}>
             <div style={{ color: "#fff", fontWeight: 700, fontSize: 17 }}>Add New Client</div>
-            <div style={{ color: COLORS.g2, fontSize: 13, lineHeight: 1.5 }}>The client will be added to your agency's client list. You can build their care plan, assign a carer, and schedule visits from their profile.</div>
-            <input value={newClientName} onChange={e => setNewClientName(e.target.value)} placeholder="Client's full name" style={{ width: "100%", padding: "13px 14px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.08)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 14, outline: "none", boxSizing: "border-box" as const }} />
-            <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => { setShowAdd(false); setNewClientName(""); }} style={{ flex: 1, padding: "13px 0", borderRadius: 12, border: "1px solid rgba(255,255,255,0.15)", background: "transparent", color: COLORS.g2, fontFamily: "DM Sans, sans-serif", fontSize: 14, cursor: "pointer" }}>Cancel</button>
-              <button onClick={() => { if (newClientName.trim()) { setAddedClients(p => [...p, newClientName.trim()]); setShowAdd(false); setNewClientName(""); } }} style={{ flex: 2, padding: "13px 0", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Add Client</button>
+            {([
+              { key: "name", label: "Full Name *", placeholder: "e.g. Margaret Thompson" },
+              { key: "dob", label: "Date of Birth *", placeholder: "e.g. 12/03/1942" },
+              { key: "address", label: "Home Address", placeholder: "e.g. 14 Rose Street, Reading RG2 7TR" },
+              { key: "condition", label: "Primary Condition / Diagnosis", placeholder: "e.g. Dementia, Parkinson's" },
+              { key: "gp", label: "GP Name & Surgery", placeholder: "e.g. Dr. Patel, Elm Park Surgery" },
+              { key: "contact", label: "Emergency Contact", placeholder: "e.g. James Thompson (son)" },
+            ] as { key: string; label: string; placeholder: string }[]).map(({ key, label, placeholder }) => (
+              <div key={key}>
+                <div style={{ color: COLORS.g2, fontSize: 11, marginBottom: 4 }}>{label}</div>
+                <input
+                  value={form[key as keyof typeof form]}
+                  onChange={e => { setForm(f => ({ ...f, [key]: e.target.value })); setErrors(p => ({ ...p, [key]: "" })); }}
+                  placeholder={placeholder}
+                  style={{ ...inputBase, borderColor: errors[key] ? "rgba(255,90,95,0.5)" : "rgba(255,255,255,0.12)" }}
+                />
+                {errors[key] && <div style={{ color: COLORS.red, fontSize: 11, marginTop: 3 }}>{errors[key]}</div>}
+              </div>
+            ))}
+            <div>
+              <div style={{ color: COLORS.g2, fontSize: 11, marginBottom: 4 }}>Assign Carer</div>
+              <select value={form.carer} onChange={e => setForm(f => ({ ...f, carer: e.target.value }))} style={{ ...inputBase }}>
+                <option value="Unassigned" style={{ background: COLORS.navy }}>Unassigned</option>
+                {activeCarers.map(c => <option key={c.id} value={c.name} style={{ background: COLORS.navy }}>{c.name}</option>)}
+              </select>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+              <button onClick={() => { setShowAdd(false); setForm({ name: "", dob: "", address: "", condition: "", gp: "", carer: "Unassigned", contact: "" }); setErrors({}); }} style={{ flex: 1, padding: "13px 0", borderRadius: 12, border: "1px solid rgba(255,255,255,0.15)", background: "transparent", color: COLORS.g2, fontFamily: "DM Sans, sans-serif", fontSize: 14, cursor: "pointer" }}>Cancel</button>
+              <button onClick={handleAdd} style={{ flex: 2, padding: "13px 0", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Add Client</button>
             </div>
           </div>
         </div>
@@ -6510,91 +6614,207 @@ function ClientManagementScreen({ onBack, agencyName }: { onBack: () => void; ag
   );
 }
 
-function AgencySettingsScreen({ onBack, managerName, agencyName }: { onBack: () => void; managerName: string; agencyName: string }) {
-  const [savedName, setSavedName] = useState(agencyName);
-  const [editName, setEditName] = useState(agencyName);
+function AgencySettingsScreen({ onBack, managerName, agencyName, carerCount }: { onBack: () => void; managerName: string; agencyName: string; carerCount: number }) {
+  const [fields, setFields] = useState({
+    name: agencyName,
+    address: "12 Care Lane, Reading RG1 1AB",
+    companies: "12345678",
+    cqcId: "1-12345678901",
+  });
   const [saved, setSaved] = useState(false);
+  const [notifs, setNotifs] = useState({ loneWorker: true, missedMed: true, incident: true, pendingApproval: true, shiftStart: false, familyMessage: true });
+  const [notifSaved, setNotifSaved] = useState(false);
+  const [activeTab, setActiveTab] = useState<"profile" | "billing" | "notifications" | "security">("profile");
+
+  const monthlyTotal = carerCount * 8;
+  const BILLING_HISTORY = [
+    { date: "1 Jun 2026", desc: `${carerCount} active carers`, amount: `£${monthlyTotal}.00`, status: "Paid" },
+    { date: "1 May 2026", desc: `${carerCount} active carers`, amount: `£${monthlyTotal}.00`, status: "Paid" },
+    { date: "1 Apr 2026", desc: `${Math.max(1, carerCount - 1)} active carers`, amount: `£${Math.max(1, carerCount - 1) * 8}.00`, status: "Paid" },
+  ];
+
+  const inputBase: React.CSSProperties = {
+    width: "100%", padding: "11px 14px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.15)",
+    background: "rgba(255,255,255,0.08)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, outline: "none", boxSizing: "border-box",
+  };
 
   return (
     <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column" }}>
-      <div style={{ padding: "18px 18px 12px", flexShrink: 0 }}>
+      <div style={{ padding: "18px 18px 0", flexShrink: 0 }}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0, marginBottom: 10 }}>‹</button>
         <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>Agency Settings</div>
-        <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 3 }}>Manage your organisation profile and subscription</div>
+        <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 3, marginBottom: 14 }}>Manage your organisation profile and subscription</div>
+        <div style={{ display: "flex", gap: 6, overflowX: "auto" as const, paddingBottom: 12, scrollbarWidth: "none" as const }}>
+          {([["profile", "🏢 Profile"], ["billing", "💳 Billing"], ["notifications", "🔔 Alerts"], ["security", "🔐 Security"]] as [string, string][]).map(([key, label]) => (
+            <button key={key} onClick={() => setActiveTab(key as typeof activeTab)} style={{ padding: "7px 14px", borderRadius: 99, border: `1px solid ${activeTab === key ? COLORS.teal : "rgba(255,255,255,0.1)"}`, background: activeTab === key ? "rgba(79,209,197,0.15)" : "rgba(255,255,255,0.05)", color: activeTab === key ? COLORS.teal : COLORS.g2, fontFamily: "DM Sans, sans-serif", fontSize: 12, fontWeight: activeTab === key ? 700 : 400, cursor: "pointer", whiteSpace: "nowrap" as const, flexShrink: 0 }}>{label}</button>
+          ))}
+        </div>
       </div>
-      <div className="phone-scroll" style={{ flex: 1, padding: "4px 18px 30px", display: "flex", flexDirection: "column", gap: 14 }}>
-        <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 16px" }}>
-          <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 12 }}>AGENCY PROFILE</div>
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ color: COLORS.g2, fontSize: 12, marginBottom: 5 }}>Agency / Organisation Name</div>
-            <input value={editName} onChange={e => { setEditName(e.target.value); setSaved(false); }} style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.08)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 14, outline: "none", boxSizing: "border-box" as const }} />
-          </div>
-          {[
-            { label: "Account Owner", value: managerName || "—" },
-            { label: "Registered Address", value: "12 Care Lane, Reading RG1 1AB" },
-            { label: "Companies House No.", value: "12345678" },
-            { label: "CQC Provider ID", value: "1-12345678901" },
-          ].map(row => (
-            <div key={row.label} style={{ marginBottom: 10 }}>
-              <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 600, letterSpacing: 0.4, marginBottom: 3 }}>{row.label.toUpperCase()}</div>
-              <div style={{ color: COLORS.g1, fontSize: 13 }}>{row.value}</div>
-            </div>
-          ))}
-          <button onClick={() => { setSavedName(editName); setSaved(true); }} style={{ width: "100%", marginTop: 8, padding: "11px 0", borderRadius: 10, border: "none", background: saved ? "rgba(34,197,94,0.15)" : `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: saved ? COLORS.green : COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all 0.2s" }}>
-            {saved ? "✓ Saved" : "Save Changes"}
-          </button>
-          {saved && savedName !== agencyName && <div style={{ color: COLORS.g3, fontSize: 11, marginTop: 6, textAlign: "center" }}>Name updated to "{savedName}"</div>}
-        </div>
 
-        <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 16px" }}>
-          <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 12 }}>SUBSCRIPTION</div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-            <div>
-              <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>Professional</div>
-              <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>£8 per carer / month · Unlimited clients</div>
-            </div>
-            <span style={{ background: "rgba(79,209,197,0.15)", color: COLORS.teal, fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 99 }}>Active</span>
-          </div>
-          <div style={{ background: "rgba(79,209,197,0.07)", borderRadius: 10, padding: "10px 12px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <div style={{ color: COLORS.g2, fontSize: 11 }}>Active carers this month</div>
-              <div style={{ color: "#fff", fontWeight: 700, fontSize: 18, marginTop: 2 }}>3 carers × £8 <span style={{ color: COLORS.teal, fontSize: 13 }}>= £24/mo</span></div>
-            </div>
-            <span style={{ color: COLORS.g3, fontSize: 11 }}>Scales with your team</span>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-            {["Unlimited visit recording", "AI Copilot for all carers", "Family Portal", "Compliance Dashboard", "Manager Approvals workflow", "Full audit trail export"].map(f => (
-              <div key={f} style={{ display: "flex", gap: 9, alignItems: "center" }}>
-                <span style={{ color: COLORS.green, fontSize: 13 }}>✓</span>
-                <span style={{ color: COLORS.g1, fontSize: 13 }}>{f}</span>
+      <div className="phone-scroll" style={{ flex: 1, padding: "0 18px 30px", display: "flex", flexDirection: "column", gap: 14 }}>
+
+        {activeTab === "profile" && (
+          <>
+            <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 16px" }}>
+              <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 12 }}>AGENCY PROFILE</div>
+              {([
+                { key: "name", label: "Agency / Organisation Name" },
+                { key: "address", label: "Registered Address" },
+                { key: "companies", label: "Companies House No." },
+                { key: "cqcId", label: "CQC Provider ID" },
+              ] as { key: string; label: string }[]).map(({ key, label }) => (
+                <div key={key} style={{ marginBottom: 12 }}>
+                  <div style={{ color: COLORS.g2, fontSize: 11, marginBottom: 5 }}>{label}</div>
+                  <input value={fields[key as keyof typeof fields]} onChange={e => { setFields(f => ({ ...f, [key]: e.target.value })); setSaved(false); }} style={inputBase} />
+                </div>
+              ))}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 600, letterSpacing: 0.4, marginBottom: 3 }}>ACCOUNT OWNER</div>
+                <div style={{ color: COLORS.g1, fontSize: 13 }}>{managerName || "—"}</div>
               </div>
-            ))}
-          </div>
-          <div style={{ marginTop: 12, color: COLORS.g3, fontSize: 11 }}>Next billing: 1 July 2026 · £24 (3 active carers)</div>
-        </div>
-
-        <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 16px" }}>
-          <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 12 }}>SECURITY</div>
-          {[
-            { icon: "🔑", label: "Change Manager PIN", sub: "Update your login PIN" },
-            { icon: "📱", label: "Two-Factor Auth", sub: "Enabled via email OTP" },
-            { icon: "📋", label: "Activity Log", sub: "All manager actions recorded" },
-          ].map((item, i) => (
-            <div key={i} style={{ display: "flex", gap: 12, alignItems: "center", paddingBottom: i < 2 ? 10 : 0, marginBottom: i < 2 ? 10 : 0, borderBottom: i < 2 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
-              <span style={{ fontSize: 18 }}>{item.icon}</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 500 }}>{item.label}</div>
-                <div style={{ color: COLORS.g3, fontSize: 11, marginTop: 1 }}>{item.sub}</div>
-              </div>
-              <span style={{ color: COLORS.g3, fontSize: 18 }}>›</span>
+              <button onClick={() => setSaved(true)} style={{ width: "100%", marginTop: 4, padding: "11px 0", borderRadius: 10, border: "none", background: saved ? "rgba(34,197,94,0.15)" : `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: saved ? COLORS.green : COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                {saved ? "✓ Changes Saved" : "Save Changes"}
+              </button>
             </div>
-          ))}
-        </div>
+            <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 16px" }}>
+              <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 12 }}>SUBSCRIPTION</div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                <div>
+                  <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>Professional</div>
+                  <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>£8 per carer / month · Unlimited clients</div>
+                </div>
+                <span style={{ background: "rgba(79,209,197,0.15)", color: COLORS.teal, fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 99 }}>Active</span>
+              </div>
+              <div style={{ background: "rgba(79,209,197,0.07)", borderRadius: 10, padding: "10px 12px", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <div style={{ color: COLORS.g2, fontSize: 11 }}>Active carers this month</div>
+                  <div style={{ color: "#fff", fontWeight: 700, fontSize: 18, marginTop: 2 }}>{carerCount} carer{carerCount !== 1 ? "s" : ""} × £8 <span style={{ color: COLORS.teal, fontSize: 13 }}>= £{monthlyTotal}/mo</span></div>
+                </div>
+                <span style={{ color: COLORS.g3, fontSize: 11 }}>Scales with team</span>
+              </div>
+              {["Unlimited visit recording", "AI Copilot for all carers", "Family Portal", "Compliance Dashboard", "Manager Approvals workflow", "Full audit trail export"].map(f => (
+                <div key={f} style={{ display: "flex", gap: 9, alignItems: "center", marginBottom: 6 }}>
+                  <span style={{ color: COLORS.green, fontSize: 13 }}>✓</span>
+                  <span style={{ color: COLORS.g1, fontSize: 13 }}>{f}</span>
+                </div>
+              ))}
+              <div style={{ marginTop: 12, color: COLORS.g3, fontSize: 11 }}>Next billing: 1 July 2026 · £{monthlyTotal} ({carerCount} active carer{carerCount !== 1 ? "s" : ""})</div>
+            </div>
+          </>
+        )}
 
-        <div style={{ textAlign: "center", paddingTop: 4 }}>
-          <div style={{ color: COLORS.g3, fontSize: 11 }}>CAREi Platform · UK Care Compliance</div>
-          <div style={{ color: COLORS.g3, fontSize: 10, marginTop: 3 }}>GDPR Ready · Hosted in the UK · ISO 27001</div>
-        </div>
+        {activeTab === "billing" && (
+          <>
+            <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 16px" }}>
+              <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 12 }}>PAYMENT METHOD</div>
+              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                <div style={{ width: 42, height: 28, borderRadius: 6, background: "rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>💳</div>
+                <div>
+                  <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600 }}>Visa ending in 4242</div>
+                  <div style={{ color: COLORS.g3, fontSize: 11, marginTop: 1 }}>Expires 09/2028</div>
+                </div>
+                <button style={{ marginLeft: "auto", background: "none", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, color: COLORS.g2, fontSize: 11, padding: "5px 10px", cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Update</button>
+              </div>
+            </div>
+            <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 16px" }}>
+              <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 12 }}>BILLING HISTORY</div>
+              {BILLING_HISTORY.map((inv, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, paddingBottom: i < BILLING_HISTORY.length - 1 ? 12 : 0, marginBottom: i < BILLING_HISTORY.length - 1 ? 12 : 0, borderBottom: i < BILLING_HISTORY.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600 }}>{inv.date}</div>
+                    <div style={{ color: COLORS.g3, fontSize: 11, marginTop: 2 }}>{inv.desc}</div>
+                  </div>
+                  <div style={{ textAlign: "right" as const }}>
+                    <div style={{ color: "#fff", fontWeight: 700, fontSize: 13 }}>{inv.amount}</div>
+                    <div style={{ color: COLORS.green, fontSize: 10, marginTop: 2, fontWeight: 600 }}>✓ {inv.status}</div>
+                  </div>
+                  <button style={{ background: "none", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: COLORS.g2, fontSize: 11, padding: "5px 8px", cursor: "pointer", fontFamily: "DM Sans, sans-serif", flexShrink: 0 }}>PDF</button>
+                </div>
+              ))}
+            </div>
+            <div style={{ background: "rgba(79,209,197,0.06)", borderRadius: 12, padding: "12px 14px", border: "1px solid rgba(79,209,197,0.15)" }}>
+              <div style={{ color: COLORS.teal, fontSize: 12, fontWeight: 600, marginBottom: 4 }}>ℹ️ VAT</div>
+              <div style={{ color: COLORS.g2, fontSize: 12, lineHeight: 1.5 }}>CAREi invoices are issued VAT-exempt as a medical software platform. A VAT receipt is available on request.</div>
+            </div>
+          </>
+        )}
+
+        {activeTab === "notifications" && (
+          <>
+            <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 16px" }}>
+              <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 14 }}>MANAGER ALERTS</div>
+              <div style={{ color: COLORS.g2, fontSize: 12, marginBottom: 14, lineHeight: 1.5 }}>All alerts are sent to <span style={{ color: COLORS.g1 }}>{managerName?.split(" ")[0] || "you"}</span> by email and in-app.</div>
+              {([
+                { key: "loneWorker", label: "Lone worker overdue", sub: "When a carer's check-in is 25+ min late", urgent: true },
+                { key: "missedMed", label: "Medication not given", sub: "When a scheduled med is marked as not given", urgent: true },
+                { key: "incident", label: "Incident raised", sub: "When a carer flags an incident during a visit", urgent: true },
+                { key: "pendingApproval", label: "Shift summary ready", sub: "When a ContinuCare+ summary awaits approval", urgent: false },
+                { key: "shiftStart", label: "Carer clocked in", sub: "When a carer starts a visit", urgent: false },
+                { key: "familyMessage", label: "Family message received", sub: "When a family member sends a message via portal", urgent: false },
+              ] as { key: string; label: string; sub: string; urgent: boolean }[]).map((n, i, arr) => (
+                <div key={n.key} style={{ display: "flex", alignItems: "flex-start", gap: 12, paddingBottom: i < arr.length - 1 ? 14 : 0, marginBottom: i < arr.length - 1 ? 14 : 0, borderBottom: i < arr.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600 }}>{n.label}</div>
+                      {n.urgent && <span style={{ background: "rgba(255,90,95,0.15)", color: COLORS.red, fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 99 }}>CRITICAL</span>}
+                    </div>
+                    <div style={{ color: COLORS.g3, fontSize: 11, marginTop: 2 }}>{n.sub}</div>
+                  </div>
+                  <div onClick={() => { setNotifs(p => ({ ...p, [n.key]: !p[n.key as keyof typeof p] })); setNotifSaved(false); }} style={{ width: 44, height: 24, borderRadius: 99, background: notifs[n.key as keyof typeof notifs] ? COLORS.teal : "rgba(255,255,255,0.15)", cursor: "pointer", flexShrink: 0, position: "relative" as const, marginTop: 2, transition: "background 0.2s" }}>
+                    <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#fff", position: "absolute" as const, top: 3, left: notifs[n.key as keyof typeof notifs] ? 23 : 3, transition: "left 0.2s" }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => setNotifSaved(true)} style={{ width: "100%", padding: "12px 0", borderRadius: 12, border: "none", background: notifSaved ? "rgba(34,197,94,0.15)" : `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: notifSaved ? COLORS.green : COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+              {notifSaved ? "✓ Preferences Saved" : "Save Preferences"}
+            </button>
+          </>
+        )}
+
+        {activeTab === "security" && (
+          <>
+            <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 16px" }}>
+              <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 12 }}>SECURITY</div>
+              {[
+                { icon: "🔑", label: "Change Manager PIN", sub: "Update your login PIN" },
+                { icon: "📱", label: "Two-Factor Auth", sub: "Enabled via email OTP" },
+                { icon: "📋", label: "Activity Log", sub: "All manager actions recorded" },
+                { icon: "🗑", label: "Delete Account", sub: "Permanently remove agency and all data", danger: true },
+              ].map((item, i, arr) => (
+                <div key={i} style={{ display: "flex", gap: 12, alignItems: "center", paddingBottom: i < arr.length - 1 ? 12 : 0, marginBottom: i < arr.length - 1 ? 12 : 0, borderBottom: i < arr.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
+                  <span style={{ fontSize: 18 }}>{item.icon}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: (item as any).danger ? COLORS.red : COLORS.g1, fontSize: 13, fontWeight: 500 }}>{item.label}</div>
+                    <div style={{ color: COLORS.g3, fontSize: 11, marginTop: 1 }}>{item.sub}</div>
+                  </div>
+                  <span style={{ color: COLORS.g3, fontSize: 18 }}>›</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 16px" }}>
+              <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 12 }}>DATA & PRIVACY</div>
+              {[
+                { icon: "📤", label: "Export Agency Data", sub: "Download all visit records, MAR charts, audit trail" },
+                { icon: "👤", label: "Subject Access Requests", sub: "Process GDPR requests from clients or carers" },
+                { icon: "🔒", label: "Data Retention Policy", sub: "7 years (UK domiciliary care standard)" },
+              ].map((item, i, arr) => (
+                <div key={i} style={{ display: "flex", gap: 12, alignItems: "center", paddingBottom: i < arr.length - 1 ? 12 : 0, marginBottom: i < arr.length - 1 ? 12 : 0, borderBottom: i < arr.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
+                  <span style={{ fontSize: 18 }}>{item.icon}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 500 }}>{item.label}</div>
+                    <div style={{ color: COLORS.g3, fontSize: 11, marginTop: 1 }}>{item.sub}</div>
+                  </div>
+                  <span style={{ color: COLORS.g3, fontSize: 18 }}>›</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ textAlign: "center" as const, paddingTop: 4 }}>
+              <div style={{ color: COLORS.g3, fontSize: 11 }}>CAREi Platform · UK Care Compliance</div>
+              <div style={{ color: COLORS.g3, fontSize: 10, marginTop: 3 }}>GDPR Ready · Hosted in the UK · ISO 27001</div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -6687,13 +6907,15 @@ function ScheduleScreen({
   onAssign,
   onBack,
   carerAgency,
+  teamCarers,
 }: {
   assignedCarers: Record<string, string>;
   onAssign: (clientId: string, carer: string) => void;
   onBack: () => void;
   carerAgency: string;
+  teamCarers: typeof DEMO_CARERS;
 }) {
-  const CARERS = ["Sarah", "John", "Amina", "Unassigned"];
+  const CARERS = [...teamCarers.filter(c => c.status === "active").map(c => c.name.split(" ")[0]), "Unassigned"];
 
   return (
     <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column" }}>
@@ -6847,6 +7069,7 @@ export default function CAREiApp() {
           onInvite={() => nav("invite-carer")}
           agencyName={carerAgency}
           carers={managerCarers}
+          onDeactivate={(id) => setManagerCarers(prev => prev.map(c => c.id === id ? { ...c, status: c.status === "active" ? "suspended" as const : "active" as const } : c))}
         />;
       case "invite-carer":
         return <InviteCarerScreen
@@ -6862,6 +7085,8 @@ export default function CAREiApp() {
               lastActive: "—",
               visits: 0,
               initials: name.split(" ").filter(Boolean).map((n: string) => n[0]).join("").slice(0, 2).toUpperCase(),
+              dbs: "—",
+              compliance: 0,
             }]);
           }}
         />;
@@ -6869,19 +7094,21 @@ export default function CAREiApp() {
         return <ClientManagementScreen
           onBack={() => nav("manager-portal")}
           agencyName={carerAgency}
+          teamCarers={managerCarers}
         />;
       case "agency-settings":
         return <AgencySettingsScreen
           onBack={() => nav("manager-portal")}
           managerName={carerName}
           agencyName={carerAgency}
+          carerCount={managerCarers.filter(c => c.status === "active").length}
         />;
       case "copilot":
         return <CopilotScreen onBack={() => nav("today")} carerName={carerName} carerAgency={carerAgency} />;
       case "medication":
         return <MedicationScreen onNext={() => nav("today")} />;
       case "profile":
-        return <ProfileScreen onSignOut={() => nav("otp")} carerName={carerName} carerEmail={carerEmail} carerAgency={carerAgency} />;
+        return <ProfileScreen onSignOut={() => nav("otp")} carerName={carerName} carerEmail={carerEmail} carerAgency={carerAgency} userRole={userRole} />;
       case "family": {
         const familyClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
         return <FamilyPortalScreen onBack={() => nav("today")} onSummary={() => nav("family-summary")} carerName={carerName} carerAgency={carerAgency} client={familyClient} />;
@@ -7027,6 +7254,7 @@ export default function CAREiApp() {
             onAssign={(id, carer) => setAssignedCarers((c) => ({ ...c, [id]: carer }))}
             onBack={() => nav("admin")}
             carerAgency={carerAgency}
+            teamCarers={managerCarers}
           />
         );
       case "rota":

@@ -869,7 +869,31 @@ function SignUpScreen({ onNext, onLogin }: { onNext: (name: string, agency: stri
         </div>
       )}
 
-      {step === "done" && <AuthSuccess message="Account created! Welcome aboard…" />}
+      {step === "done" && (
+        <div className="fade-in" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "16px 0" }}>
+          <div style={{ position: "relative" as const }}>
+            <div style={{ width: 96, height: 96, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.darkNavy, fontWeight: 700, fontSize: 34, boxShadow: `0 0 0 6px rgba(79,209,197,0.18), 0 0 0 12px rgba(79,209,197,0.07)` }}>
+              {fullName.trim().split(" ").filter(Boolean).map((n: string) => n[0]).join("").slice(0, 2).toUpperCase() || "?"}
+            </div>
+            <div style={{ position: "absolute" as const, bottom: 2, right: 2, width: 26, height: 26, borderRadius: "50%", background: COLORS.green, display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${COLORS.darkNavy}` }}>
+              <svg width="13" height="13" viewBox="0 0 13 13"><polyline points="2,7 5,10 11,3" fill="none" stroke={COLORS.darkNavy} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </div>
+          </div>
+          <div style={{ textAlign: "center" as const }}>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 22 }}>Welcome, {fullName.trim().split(" ")[0]}!</div>
+            <div style={{ color: COLORS.g2, fontSize: 14, marginTop: 4 }}>{agency.trim() || "Your Agency"}</div>
+            <div style={{ marginTop: 10, display: "inline-flex", gap: 8 }}>
+              <span style={{ background: selectedRole === "manager" ? "rgba(79,209,197,0.15)" : "rgba(255,255,255,0.08)", color: selectedRole === "manager" ? COLORS.teal : COLORS.g2, fontSize: 12, fontWeight: 700, padding: "5px 14px", borderRadius: 99, border: `1px solid ${selectedRole === "manager" ? "rgba(79,209,197,0.3)" : "rgba(255,255,255,0.1)"}` }}>
+                {selectedRole === "manager" ? "🏢 Agency Manager" : "👩‍⚕️ Care Worker"}
+              </span>
+            </div>
+          </div>
+          <div style={{ color: COLORS.g3, fontSize: 12, display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+            <div style={{ display: "flex", gap: 3 }}>{[0,1,2].map(d => <div key={d} className={`dot-${d+1}`} style={{ width: 5, height: 5, borderRadius: "50%", background: COLORS.teal }} />)}</div>
+            Setting up your {selectedRole === "manager" ? "portal" : "workspace"}…
+          </div>
+        </div>
+      )}
 
       {step === "name" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>

@@ -7,6 +7,12 @@ type Screen =
   | "signup"
   | "login"
   | "splash"
+  | "role-select"
+  | "manager-portal"
+  | "team-management"
+  | "invite-carer"
+  | "client-management"
+  | "agency-settings"
   | "today"
   | "client-overview"
   | "active-visit"
@@ -204,6 +210,15 @@ const SCHEDULE_CLIENTS = [
     bpBaseline: { sys: 138, dia: 85 },
     pronouns: "she/her",
   },
+];
+
+// ─── Multi-Tenant Demo Data ───────────────────────────────────────────────────
+
+const DEMO_CARERS: { id: string; name: string; email: string; role: string; status: "active" | "invited"; lastActive: string; visits: number; initials: string }[] = [
+  { id: "c1", name: "Sarah O'Brien", email: "sarah.obrien@agency.com", role: "Senior Carer", status: "active", lastActive: "Today, 10:02", visits: 142, initials: "SO" },
+  { id: "c2", name: "John Mensah", email: "john.mensah@agency.com", role: "Carer", status: "active", lastActive: "Today, 08:45", visits: 98, initials: "JM" },
+  { id: "c3", name: "Amina Diallo", email: "amina.diallo@agency.com", role: "Care Assistant", status: "active", lastActive: "Yesterday", visits: 67, initials: "AD" },
+  { id: "c4", name: "Priya Sharma", email: "priya.sharma@agency.com", role: "Carer", status: "invited", lastActive: "—", visits: 0, initials: "PS" },
 ];
 
 // ─── CSS Injected Globally ──────────────────────────────────────────────────────
@@ -6115,6 +6130,471 @@ function ContinuCareSummaryScreen({
   );
 }
 
+// ─── Multi-Tenant Manager Flow ────────────────────────────────────────────────
+
+function RoleSelectScreen({ onManager, onCarer, name }: { onManager: () => void; onCarer: () => void; name: string }) {
+  return (
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", padding: "52px 24px 40px" }}>
+      <div style={{ textAlign: "center", marginBottom: 36, flexShrink: 0 }}>
+        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 30, color: "#fff", letterSpacing: 0.5 }}>CARE<span style={{ color: COLORS.teal }}>i</span></div>
+        <div style={{ color: "#fff", fontWeight: 700, fontSize: 20, marginTop: 16 }}>Welcome{name ? `, ${name.split(" ")[0]}` : ""}!</div>
+        <div style={{ color: COLORS.g2, fontSize: 14, marginTop: 6 }}>How will you be using CAREi?</div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14, flex: 1 }}>
+        <button onClick={onManager} style={{ background: "rgba(79,209,197,0.08)", border: "2px solid rgba(79,209,197,0.35)", borderRadius: 20, padding: "26px 22px", cursor: "pointer", textAlign: "left", width: "100%" }}>
+          <div style={{ fontSize: 34, marginBottom: 10 }}>🏢</div>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 18, marginBottom: 5 }}>I manage a care team</div>
+          <div style={{ color: COLORS.g2, fontSize: 13, lineHeight: 1.55 }}>Set up your agency, invite carers, manage clients, and approve shift summaries.</div>
+          <div style={{ display: "flex", gap: 6, marginTop: 12, flexWrap: "wrap" as const }}>
+            {["Team Management", "Client Allocation", "Approvals", "Analytics"].map(t => (
+              <span key={t} style={{ background: "rgba(79,209,197,0.12)", color: COLORS.teal, fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 99, letterSpacing: 0.3 }}>{t}</span>
+            ))}
+          </div>
+        </button>
+        <button onClick={onCarer} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 20, padding: "26px 22px", cursor: "pointer", textAlign: "left", width: "100%" }}>
+          <div style={{ fontSize: 34, marginBottom: 10 }}>👩‍⚕️</div>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 18, marginBottom: 5 }}>I'm a carer</div>
+          <div style={{ color: COLORS.g2, fontSize: 13, lineHeight: 1.55 }}>Access your schedule, complete visits, record medications, and submit handovers.</div>
+          <div style={{ display: "flex", gap: 6, marginTop: 12, flexWrap: "wrap" as const }}>
+            {["Visit Recording", "Medication Log", "Handover", "AI Copilot"].map(t => (
+              <span key={t} style={{ background: "rgba(255,255,255,0.08)", color: COLORS.g2, fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 99, letterSpacing: 0.3 }}>{t}</span>
+            ))}
+          </div>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ManagerPortalScreen({
+  managerName, agencyName, onTeam, onClients, onApprovals, onDashboard, onSettings, onSignOut, carers, pendingApprovals,
+}: {
+  managerName: string; agencyName: string; pendingApprovals: number;
+  onTeam: () => void; onClients: () => void; onApprovals: () => void;
+  onDashboard: () => void; onSettings: () => void; onSignOut: () => void;
+  carers: typeof DEMO_CARERS;
+}) {
+  const activeCarers = carers.filter(c => c.status === "active").length;
+  const invitedCarers = carers.filter(c => c.status === "invited").length;
+  const hr = new Date().getHours();
+  const greeting = hr < 12 ? "Good morning" : hr < 17 ? "Good afternoon" : "Good evening";
+
+  return (
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column" }}>
+      <div style={{ padding: "20px 20px 14px", flexShrink: 0, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>CARE<span style={{ color: COLORS.teal }}>i</span></div>
+            <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 1 }}>{agencyName || "Your Agency"} · Manager Portal</div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {pendingApprovals > 0 && (
+              <button onClick={onApprovals} style={{ background: "rgba(246,183,60,0.15)", border: "1px solid rgba(246,183,60,0.3)", borderRadius: 99, padding: "5px 10px", cursor: "pointer" }}>
+                <span style={{ color: COLORS.amber, fontSize: 11, fontWeight: 700 }}>⏳ {pendingApprovals} pending</span>
+              </button>
+            )}
+            <div style={{ width: 38, height: 38, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.darkNavy, fontWeight: 700, fontSize: 13 }}>
+              {managerName ? managerName.split(" ").filter(Boolean).map((n: string) => n[0]).join("").slice(0, 2).toUpperCase() : "M"}
+            </div>
+          </div>
+        </div>
+        <div style={{ marginTop: 14 }}>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 18 }}>{greeting}{managerName ? `, ${managerName.split(" ")[0]}` : ""} 👋</div>
+          <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>Here's your agency at a glance</div>
+        </div>
+      </div>
+      <div className="phone-scroll" style={{ flex: 1, padding: "16px 18px 30px", display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          {[
+            { label: "Active Carers", value: activeCarers, icon: "👩‍⚕️", color: COLORS.teal },
+            { label: "Clients", value: SCHEDULE_CLIENTS.length, icon: "🧑‍🦳", color: COLORS.amber },
+            { label: "Pending Approvals", value: pendingApprovals, icon: "⏳", color: pendingApprovals > 0 ? COLORS.amber : COLORS.green },
+            { label: "Compliance Score", value: "94%", icon: "🛡", color: COLORS.green },
+          ].map(s => (
+            <div key={s.label} style={{ background: "rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px" }}>
+              <div style={{ fontSize: 18, marginBottom: 6 }}>{s.icon}</div>
+              <div style={{ color: s.color, fontWeight: 800, fontSize: 24, lineHeight: 1 }}>{s.value}</div>
+              <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 3 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {invitedCarers > 0 && (
+          <div style={{ background: "rgba(79,209,197,0.07)", border: "1px solid rgba(79,209,197,0.25)", borderRadius: 12, padding: "10px 14px", display: "flex", gap: 10, alignItems: "center" }}>
+            <span style={{ fontSize: 16 }}>✉️</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: COLORS.teal, fontWeight: 700, fontSize: 12 }}>{invitedCarers} invite{invitedCarers > 1 ? "s" : ""} pending</div>
+              <div style={{ color: COLORS.g2, fontSize: 11, marginTop: 1 }}>Carers invited but haven't created their accounts yet</div>
+            </div>
+            <button onClick={onTeam} style={{ background: "none", border: "1px solid rgba(79,209,197,0.3)", borderRadius: 8, color: COLORS.teal, fontSize: 11, fontWeight: 700, padding: "5px 10px", cursor: "pointer" }}>View</button>
+          </div>
+        )}
+
+        <div>
+          <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 10 }}>MANAGE</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+            {[
+              { icon: "👥", title: "Care Team", sub: `${activeCarers} active · ${invitedCarers} invited`, action: onTeam, badge: null },
+              { icon: "🧑‍🦳", title: "Clients", sub: `${SCHEDULE_CLIENTS.length} registered clients`, action: onClients, badge: null },
+              { icon: "✅", title: "Shift Approvals", sub: pendingApprovals > 0 ? `${pendingApprovals} awaiting review` : "All shifts reviewed", action: onApprovals, badge: pendingApprovals > 0 ? String(pendingApprovals) : null },
+              { icon: "📊", title: "Compliance Dashboard", sub: "Scores, audit trail, alerts", action: onDashboard, badge: null },
+              { icon: "⚙️", title: "Agency Settings", sub: "Profile, subscription, security", action: onSettings, badge: null },
+            ].map(item => (
+              <button key={item.title} onClick={item.action} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "13px 15px", cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", width: "100%" }}>
+                <span style={{ fontSize: 22, flexShrink: 0 }}>{item.icon}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: "#fff", fontWeight: 600, fontSize: 14 }}>{item.title}</div>
+                  <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 1 }}>{item.sub}</div>
+                </div>
+                {item.badge && <span style={{ background: COLORS.amber, color: COLORS.darkNavy, fontSize: 11, fontWeight: 800, padding: "2px 8px", borderRadius: 99 }}>{item.badge}</span>}
+                <span style={{ color: COLORS.g3, fontSize: 20 }}>›</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 10 }}>RECENT ACTIVITY</div>
+          <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 14, overflow: "hidden" }}>
+            {[
+              { icon: "✅", text: "Sarah O'Brien completed visit with Mary Johnson", time: "10:05" },
+              { icon: "⏳", text: "Shift summary pending approval — Tom Adams", time: "09:50" },
+              { icon: "✉️", text: "Invite sent to Priya Sharma", time: "09:00" },
+            ].map((a, i) => (
+              <div key={i} style={{ display: "flex", gap: 12, padding: "11px 14px", borderBottom: i < 2 ? "1px solid rgba(255,255,255,0.05)" : "none", alignItems: "flex-start" }}>
+                <span style={{ fontSize: 13, marginTop: 1, flexShrink: 0 }}>{a.icon}</span>
+                <span style={{ color: COLORS.g1, fontSize: 12, flex: 1, lineHeight: 1.4 }}>{a.text}</span>
+                <span style={{ color: COLORS.g3, fontSize: 11, flexShrink: 0, marginLeft: 8 }}>{a.time}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <button onClick={onSignOut} style={{ background: "none", border: "1px solid rgba(255,90,95,0.3)", borderRadius: 12, padding: "12px 0", color: COLORS.red, fontFamily: "DM Sans, sans-serif", fontSize: 14, fontWeight: 600, cursor: "pointer", marginTop: 4 }}>
+          Sign Out
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function TeamManagementScreen({ onBack, onInvite, agencyName, carers }: {
+  onBack: () => void; onInvite: () => void; agencyName: string;
+  carers: typeof DEMO_CARERS;
+}) {
+  return (
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column" }}>
+      <div style={{ padding: "18px 18px 12px", flexShrink: 0 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0, marginBottom: 10 }}>‹</button>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>Care Team</div>
+            <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>{agencyName || "Your Agency"} · {carers.length} member{carers.length !== 1 ? "s" : ""}</div>
+          </div>
+          <button onClick={onInvite} style={{ background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, border: "none", borderRadius: 10, padding: "9px 14px", color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>+ Invite Carer</button>
+        </div>
+      </div>
+      <div className="phone-scroll" style={{ flex: 1, padding: "4px 18px 30px", display: "flex", flexDirection: "column", gap: 10 }}>
+        {carers.map(carer => {
+          const isActive = carer.status === "active";
+          const isInvited = carer.status === "invited";
+          const badgeColor = isActive ? COLORS.green : COLORS.amber;
+          const badgeBg = isActive ? "rgba(34,197,94,0.12)" : "rgba(246,183,60,0.12)";
+          const borderColor = isActive ? "rgba(34,197,94,0.15)" : "rgba(246,183,60,0.15)";
+          const statusLabel = isActive ? "Active" : "Invited";
+          return (
+            <div key={carer.id} style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 16px", border: `1px solid ${borderColor}` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: isInvited ? 0 : 10 }}>
+                <div style={{ width: 42, height: 42, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.teal2})`, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.darkNavy, fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{carer.initials}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{carer.name}</div>
+                  <div style={{ color: COLORS.g2, fontSize: 12 }}>{carer.role}</div>
+                </div>
+                <span style={{ background: badgeBg, color: badgeColor, fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 99 }}>{statusLabel}</span>
+              </div>
+              {!isInvited && (
+                <div style={{ display: "flex", gap: 16, paddingLeft: 54 }}>
+                  <div>
+                    <div style={{ color: COLORS.g3, fontSize: 9, fontWeight: 600, letterSpacing: 0.5 }}>LAST ACTIVE</div>
+                    <div style={{ color: COLORS.g1, fontSize: 12, marginTop: 2 }}>{carer.lastActive}</div>
+                  </div>
+                  <div>
+                    <div style={{ color: COLORS.g3, fontSize: 9, fontWeight: 600, letterSpacing: 0.5 }}>VISITS</div>
+                    <div style={{ color: COLORS.g1, fontSize: 12, marginTop: 2 }}>{carer.visits}</div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ color: COLORS.g3, fontSize: 9, fontWeight: 600, letterSpacing: 0.5 }}>EMAIL</div>
+                    <div style={{ color: COLORS.g1, fontSize: 11, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{carer.email}</div>
+                  </div>
+                </div>
+              )}
+              {isInvited && (
+                <div style={{ marginTop: 8, paddingLeft: 54 }}>
+                  <div style={{ color: COLORS.g2, fontSize: 11 }}>{carer.email}</div>
+                  <div style={{ color: COLORS.amber, fontSize: 11, marginTop: 3 }}>✉️ Invite sent · awaiting account setup</div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+        <div style={{ background: "rgba(79,209,197,0.06)", borderRadius: 12, padding: "12px 14px", border: "1px solid rgba(79,209,197,0.15)", marginTop: 4 }}>
+          <div style={{ color: COLORS.teal, fontSize: 12, fontWeight: 600, marginBottom: 3 }}>ℹ️ How carer access works</div>
+          <div style={{ color: COLORS.g2, fontSize: 12, lineHeight: 1.55 }}>
+            Carers you invite will receive a link to set up their PIN. Once active, they can only see the clients and visits assigned to them by you.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InviteCarerScreen({ onBack, onInvited, agencyName }: {
+  onBack: () => void;
+  onInvited: (name: string, email: string, role: string) => void;
+  agencyName: string;
+}) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("Carer");
+  const [sent, setSent] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  function handleSend() {
+    const e: Record<string, string> = {};
+    if (!name.trim()) e.name = "Please enter the carer's full name";
+    if (!email.trim() || !email.includes("@")) e.email = "Please enter a valid email address";
+    if (Object.keys(e).length) { setErrors(e); return; }
+    setSent(true);
+    onInvited(name.trim(), email.trim(), role);
+  }
+
+  const inputBase: React.CSSProperties = {
+    width: "100%", padding: "13px 14px", borderRadius: 12,
+    border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.08)",
+    color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 14, outline: "none", boxSizing: "border-box",
+  };
+
+  return (
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column" }}>
+      <div style={{ padding: "18px 18px 14px", flexShrink: 0 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0, marginBottom: 10 }}>‹</button>
+        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>Invite a Carer</div>
+        <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 4, lineHeight: 1.5 }}>They'll receive an email with a link to set up their account under <span style={{ color: COLORS.g1 }}>{agencyName || "your agency"}</span></div>
+      </div>
+      <div className="phone-scroll" style={{ flex: 1, padding: "4px 18px 30px", display: "flex", flexDirection: "column", gap: 14 }}>
+        {sent ? (
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 18, paddingBottom: 40, paddingTop: 20 }}>
+            <div style={{ width: 76, height: 76, borderRadius: "50%", background: "rgba(34,197,94,0.12)", border: "2px solid rgba(34,197,94,0.4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 34 }}>✉️</div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ color: COLORS.green, fontWeight: 700, fontSize: 20 }}>Invite Sent!</div>
+              <div style={{ color: "#fff", fontSize: 15, marginTop: 8, fontWeight: 600 }}>{name}</div>
+              <div style={{ color: COLORS.g2, fontSize: 13, marginTop: 3 }}>{email}</div>
+              <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>{role}</div>
+            </div>
+            <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "12px 16px", width: "100%" }}>
+              <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 600, letterSpacing: 0.5, marginBottom: 6 }}>INVITE LINK (simulated)</div>
+              <div style={{ color: COLORS.teal, fontSize: 12, wordBreak: "break-all" as const }}>https://app.carei.co.uk/invite/abc123def456</div>
+            </div>
+            <div style={{ color: COLORS.g2, fontSize: 12, textAlign: "center", lineHeight: 1.6 }}>
+              <strong style={{ color: COLORS.g1 }}>{name.split(" ")[0]}</strong> will appear in your team as <strong style={{ color: COLORS.g1 }}>{role}</strong> once they complete their account setup
+            </div>
+            <button onClick={onBack} style={{ width: "100%", padding: "14px 0", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
+              ← Back to Team
+            </button>
+          </div>
+        ) : (
+          <>
+            <div>
+              <div style={{ color: COLORS.g2, fontSize: 12, marginBottom: 6 }}>Full Name</div>
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Emma Johnson" style={{ ...inputBase, border: errors.name ? `1px solid ${COLORS.red}` : inputBase.border }} />
+              {errors.name && <div style={{ color: COLORS.red, fontSize: 11, marginTop: 4 }}>{errors.name}</div>}
+            </div>
+            <div>
+              <div style={{ color: COLORS.g2, fontSize: 12, marginBottom: 6 }}>Email Address</div>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="e.g. emma@agency.com" style={{ ...inputBase, border: errors.email ? `1px solid ${COLORS.red}` : inputBase.border }} />
+              {errors.email && <div style={{ color: COLORS.red, fontSize: 11, marginTop: 4 }}>{errors.email}</div>}
+            </div>
+            <div>
+              <div style={{ color: COLORS.g2, fontSize: 12, marginBottom: 6 }}>Role</div>
+              <select value={role} onChange={e => setRole(e.target.value)} style={{ ...inputBase, cursor: "pointer" }}>
+                {["Care Assistant", "Carer", "Senior Carer", "Nurse", "Team Leader"].map(r => <option key={r} value={r} style={{ background: "#1B2A49" }}>{r}</option>)}
+              </select>
+            </div>
+            <div style={{ background: "rgba(79,209,197,0.07)", border: "1px solid rgba(79,209,197,0.2)", borderRadius: 12, padding: "12px 14px" }}>
+              <div style={{ color: COLORS.teal, fontSize: 12, fontWeight: 600, marginBottom: 5 }}>What happens next</div>
+              <div style={{ color: COLORS.g2, fontSize: 12, lineHeight: 1.6 }}>
+                {name ? <strong style={{ color: COLORS.g1 }}>{name.split(" ")[0]}</strong> : "The carer"} will receive an email to create their PIN and join <strong style={{ color: COLORS.g1 }}>{agencyName || "your agency"}</strong> on CAREi. They'll only see clients and visits you assign to them.
+              </div>
+            </div>
+            <button onClick={handleSend} style={{ width: "100%", padding: "14px 0", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer", marginTop: 4 }}>
+              ✉️ Send Invite
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ClientManagementScreen({ onBack, agencyName }: { onBack: () => void; agencyName: string }) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [newClientName, setNewClientName] = useState("");
+  const [addedClients, setAddedClients] = useState<string[]>([]);
+
+  return (
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", position: "relative" as const }}>
+      <div style={{ padding: "18px 18px 12px", flexShrink: 0 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0, marginBottom: 10 }}>‹</button>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>Clients</div>
+            <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>{agencyName || "Your Agency"} · {SCHEDULE_CLIENTS.length + addedClients.length} registered</div>
+          </div>
+          <button onClick={() => setShowAdd(true)} style={{ background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, border: "none", borderRadius: 10, padding: "9px 14px", color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>+ Add Client</button>
+        </div>
+      </div>
+      <div className="phone-scroll" style={{ flex: 1, padding: "4px 18px 30px", display: "flex", flexDirection: "column", gap: 10 }}>
+        {SCHEDULE_CLIENTS.map(c => (
+          <div key={c.id} style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 16px", border: "1px solid rgba(79,209,197,0.12)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{c.emoji}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{c.name}</div>
+                <div style={{ color: COLORS.g2, fontSize: 12 }}>Age {c.age} · {c.condition}</div>
+              </div>
+              <span style={{ background: "rgba(34,197,94,0.12)", color: COLORS.green, fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 99 }}>Active</span>
+            </div>
+            <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", gap: 20 }}>
+              <div>
+                <div style={{ color: COLORS.g3, fontSize: 9, fontWeight: 600, letterSpacing: 0.5 }}>ASSIGNED CARER</div>
+                <div style={{ color: COLORS.g1, fontSize: 12, marginTop: 2 }}>Sarah O'Brien</div>
+              </div>
+              <div>
+                <div style={{ color: COLORS.g3, fontSize: 9, fontWeight: 600, letterSpacing: 0.5 }}>VISIT TIME</div>
+                <div style={{ color: COLORS.g1, fontSize: 12, marginTop: 2 }}>{c.time}</div>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: COLORS.g3, fontSize: 9, fontWeight: 600, letterSpacing: 0.5 }}>ADDRESS</div>
+                <div style={{ color: COLORS.g1, fontSize: 11, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{c.address}</div>
+              </div>
+            </div>
+          </div>
+        ))}
+        {addedClients.map((clientName, i) => (
+          <div key={`new-${i}`} style={{ background: "rgba(34,197,94,0.06)", borderRadius: 14, padding: "14px 16px", border: "1px solid rgba(34,197,94,0.25)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(34,197,94,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>👤</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{clientName}</div>
+                <div style={{ color: COLORS.g2, fontSize: 12 }}>New client · Care plan setup pending</div>
+              </div>
+              <span style={{ background: "rgba(246,183,60,0.12)", color: COLORS.amber, fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 99 }}>Setup</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      {showAdd && (
+        <div style={{ position: "absolute" as const, inset: 0, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "flex-end", zIndex: 100 }}>
+          <div style={{ background: COLORS.navy, width: "100%", borderRadius: "20px 20px 0 0", padding: "24px 20px 44px", display: "flex", flexDirection: "column", gap: 14, border: "1px solid rgba(255,255,255,0.1)", borderBottom: "none" }}>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 17 }}>Add New Client</div>
+            <div style={{ color: COLORS.g2, fontSize: 13, lineHeight: 1.5 }}>The client will be added to your agency's client list. You can build their care plan, assign a carer, and schedule visits from their profile.</div>
+            <input value={newClientName} onChange={e => setNewClientName(e.target.value)} placeholder="Client's full name" style={{ width: "100%", padding: "13px 14px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.08)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 14, outline: "none", boxSizing: "border-box" as const }} />
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => { setShowAdd(false); setNewClientName(""); }} style={{ flex: 1, padding: "13px 0", borderRadius: 12, border: "1px solid rgba(255,255,255,0.15)", background: "transparent", color: COLORS.g2, fontFamily: "DM Sans, sans-serif", fontSize: 14, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => { if (newClientName.trim()) { setAddedClients(p => [...p, newClientName.trim()]); setShowAdd(false); setNewClientName(""); } }} style={{ flex: 2, padding: "13px 0", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Add Client</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AgencySettingsScreen({ onBack, managerName, agencyName }: { onBack: () => void; managerName: string; agencyName: string }) {
+  const [savedName, setSavedName] = useState(agencyName);
+  const [editName, setEditName] = useState(agencyName);
+  const [saved, setSaved] = useState(false);
+
+  return (
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column" }}>
+      <div style={{ padding: "18px 18px 12px", flexShrink: 0 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0, marginBottom: 10 }}>‹</button>
+        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>Agency Settings</div>
+        <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 3 }}>Manage your organisation profile and subscription</div>
+      </div>
+      <div className="phone-scroll" style={{ flex: 1, padding: "4px 18px 30px", display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 16px" }}>
+          <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 12 }}>AGENCY PROFILE</div>
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ color: COLORS.g2, fontSize: 12, marginBottom: 5 }}>Agency / Organisation Name</div>
+            <input value={editName} onChange={e => { setEditName(e.target.value); setSaved(false); }} style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.08)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 14, outline: "none", boxSizing: "border-box" as const }} />
+          </div>
+          {[
+            { label: "Account Owner", value: managerName || "—" },
+            { label: "Registered Address", value: "12 Care Lane, Reading RG1 1AB" },
+            { label: "Companies House No.", value: "12345678" },
+            { label: "CQC Provider ID", value: "1-12345678901" },
+          ].map(row => (
+            <div key={row.label} style={{ marginBottom: 10 }}>
+              <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 600, letterSpacing: 0.4, marginBottom: 3 }}>{row.label.toUpperCase()}</div>
+              <div style={{ color: COLORS.g1, fontSize: 13 }}>{row.value}</div>
+            </div>
+          ))}
+          <button onClick={() => { setSavedName(editName); setSaved(true); }} style={{ width: "100%", marginTop: 8, padding: "11px 0", borderRadius: 10, border: "none", background: saved ? "rgba(34,197,94,0.15)" : `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: saved ? COLORS.green : COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all 0.2s" }}>
+            {saved ? "✓ Saved" : "Save Changes"}
+          </button>
+          {saved && savedName !== agencyName && <div style={{ color: COLORS.g3, fontSize: 11, marginTop: 6, textAlign: "center" }}>Name updated to "{savedName}"</div>}
+        </div>
+
+        <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 16px" }}>
+          <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 12 }}>SUBSCRIPTION</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+            <div>
+              <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>Professional</div>
+              <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>Up to 20 carers · Unlimited clients</div>
+            </div>
+            <span style={{ background: "rgba(79,209,197,0.15)", color: COLORS.teal, fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 99 }}>Active</span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+            {["Unlimited visit recording", "AI Copilot for all carers", "Family Portal", "Compliance Dashboard", "Manager Approvals workflow", "Full audit trail export"].map(f => (
+              <div key={f} style={{ display: "flex", gap: 9, alignItems: "center" }}>
+                <span style={{ color: COLORS.green, fontSize: 13 }}>✓</span>
+                <span style={{ color: COLORS.g1, fontSize: 13 }}>{f}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 12, color: COLORS.g3, fontSize: 11 }}>Next billing: 1 July 2026 · £89/month</div>
+        </div>
+
+        <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "14px 16px" }}>
+          <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 12 }}>SECURITY</div>
+          {[
+            { icon: "🔑", label: "Change Manager PIN", sub: "Update your login PIN" },
+            { icon: "📱", label: "Two-Factor Auth", sub: "Enabled via email OTP" },
+            { icon: "📋", label: "Activity Log", sub: "All manager actions recorded" },
+          ].map((item, i) => (
+            <div key={i} style={{ display: "flex", gap: 12, alignItems: "center", paddingBottom: i < 2 ? 10 : 0, marginBottom: i < 2 ? 10 : 0, borderBottom: i < 2 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
+              <span style={{ fontSize: 18 }}>{item.icon}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 500 }}>{item.label}</div>
+                <div style={{ color: COLORS.g3, fontSize: 11, marginTop: 1 }}>{item.sub}</div>
+              </div>
+              <span style={{ color: COLORS.g3, fontSize: 18 }}>›</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ textAlign: "center", paddingTop: 4 }}>
+          <div style={{ color: COLORS.g3, fontSize: 11 }}>CAREi Platform · UK Care Compliance</div>
+          <div style={{ color: COLORS.g3, fontSize: 10, marginTop: 3 }}>GDPR Ready · Hosted in the UK · ISO 27001</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Operations Screen ─────────────────────────────────────────────────────────
+
 function OperationsScreen({
   visitStatuses,
   onSchedule,
@@ -6260,7 +6740,7 @@ export default function CAREiApp() {
     try {
       const saved = sessionStorage.getItem("carei_screen") as Screen;
       const account = sessionStorage.getItem("carei_account");
-      const valid: Screen[] = ["today","client-overview","active-visit","medication","handover","continucare-summary","care-plan","bodymap","emergency","visit-history","incident-report","rota","operations","schedule","family","family-summary","manager-approvals","copilot","profile","admin","admin-dashboard"];
+      const valid: Screen[] = ["today","client-overview","active-visit","medication","handover","continucare-summary","care-plan","bodymap","emergency","visit-history","incident-report","rota","operations","schedule","family","family-summary","manager-approvals","copilot","profile","admin","admin-dashboard","role-select","manager-portal","team-management","invite-carer","client-management","agency-settings"];
       return (account && valid.includes(saved)) ? saved : "splash";
     } catch {
       return "splash";
@@ -6294,6 +6774,8 @@ export default function CAREiApp() {
   const [carerAgency, setCarerAgency] = useState<string>(() => {
     try { const a = sessionStorage.getItem("carei_account"); return a ? (JSON.parse(a).agency ?? "") : ""; } catch { return ""; }
   });
+  const [userRole, setUserRole] = useState<"manager" | "carer" | null>(null);
+  const [managerCarers, setManagerCarers] = useState<typeof DEMO_CARERS>([...DEMO_CARERS]);
   const [lastVisitData, setLastVisitData] = useState<VisitData | undefined>(undefined);
   const [visitMedStatus, setVisitMedStatus] = useState<Record<string, "taken" | "refused" | undefined>>({});
   const [visitTasks, setVisitTasks] = useState([false, false, false]);
@@ -6330,9 +6812,63 @@ export default function CAREiApp() {
         return <SplashScreen onSignUp={() => nav("signup")} onLogin={() => nav("login")} />;
       case "otp":
       case "signup":
-        return <SignUpScreen onNext={(name, agency, email) => { setCarerName(name); setCarerAgency(agency); setCarerEmail(email); nav("today"); }} onLogin={() => nav("login")} />;
+        return <SignUpScreen onNext={(name, agency, email) => { setCarerName(name); setCarerAgency(agency); setCarerEmail(email); nav("role-select"); }} onLogin={() => nav("login")} />;
       case "login":
-        return <LoginScreen onNext={(name, agency, email) => { setCarerName(name); setCarerAgency(agency); setCarerEmail(email); nav("today"); }} onSignUp={() => nav("signup")} />;
+        return <LoginScreen onNext={(name, agency, email) => { setCarerName(name); setCarerAgency(agency); setCarerEmail(email); nav("role-select"); }} onSignUp={() => nav("signup")} />;
+      case "role-select":
+        return <RoleSelectScreen
+          name={carerName}
+          onManager={() => { setUserRole("manager"); nav("manager-portal"); }}
+          onCarer={() => { setUserRole("carer"); nav("today"); }}
+        />;
+      case "manager-portal":
+        return <ManagerPortalScreen
+          managerName={carerName}
+          agencyName={carerAgency}
+          carers={managerCarers}
+          pendingApprovals={lastVisitData && summaryApproval === "pending" ? 1 : 0}
+          onTeam={() => nav("team-management")}
+          onClients={() => nav("client-management")}
+          onApprovals={() => nav("manager-approvals")}
+          onDashboard={() => nav("admin-dashboard")}
+          onSettings={() => nav("agency-settings")}
+          onSignOut={() => { setUserRole(null); nav("splash"); }}
+        />;
+      case "team-management":
+        return <TeamManagementScreen
+          onBack={() => nav("manager-portal")}
+          onInvite={() => nav("invite-carer")}
+          agencyName={carerAgency}
+          carers={managerCarers}
+        />;
+      case "invite-carer":
+        return <InviteCarerScreen
+          onBack={() => nav("team-management")}
+          agencyName={carerAgency}
+          onInvited={(name, email, role) => {
+            setManagerCarers(prev => [...prev, {
+              id: `c${prev.length + 1}`,
+              name,
+              email,
+              role,
+              status: "invited" as const,
+              lastActive: "—",
+              visits: 0,
+              initials: name.split(" ").filter(Boolean).map((n: string) => n[0]).join("").slice(0, 2).toUpperCase(),
+            }]);
+          }}
+        />;
+      case "client-management":
+        return <ClientManagementScreen
+          onBack={() => nav("manager-portal")}
+          agencyName={carerAgency}
+        />;
+      case "agency-settings":
+        return <AgencySettingsScreen
+          onBack={() => nav("manager-portal")}
+          managerName={carerName}
+          agencyName={carerAgency}
+        />;
       case "copilot":
         return <CopilotScreen onBack={() => nav("today")} carerName={carerName} carerAgency={carerAgency} />;
       case "medication":

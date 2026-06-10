@@ -36,3 +36,9 @@ id = "eFgt9DPcTaVvhTxldpUbr"
 uri = "file://CAREiApp.txt"
 type = "text"
 title = "CAREiApp.tsx — full source"
+
+[[outputs]]
+id = "ma5uIPCnjGf0iAVHb_Mq6"
+uri = "file://CAREi-Features.md"
+type = "text"
+title = "CAREi — Full Feature Overview"

@@ -134,6 +134,11 @@ const SCHEDULE_CLIENTS = [
     chokingRisk: false,
     bpBaseline: { sys: 125, dia: 78 },
     pronouns: "she/her",
+    emergencyContacts: [
+      { name: "Robert Johnson", relation: "Son (Next of Kin)", phone: "07700 900212", primary: true },
+      { name: "Susan Johnson", relation: "Daughter", phone: "07700 900438", primary: false },
+      { name: "Dr A. Patel", relation: "GP: Earley Surgery", phone: "0118 926 7000", primary: false },
+    ],
   },
   {
     id: "tom",
@@ -172,6 +177,11 @@ const SCHEDULE_CLIENTS = [
     chokingHistory: "Dysphagia confirmed — use thickened fluids as prescribed. Never rush food or drink. Remain present throughout all meals and drinks. If choking occurs: encourage coughing, call 999 immediately if airway is blocked.",
     bpBaseline: { sys: 130, dia: 82 },
     pronouns: "he/him",
+    emergencyContacts: [
+      { name: "Patricia Adams", relation: "Wife (Next of Kin)", phone: "07700 900571", primary: true },
+      { name: "James Adams", relation: "Son", phone: "07700 900684", primary: false },
+      { name: "Dr M. Clarke", relation: "GP: Castle Hill Surgery", phone: "0118 957 3488", primary: false },
+    ],
   },
   {
     id: "aisha",
@@ -209,6 +219,11 @@ const SCHEDULE_CLIENTS = [
     chokingRisk: false,
     bpBaseline: { sys: 138, dia: 85 },
     pronouns: "she/her",
+    emergencyContacts: [
+      { name: "Imran Khan", relation: "Son (Next of Kin)", phone: "07700 900317", primary: true },
+      { name: "Yasmin Khan", relation: "Daughter", phone: "07700 900752", primary: false },
+      { name: "Dr F. Hassan", relation: "GP: Woodley Health Centre", phone: "0118 969 2222", primary: false },
+    ],
   },
 ];
 
@@ -3942,23 +3957,23 @@ function CarePlanScreen({ client, onBack }: { client: typeof SCHEDULE_CLIENTS[0]
 
 // ─── Emergency Contacts Screen ────────────────────────────────────────────────
 
-function EmergencyContactsScreen({ onBack, carerAgency }: { onBack: () => void; carerAgency: string }) {
+function EmergencyContactsScreen({ onBack, carerAgency, client }: { onBack: () => void; carerAgency: string; client?: typeof SCHEDULE_CLIENTS[0] }) {
   const agencyName = carerAgency || "Care Agency";
+  const clientContacts = client?.emergencyContacts ?? [];
   const contacts = [
-    { name: "David Mensah", relation: "Son (Next of Kin)", phone: "07700 900123", primary: true },
-    { name: "Akosua Mensah", relation: "Daughter", phone: "07700 900456", primary: false },
-    { name: "Dr Sandra Obi", relation: "GP: Caversham Surgery", phone: "0118 947 0111", primary: false },
+    ...clientContacts,
     { name: agencyName, relation: "Care Agency (24hr)", phone: "0118 321 9900", primary: false },
     { name: `Care Manager, ${agencyName}`, relation: "On-call care manager", phone: "0800 000 0000", primary: false },
     { name: "Emergency Services", relation: "Police / Ambulance / Fire", phone: "999", primary: false },
     { name: "NHS Non-Emergency", relation: "Medical advice", phone: "111", primary: false },
   ];
+  const clientName = client?.name ?? "Client";
   return (
     <div style={{ height: "100%", background: COLORS.darkNavy, display: "flex", flexDirection: "column" }}>
       <div style={{ padding: "20px 18px 12px", flexShrink: 0 }}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0, marginBottom: 12 }}>‹</button>
         <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>Emergency Contacts</div>
-        <div style={{ color: COLORS.g2, fontSize: 13, marginTop: 4 }}>Grace Mensah · Next of kin & key contacts</div>
+        <div style={{ color: COLORS.g2, fontSize: 13, marginTop: 4 }}>{clientName} · Next of kin & key contacts</div>
       </div>
       <div className="phone-scroll" style={{ flex: 1, padding: "0 16px 24px", display: "flex", flexDirection: "column", gap: 10 }}>
         {contacts.map((c, i) => (
@@ -7346,8 +7361,10 @@ export default function CAREiApp() {
         const cpClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
         return <CarePlanScreen client={cpClient} onBack={() => nav(visitReturnScreen)} />;
       }
-      case "emergency":
-        return <EmergencyContactsScreen onBack={() => nav(visitReturnScreen)} carerAgency={carerAgency} />;
+      case "emergency": {
+        const emergClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
+        return <EmergencyContactsScreen onBack={() => nav(visitReturnScreen)} carerAgency={carerAgency} client={emergClient} />;
+      }
       case "admin":
         return (
           <AdminTeaserScreen

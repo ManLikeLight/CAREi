@@ -771,12 +771,13 @@ function AuthSuccess({ message }: { message: string }) {
   );
 }
 
-function SignUpScreen({ onNext, onLogin }: { onNext: (name: string, agency: string, email: string) => void; onLogin: () => void }) {
-  const [step, setStep] = useState<"name" | "pin" | "done">("name");
+function SignUpScreen({ onNext, onLogin }: { onNext: (name: string, agency: string, email: string, role: "manager" | "carer") => void; onLogin: () => void }) {
+  const [step, setStep] = useState<"name" | "role" | "pin" | "done">("name");
   const [fullName, setFullName] = useState("");
   const [pin, setPin] = useState(["", "", "", ""]);
   const [email, setEmail] = useState("");
   const [agency, setAgency] = useState("");
+  const [selectedRole, setSelectedRole] = useState<"manager" | "carer" | null>(null);
   const [nameError, setNameError] = useState("");
   const [emailError, setEmailError] = useState("");
   const [agencyError, setAgencyError] = useState("");
@@ -806,8 +807,7 @@ function SignUpScreen({ onNext, onLogin }: { onNext: (name: string, agency: stri
     if (!email.trim()) { setEmailError("Please enter your email address."); ok = false; } else setEmailError("");
     if (!agency.trim()) { setAgencyError("Please enter your agency name."); ok = false; } else setAgencyError("");
     if (!ok) return;
-    setStep("pin");
-    setTimeout(() => pinRefs[0].current?.focus(), 100);
+    setStep("role");
   }
 
   async function handleCreate() {
@@ -823,9 +823,10 @@ function SignUpScreen({ onNext, onLogin }: { onNext: (name: string, agency: stri
       });
       const data = await res.json();
       if (!res.ok) { setPinError(data.error ?? "Signup failed. Please try again."); setLoading(false); return; }
-      try { sessionStorage.setItem("carei_account", JSON.stringify({ name: data.name, email: data.email, agency: data.agency })); } catch {}
+      const role = selectedRole ?? "manager";
+      try { sessionStorage.setItem("carei_account", JSON.stringify({ name: data.name, email: data.email, agency: data.agency, role })); } catch {}
       setStep("done");
-      setTimeout(() => onNext(data.name, data.agency, email.trim()), 1200);
+      setTimeout(() => onNext(data.name, data.agency, email.trim(), role), 1200);
     } catch {
       setPinError("Network error. Please check your connection and try again.");
       setLoading(false);
@@ -845,14 +846,28 @@ function SignUpScreen({ onNext, onLogin }: { onNext: (name: string, agency: stri
     color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer",
   };
 
+  const STEP_LABELS = ["Details", "Your role", "Set PIN"];
+  const stepIdx = step === "name" ? 0 : step === "role" ? 1 : step === "pin" ? 2 : 2;
+
   return (
-    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", overflowY: "auto", padding: "52px 28px 32px", gap: 24 }}>
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", overflowY: "auto" as const, padding: "48px 28px 32px", gap: 20 }}>
       <div style={{ textAlign: "center", flexShrink: 0 }}>
-        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 30, color: "#fff", letterSpacing: 0.5 }}>
+        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 28, color: "#fff", letterSpacing: 0.5 }}>
           CARE<span style={{ color: COLORS.teal }}>i</span>
         </div>
-        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff", marginTop: 16 }}>Create your account</div>
+        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 20, color: "#fff", marginTop: 12 }}>Create your account</div>
       </div>
+
+      {step !== "done" && (
+        <div style={{ display: "flex", gap: 0, marginBottom: 4 }}>
+          {STEP_LABELS.map((label, i) => (
+            <div key={label} style={{ flex: 1, display: "flex", flexDirection: "column" as const, alignItems: "center", gap: 5 }}>
+              <div style={{ width: "100%", height: 3, borderRadius: 99, background: i <= stepIdx ? COLORS.teal : "rgba(255,255,255,0.1)", transition: "background 0.3s" }} />
+              <span style={{ color: i <= stepIdx ? COLORS.teal : COLORS.g3, fontSize: 10, fontWeight: i === stepIdx ? 700 : 400 }}>{label}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {step === "done" && <AuthSuccess message="Account created! Welcome aboard…" />}
 
@@ -860,38 +875,17 @@ function SignUpScreen({ onNext, onLogin }: { onNext: (name: string, agency: stri
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div>
             <label style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600 }}>Full name</label>
-            <input
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleNameNext()}
-              placeholder="Enter your full name"
-              autoFocus
-              style={inputStyle}
-            />
+            <input value={fullName} onChange={(e) => setFullName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleNameNext()} placeholder="Enter your full name" autoFocus style={inputStyle} />
             {nameError && <div style={{ color: COLORS.red, fontSize: 12, marginTop: 6 }}>{nameError}</div>}
           </div>
           <div>
             <label style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600 }}>Email address</label>
-            <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleNameNext()}
-              placeholder="Enter your email address"
-              type="email"
-              inputMode="email"
-              style={inputStyle}
-            />
+            <input value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleNameNext()} placeholder="Enter your email address" type="email" inputMode="email" style={inputStyle} />
             {emailError && <div style={{ color: COLORS.red, fontSize: 12, marginTop: 6 }}>{emailError}</div>}
           </div>
           <div>
             <label style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600 }}>Agency name</label>
-            <input
-              value={agency}
-              onChange={(e) => setAgency(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleNameNext()}
-              placeholder="Enter your agency name"
-              style={inputStyle}
-            />
+            <input value={agency} onChange={(e) => setAgency(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleNameNext()} placeholder="Enter your agency name" style={inputStyle} />
             {agencyError && <div style={{ color: COLORS.red, fontSize: 12, marginTop: 6 }}>{agencyError}</div>}
           </div>
           <button onClick={handleNameNext} style={{ ...btnStyle, marginTop: 4 }}>Continue →</button>
@@ -901,30 +895,69 @@ function SignUpScreen({ onNext, onLogin }: { onNext: (name: string, agency: stri
         </div>
       )}
 
+      {step === "role" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ color: COLORS.g2, fontSize: 13, textAlign: "center" as const }}>How will you be using CAREi?</div>
+          {([
+            { role: "manager" as const, icon: "🏢", title: "I manage a care team", sub: "Set up your agency, invite carers, manage clients and approve shift summaries.", tags: ["Team Management", "Client Allocation", "Approvals"] },
+            { role: "carer" as const, icon: "👩‍⚕️", title: "I'm a care worker", sub: "Access your schedule, complete visits, record medications and submit handovers.", tags: ["Visit Recording", "Medication Log", "AI Copilot"] },
+          ] as { role: "manager" | "carer"; icon: string; title: string; sub: string; tags: string[] }[]).map(opt => (
+            <button
+              key={opt.role}
+              onClick={() => { setSelectedRole(opt.role); setStep("pin"); setTimeout(() => pinRefs[0].current?.focus(), 100); }}
+              style={{ background: selectedRole === opt.role ? "rgba(79,209,197,0.12)" : "rgba(255,255,255,0.04)", border: `2px solid ${selectedRole === opt.role ? "rgba(79,209,197,0.5)" : "rgba(255,255,255,0.1)"}`, borderRadius: 18, padding: "20px 18px", cursor: "pointer", textAlign: "left" as const, width: "100%" }}
+            >
+              <div style={{ fontSize: 30, marginBottom: 8 }}>{opt.icon}</div>
+              <div style={{ color: "#fff", fontWeight: 700, fontSize: 16, marginBottom: 5 }}>{opt.title}</div>
+              <div style={{ color: COLORS.g2, fontSize: 13, lineHeight: 1.55, marginBottom: 10 }}>{opt.sub}</div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
+                {opt.tags.map(t => <span key={t} style={{ background: "rgba(79,209,197,0.1)", color: COLORS.teal, fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 99 }}>{t}</span>)}
+              </div>
+            </button>
+          ))}
+          <button onClick={() => setStep("name")} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>← Back</button>
+        </div>
+      )}
+
       {step === "pin" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          <div style={{ textAlign: "center" }}>
+          <div style={{ textAlign: "center" as const }}>
             <div style={{ color: "#fff", fontWeight: 600, fontSize: 16, marginBottom: 6 }}>Choose a 4-digit PIN</div>
             <div style={{ color: COLORS.g2, fontSize: 13 }}>You'll use this to log in each time</div>
           </div>
           <PinBoxes pin={pin} refs={pinRefs} onChange={handlePinChange} onKeyDown={handlePinKey} />
-          {pinError && <div style={{ color: COLORS.red, fontSize: 13, textAlign: "center" }}>{pinError}</div>}
+          {pinError && <div style={{ color: COLORS.red, fontSize: 13, textAlign: "center" as const }}>{pinError}</div>}
           <button onClick={handleCreate} disabled={loading} style={{ ...btnStyle, opacity: loading ? 0.7 : 1 }}>{loading ? "Creating account…" : "Create Account"}</button>
-          <button onClick={() => setStep("name")} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>← Back</button>
+          <button onClick={() => setStep("role")} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>← Back</button>
         </div>
       )}
     </div>
   );
 }
 
-function LoginScreen({ onNext, onSignUp }: { onNext: (name: string, agency: string, email: string) => void; onSignUp: () => void }) {
+function LoginScreen({ onNext, onSignUp }: { onNext: (name: string, agency: string, email: string, role: "manager" | "carer") => void; onSignUp: () => void }) {
   const [email, setEmail] = useState("");
   const [pin, setPin] = useState(["", "", "", ""]);
   const [emailError, setEmailError] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [demoLoading, setDemoLoading] = useState<"manager" | "carer" | null>(null);
   const pinRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
+
+  function handleDemoLogin(role: "manager" | "carer") {
+    setDemoLoading(role);
+    const isManager = role === "manager";
+    setTimeout(() => {
+      setDone(true);
+      setTimeout(() => onNext(
+        isManager ? "Alex Morgan" : "Sarah O'Brien",
+        "Adjoy Healthcare",
+        isManager ? "alex@adjoy.co.uk" : "sarah@adjoy.co.uk",
+        role,
+      ), 900);
+    }, 600);
+  }
 
   function handlePinChange(i: number, val: string) {
     const next = [...pin];
@@ -964,9 +997,14 @@ function LoginScreen({ onNext, onSignUp }: { onNext: (name: string, agency: stri
         setLoading(false);
         return;
       }
-      try { sessionStorage.setItem("carei_account", JSON.stringify({ name: data.name, email: data.email, agency: data.agency })); } catch {}
+      let role: "manager" | "carer" = "manager";
+      try {
+        const stored = JSON.parse(sessionStorage.getItem("carei_account") ?? "{}");
+        if (stored.role === "carer" || stored.role === "manager") role = stored.role;
+      } catch {}
+      try { sessionStorage.setItem("carei_account", JSON.stringify({ name: data.name, email: data.email, agency: data.agency, role })); } catch {}
       setDone(true);
-      setTimeout(() => onNext(data.name, data.agency, data.email ?? email.trim()), 1200);
+      setTimeout(() => onNext(data.name, data.agency, data.email ?? email.trim(), role), 1200);
     } catch {
       setError("Network error. Please check your connection and try again.");
       setPin(["", "", "", ""]);
@@ -983,51 +1021,68 @@ function LoginScreen({ onNext, onSignUp }: { onNext: (name: string, agency: stri
   };
 
   return (
-    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", padding: "52px 28px 32px", gap: 24 }}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 30, color: "#fff", letterSpacing: 0.5 }}>
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column", overflowY: "auto" as const, padding: "44px 28px 32px", gap: 20 }}>
+      <div style={{ textAlign: "center" as const }}>
+        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 28, color: "#fff", letterSpacing: 0.5 }}>
           CARE<span style={{ color: COLORS.teal }}>i</span>
         </div>
-        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff", marginTop: 20 }}>Welcome back</div>
+        <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 20, color: "#fff", marginTop: 12 }}>Welcome back</div>
       </div>
 
-      {done && <AuthSuccess message="PIN verified! Signing you in…" />}
+      {done && <AuthSuccess message="Signing you in…" />}
 
       {!done && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          <div>
-            <label style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600 }}>Email address</label>
-            <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && pinRefs[0].current?.focus()}
-              placeholder="Enter your email address"
-              type="email"
-              inputMode="email"
-              autoFocus
-              style={inputStyle}
-            />
-            {emailError && <div style={{ color: COLORS.red, fontSize: 12, marginTop: 6 }}>{emailError}</div>}
+        <>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 1, textAlign: "center" as const }}>DEMO ACCOUNTS</div>
+            {([
+              { role: "manager" as const, icon: "🏢", label: "Agency Manager", sub: "Adjoy Healthcare · Manager Portal" },
+              { role: "carer" as const, icon: "👩‍⚕️", label: "Care Worker", sub: "Adjoy Healthcare · Sarah O'Brien" },
+            ] as { role: "manager" | "carer"; icon: string; label: string; sub: string }[]).map(acc => (
+              <button
+                key={acc.role}
+                onClick={() => handleDemoLogin(acc.role)}
+                disabled={demoLoading !== null}
+                style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: 14, border: `1.5px solid ${acc.role === "manager" ? "rgba(79,209,197,0.4)" : "rgba(255,255,255,0.12)"}`, background: acc.role === "manager" ? "rgba(79,209,197,0.08)" : "rgba(255,255,255,0.04)", cursor: "pointer", textAlign: "left" as const, width: "100%", opacity: demoLoading !== null && demoLoading !== acc.role ? 0.45 : 1, transition: "opacity 0.2s" }}
+              >
+                <span style={{ fontSize: 26, flexShrink: 0 }}>{acc.icon}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{acc.label}</div>
+                  <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 1 }}>{acc.sub}</div>
+                </div>
+                {demoLoading === acc.role ? (
+                  <div style={{ display: "flex", gap: 3 }}>{[0,1,2].map(d => <div key={d} className={`dot-${d+1}`} style={{ width: 5, height: 5, borderRadius: "50%", background: COLORS.teal }} />)}</div>
+                ) : (
+                  <span style={{ color: acc.role === "manager" ? COLORS.teal : COLORS.g3, fontSize: 18 }}>›</span>
+                )}
+              </button>
+            ))}
           </div>
-          <div>
-            <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600, marginBottom: 14 }}>4-digit PIN</div>
-            <PinBoxes pin={pin} refs={pinRefs} onChange={handlePinChange} onKeyDown={handlePinKey} />
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }} />
+            <span style={{ color: COLORS.g3, fontSize: 11 }}>or sign in with your account</span>
+            <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }} />
           </div>
-          {error && <div style={{ color: COLORS.red, fontSize: 13, textAlign: "center" }}>{error}</div>}
-          <button
-            onClick={() => handleVerify()}
-            disabled={loading}
-            style={{ width: "100%", padding: "14px 0", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer", opacity: loading ? 0.7 : 1 }}
-          >
-            {loading ? "Signing in…" : "Log In"}
-          </button>
-          <button onClick={onSignUp} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>
-            New here? Sign up instead
-          </button>
-          <button style={{ background: "none", border: "none", color: COLORS.g3, fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif", marginTop: -8 }}>
-            Forgot PIN? Contact your manager or email support@carei.co.uk
-          </button>
-        </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div>
+              <label style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600 }}>Email address</label>
+              <input value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && pinRefs[0].current?.focus()} placeholder="Enter your email address" type="email" inputMode="email" style={inputStyle} />
+              {emailError && <div style={{ color: COLORS.red, fontSize: 12, marginTop: 6 }}>{emailError}</div>}
+            </div>
+            <div>
+              <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600, marginBottom: 14 }}>4-digit PIN</div>
+              <PinBoxes pin={pin} refs={pinRefs} onChange={handlePinChange} onKeyDown={handlePinKey} />
+            </div>
+            {error && <div style={{ color: COLORS.red, fontSize: 13, textAlign: "center" as const }}>{error}</div>}
+            <button onClick={() => handleVerify()} disabled={loading} style={{ width: "100%", padding: "14px 0", borderRadius: 12, border: "none", background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans, sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer", opacity: loading ? 0.7 : 1 }}>
+              {loading ? "Signing in…" : "Log In"}
+            </button>
+            <button onClick={onSignUp} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>New here? Sign up instead</button>
+            <button style={{ background: "none", border: "none", color: COLORS.g3, fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif", marginTop: -8 }}>Forgot PIN? Email support@carei.co.uk</button>
+          </div>
+        </>
       )}
     </div>
   );
@@ -7047,9 +7102,9 @@ export default function CAREiApp() {
         return <SplashScreen onSignUp={() => nav("signup")} onLogin={() => nav("login")} />;
       case "otp":
       case "signup":
-        return <SignUpScreen onNext={(name, agency, email) => { setCarerName(name); setCarerAgency(agency); setCarerEmail(email); nav("role-select"); }} onLogin={() => nav("login")} />;
+        return <SignUpScreen onNext={(name, agency, email, role) => { setCarerName(name); setCarerAgency(agency); setCarerEmail(email); setUserRole(role); nav(role === "manager" ? "manager-portal" : "today"); }} onLogin={() => nav("login")} />;
       case "login":
-        return <LoginScreen onNext={(name, agency, email) => { setCarerName(name); setCarerAgency(agency); setCarerEmail(email); nav("role-select"); }} onSignUp={() => nav("signup")} />;
+        return <LoginScreen onNext={(name, agency, email, role) => { setCarerName(name); setCarerAgency(agency); setCarerEmail(email); setUserRole(role); nav(role === "manager" ? "manager-portal" : "today"); }} onSignUp={() => nav("signup")} />;
       case "role-select":
         return <RoleSelectScreen
           name={carerName}

@@ -42,3 +42,15 @@ id = "ma5uIPCnjGf0iAVHb_Mq6"
 uri = "file://CAREi-Features.md"
 type = "text"
 title = "CAREi — Full Feature Overview"
+
+[[outputs]]
+id = "ufTw3Tb5sMH1nc7SUfNYd"
+uri = "file://CAREi_Features.md"
+type = "text"
+title = "CAREi — Features List (June 2026)"
+
+[[outputs]]
+id = "GybLZigN4nN0P65fb29Md"
+uri = "file://CAREi_source.zip"
+type = "unspecified"
+title = "CAREi — Source Code Bundle (CAREiApp.tsx + AdminDashboard.tsx + Features doc)"

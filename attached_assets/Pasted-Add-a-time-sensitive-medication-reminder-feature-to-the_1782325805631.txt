@@ -1,0 +1,21 @@
+Add a "time-sensitive medication reminder" feature to the CAREi app.
+
+Context: CAREi is a domiciliary care management app (React + Vite + TypeScript + Tailwind). Carers visit clients in their homes and record care. Some medications are time-critical (e.g. Parkinson's medication, insulin), where a late dose causes real harm. This feature reminds the carer when a time-sensitive dose is due. It must NOT remind for every medication, only ones explicitly flagged as time-sensitive, to avoid alarm fatigue.
+
+Requirements:
+
+1. Data model: each medication in a client's medication list should have a boolean field "timeSensitive" and a scheduled "dueTime" (or list of due times). Only medications where timeSensitive is true are eligible for reminders.
+
+2. Reminder behaviour: when a time-sensitive medication is approaching or at its due time, show a clear but calm in-app prompt to the carer, e.g. a banner or card: "Time-sensitive: [Client]'s [medication] is due at [time]." Do NOT show reminders for non-time-sensitive medications.
+
+3. Local/offline: the reminder logic must run on the device using locally held data (the cached care plan and schedule). Do not rely on a server push or network connection, because carers are often in low-signal homes. Use the browser's local scheduling (setInterval/checking timestamps against the device clock) so it works offline. (Note: in this PWA prototype, use in-app notifications/banners; full background/push notifications are a later native-app capability.)
+
+4. Inform, do not instruct: the prompt only informs the carer that a dose is due. It must never tell the carer to administer, calculate a dose, or make any clinical decision. The carer always decides.
+
+5. Carer response: from the prompt, the carer can record one of: "Given" (with time), "Refused", or "Delayed" (with a short reason). Record the response and the time, and stop the reminder for that dose once actioned.
+
+6. Calm design: the reminder should be clear but not alarming or repetitive in a way that pressures the carer. Show it, let it persist gently until actioned, but do not spam repeated pop-ups.
+
+7. UI: match the existing CAREi design system (Tailwind, the app's existing card/banner components and colours). Keep it consistent with the current medication screens.
+
+Please implement this cleanly, with the timeSensitive flag and dueTime in the medication data, the local checking logic, the prompt UI, and the given/refused/delayed response handling.

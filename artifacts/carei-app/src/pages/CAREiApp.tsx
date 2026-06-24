@@ -40,6 +40,14 @@ interface ChatMessage {
   content: string;
 }
 
+type MedReminder = {
+  key: string;
+  clientId: string;
+  clientName: string;
+  med: { name: string; dose: string; dueTime: string };
+};
+type MedReminderAction = { action: "given" | "refused" | "delayed"; reason?: string; time: string };
+
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
 const COLORS = {
@@ -491,6 +499,109 @@ function NavPills({
         >
           {s.label}
         </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── Med Reminder Banner ──────────────────────────────────────────────────────
+
+function MedReminderBanner({
+  reminders,
+  onAction,
+}: {
+  reminders: MedReminder[];
+  onAction: (key: string, action: MedReminderAction["action"], reason?: string) => void;
+}) {
+  const [expandedDelay, setExpandedDelay] = useState<string | null>(null);
+  const [delayReason, setDelayReason] = useState("");
+
+  if (reminders.length === 0) return null;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "0 0 2px" }}>
+      {reminders.map((r) => (
+        <div
+          key={r.key}
+          style={{
+            background: "rgba(246,183,60,0.10)",
+            border: "1px solid rgba(246,183,60,0.32)",
+            borderRadius: 12,
+            padding: "10px 14px",
+            flexShrink: 0,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>
+            <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>⏰</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: COLORS.amber, fontWeight: 700, fontSize: 13 }}>
+                Time-sensitive medication
+              </div>
+              <div style={{ color: "#fff", fontSize: 13, marginTop: 1 }}>
+                {r.clientName}'s <strong>{r.med.name} {r.med.dose}</strong> is due at {r.med.dueTime}
+              </div>
+              <div style={{ color: COLORS.g3, fontSize: 11, marginTop: 2 }}>
+                For carer awareness only — clinical decisions rest with you
+              </div>
+            </div>
+          </div>
+
+          {expandedDelay === r.key ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <input
+                autoFocus
+                placeholder="Brief reason for delay…"
+                value={delayReason}
+                onChange={(e) => setDelayReason(e.target.value)}
+                style={{
+                  width: "100%", padding: "8px 12px", borderRadius: 8,
+                  border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.08)",
+                  color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+              <div style={{ display: "flex", gap: 6 }}>
+                <button
+                  onClick={() => {
+                    onAction(r.key, "delayed", delayReason || "No reason given");
+                    setExpandedDelay(null);
+                    setDelayReason("");
+                  }}
+                  style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: "none", background: "rgba(246,183,60,0.25)", color: COLORS.amber, fontFamily: "DM Sans, sans-serif", fontWeight: 700, fontSize: 12, cursor: "pointer" }}
+                >
+                  Confirm delay
+                </button>
+                <button
+                  onClick={() => { setExpandedDelay(null); setDelayReason(""); }}
+                  style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: "rgba(255,255,255,0.07)", color: COLORS.g2, fontFamily: "DM Sans, sans-serif", fontSize: 12, cursor: "pointer" }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: 6 }}>
+              <button
+                onClick={() => onAction(r.key, "given")}
+                style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: "none", background: "rgba(34,197,94,0.18)", color: COLORS.green, fontFamily: "DM Sans, sans-serif", fontWeight: 700, fontSize: 12, cursor: "pointer" }}
+              >
+                ✓ Given
+              </button>
+              <button
+                onClick={() => onAction(r.key, "refused")}
+                style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: "none", background: "rgba(255,90,95,0.15)", color: COLORS.red, fontFamily: "DM Sans, sans-serif", fontWeight: 700, fontSize: 12, cursor: "pointer" }}
+              >
+                ✕ Refused
+              </button>
+              <button
+                onClick={() => setExpandedDelay(r.key)}
+                style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: "none", background: "rgba(246,183,60,0.12)", color: COLORS.amber, fontFamily: "DM Sans, sans-serif", fontWeight: 700, fontSize: 12, cursor: "pointer" }}
+              >
+                ⏱ Delayed
+              </button>
+            </div>
+          )}
+        </div>
       ))}
     </div>
   );
@@ -4825,6 +4936,8 @@ function TodayCareScreen({
   onSOS,
   onProfile,
   carerName,
+  medReminders,
+  onMedReminderAction,
 }: {
   visitStatuses: Record<string, string>;
   onSelectClient: (id: string) => void;
@@ -4834,6 +4947,8 @@ function TodayCareScreen({
   onSOS: () => void;
   onProfile: () => void;
   carerName: string;
+  medReminders: MedReminder[];
+  onMedReminderAction: (key: string, action: MedReminderAction["action"], reason?: string) => void;
 }) {
   const now = new Date();
   const hour = now.getHours();
@@ -4888,6 +5003,11 @@ function TodayCareScreen({
 
       {/* Visit cards */}
       <div className="phone-scroll" style={{ flex: 1, padding: "0 14px 130px", display: "flex", flexDirection: "column", gap: 10 }}>
+        {medReminders.length > 0 && (
+          <div style={{ marginBottom: 4 }}>
+            <MedReminderBanner reminders={medReminders} onAction={onMedReminderAction} />
+          </div>
+        )}
         <div style={{ color: COLORS.g1, fontSize: 12, fontWeight: 600, marginBottom: 2 }}>Today's Schedule</div>
         {SCHEDULE_CLIENTS.map((client) => {
           const status = visitStatuses[client.id] || "pending";
@@ -4980,6 +5100,8 @@ function ActiveVisitScreen({
   setMood,
   moodSet,
   setMoodSet,
+  medReminders,
+  onMedReminderAction,
 }: {
   client: typeof SCHEDULE_CLIENTS[0];
   onComplete: (data: VisitData) => void;
@@ -5001,6 +5123,8 @@ function ActiveVisitScreen({
   setMood: React.Dispatch<React.SetStateAction<string>>;
   moodSet: boolean;
   setMoodSet: React.Dispatch<React.SetStateAction<boolean>>;
+  medReminders: MedReminder[];
+  onMedReminderAction: (key: string, action: MedReminderAction["action"], reason?: string) => void;
 }) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -5234,6 +5358,13 @@ function ActiveVisitScreen({
               <span style={{ color: COLORS.red, fontSize: 11, fontWeight: 700 }}>⚠ CHOKING RISK</span>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ── Med Reminders ── */}
+      {medReminders.length > 0 && (
+        <div style={{ padding: "8px 14px 0", flexShrink: 0 }}>
+          <MedReminderBanner reminders={medReminders} onAction={onMedReminderAction} />
         </div>
       )}
 
@@ -7211,6 +7342,39 @@ export default function CAREiApp() {
   const [visitFluidGlasses, setVisitFluidGlasses] = useState(0);
   const [visitMood, setVisitMood] = useState("");
   const [visitMoodSet, setVisitMoodSet] = useState(false);
+  const [medReminderActions, setMedReminderActions] = useState<Record<string, MedReminderAction>>({});
+  const [dueReminders, setDueReminders] = useState<MedReminder[]>([]);
+
+  function handleMedReminderAction(key: string, action: MedReminderAction["action"], reason?: string) {
+    const time = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    setMedReminderActions((prev) => ({ ...prev, [key]: { action, reason, time } }));
+  }
+
+  useEffect(() => {
+    function computeDue() {
+      const now = new Date();
+      const nowMins = now.getHours() * 60 + now.getMinutes();
+      const reminders: MedReminder[] = [];
+      for (const client of SCHEDULE_CLIENTS) {
+        if (visitStatuses[client.id] === "completed") continue;
+        for (const med of client.meds) {
+          if (!(med as any).timeSensitive) continue;
+          const key = `${client.id}:${med.name}:${med.dueTime}`;
+          if (medReminderActions[key]) continue;
+          const [h, m] = med.dueTime.split(":").map(Number);
+          const dueMins = h * 60 + m;
+          const diff = nowMins - dueMins;
+          if (diff >= -15 && diff <= 90) {
+            reminders.push({ key, clientId: client.id, clientName: client.name, med: { name: med.name, dose: med.dose, dueTime: med.dueTime } });
+          }
+        }
+      }
+      setDueReminders(reminders);
+    }
+    computeDue();
+    const interval = setInterval(computeDue, 60000);
+    return () => clearInterval(interval);
+  }, [visitStatuses, medReminderActions]);
 
   useEffect(() => {
     const up = () => { setIsOffline(false); setQueuedCount(0); };
@@ -7390,6 +7554,8 @@ export default function CAREiApp() {
             onSOS={() => setShowSOS(true)}
             onProfile={() => nav("profile")}
             carerName={carerName}
+            medReminders={dueReminders}
+            onMedReminderAction={handleMedReminderAction}
           />
         );
       case "client-overview": {
@@ -7404,6 +7570,9 @@ export default function CAREiApp() {
       }
       case "active-visit": {
         const activeClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
+        const activeVisitReminders: MedReminder[] = activeClient.meds
+          .filter((med) => (med as any).timeSensitive && !medReminderActions[`${activeClient.id}:${med.name}:${med.dueTime}`])
+          .map((med) => ({ key: `${activeClient.id}:${med.name}:${med.dueTime}`, clientId: activeClient.id, clientName: activeClient.name, med: { name: med.name, dose: med.dose, dueTime: med.dueTime } }));
         return (
           <ActiveVisitScreen
             client={activeClient}
@@ -7426,6 +7595,8 @@ export default function CAREiApp() {
             setMood={setVisitMood}
             moodSet={visitMoodSet}
             setMoodSet={setVisitMoodSet}
+            medReminders={activeVisitReminders}
+            onMedReminderAction={handleMedReminderAction}
           />
         );
       }

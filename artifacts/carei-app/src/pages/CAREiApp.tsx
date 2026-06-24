@@ -7344,10 +7344,32 @@ export default function CAREiApp() {
   const [visitMoodSet, setVisitMoodSet] = useState(false);
   const [medReminderActions, setMedReminderActions] = useState<Record<string, MedReminderAction>>({});
   const [dueReminders, setDueReminders] = useState<MedReminder[]>([]);
+  const alertedKeysRef = useRef<Set<string>>(new Set());
 
   function handleMedReminderAction(key: string, action: MedReminderAction["action"], reason?: string) {
     const time = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
     setMedReminderActions((prev) => ({ ...prev, [key]: { action, reason, time } }));
+  }
+
+  function fireMedAlert() {
+    if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 300]);
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      [[880, 0, 0.35], [1100, 0.45, 0.35], [880, 0.9, 0.35]].forEach(([freq, start, dur]) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = freq;
+        osc.type = "sine";
+        gain.gain.setValueAtTime(0.25, ctx.currentTime + start);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+        osc.start(ctx.currentTime + start);
+        osc.stop(ctx.currentTime + start + dur);
+      });
+    } catch {}
   }
 
   useEffect(() => {
@@ -7364,8 +7386,12 @@ export default function CAREiApp() {
           const [h, m] = med.dueTime.split(":").map(Number);
           const dueMins = h * 60 + m;
           const diff = nowMins - dueMins;
-          if (diff >= -15 && diff <= 90) {
+          if (diff >= -5 && diff <= 30) {
             reminders.push({ key, clientId: client.id, clientName: client.name, med: { name: med.name, dose: med.dose, dueTime: med.dueTime } });
+            if (!alertedKeysRef.current.has(key)) {
+              alertedKeysRef.current.add(key);
+              fireMedAlert();
+            }
           }
         }
       }

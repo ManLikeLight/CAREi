@@ -5171,6 +5171,7 @@ function ActiveVisitScreen({
   const recognitionRef = useRef<any>(null);
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastActivityRef = useRef<number>(Date.now());
+  const medAlertFiredRef = useRef(false);
 
   const VISIT_TASKS = ["Prepare breakfast", "Assist with mobility", "Record mood"];
   const MEAL_TASK_IDX = 0;
@@ -5227,6 +5228,31 @@ function ActiveVisitScreen({
       fluidTimeRef.current = toM(ts) < toM(visitStartRef.current) ? visitStartRef.current : ts;
     }
   }, [fluidGlasses]);
+
+  useEffect(() => {
+    if (elapsed === 60 && medReminders.length > 0 && !medAlertFiredRef.current) {
+      medAlertFiredRef.current = true;
+      if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 300]);
+      try {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) {
+          const ctx = new AudioCtx();
+          [[880, 0, 0.35], [1100, 0.45, 0.35], [880, 0.9, 0.35]].forEach(([freq, start, dur]) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = freq;
+            osc.type = "sine";
+            gain.gain.setValueAtTime(0.25, ctx.currentTime + start);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+            osc.start(ctx.currentTime + start);
+            osc.stop(ctx.currentTime + start + dur);
+          });
+        }
+      } catch {}
+    }
+  }, [elapsed]);
 
   const loneOverdue = isLone && loneElapsed >= 25 * 60;
   const allMedsAcknowledged = client.meds.every((m) => medStatus[m.name] !== undefined);
@@ -5362,7 +5388,7 @@ function ActiveVisitScreen({
       )}
 
       {/* ── Med Reminders ── */}
-      {medReminders.length > 0 && (
+      {medReminders.length > 0 && elapsed >= 60 && (
         <div style={{ padding: "8px 14px 0", flexShrink: 0 }}>
           <MedReminderBanner reminders={medReminders} onAction={onMedReminderAction} />
         </div>
@@ -7388,10 +7414,6 @@ export default function CAREiApp() {
           const diff = nowMins - dueMins;
           if (diff >= -5 && diff <= 30) {
             reminders.push({ key, clientId: client.id, clientName: client.name, med: { name: med.name, dose: med.dose, dueTime: med.dueTime } });
-            if (!alertedKeysRef.current.has(key)) {
-              alertedKeysRef.current.add(key);
-              fireMedAlert();
-            }
           }
         }
       }

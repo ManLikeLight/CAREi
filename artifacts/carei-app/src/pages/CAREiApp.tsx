@@ -12,6 +12,7 @@ type Screen =
   | "team-management"
   | "invite-carer"
   | "client-management"
+  | "manager-care-plan-edit"
   | "agency-settings"
   | "today"
   | "client-overview"
@@ -47,6 +48,14 @@ type MedReminder = {
   med: { name: string; dose: string; dueTime: string };
 };
 type MedReminderAction = { action: "given" | "refused" | "delayed"; reason?: string; time: string };
+type CarePlanOverride = {
+  objectives?: string[]; preventive?: string[]; risks?: string[]; postMed?: string[];
+  pbsTriggers?: string[]; safetyPlan?: string[]; lastReview?: string[];
+  calmSigns?: string[]; calmActions?: string[];
+  anxiousSigns?: string[]; anxiousActions?: string[];
+  riskSigns?: string[]; riskActions?: string[];
+  lastSaved?: string; savedBy?: string;
+};
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -3793,7 +3802,7 @@ function VisitHistoryScreen({ clientName, onBack }: { clientName: string; onBack
 
 // ─── Care Plan Screen ─────────────────────────────────────────────────────────
 
-function buildCarePlan(client: typeof SCHEDULE_CLIENTS[0]) {
+function buildCarePlan(client: typeof SCHEDULE_CLIENTS[0], overrides?: CarePlanOverride) {
   const n = client.name.split(" ")[0];
   const isHe = client.pronouns === "he/him";
   const pronoun = isHe ? "he" : "she";
@@ -3938,29 +3947,30 @@ function buildCarePlan(client: typeof SCHEDULE_CLIENTS[0]) {
   };
 
   const d = byCondition[client.id] || byCondition.mary;
+  const ov = overrides ?? {};
 
   const standardSections = [
     { title: "Support Framework", icon: "🧭", color: COLORS.teal, items: client.framework.split(" · ").map(f => `${f}, embedded throughout all care interactions`) },
-    { title: "Level of Support", icon: "🤝", color: COLORS.teal, items: [client.supportLevel, ...d.objectives.slice(0, 2)] },
+    { title: "Level of Support", icon: "🤝", color: COLORS.teal, items: [client.supportLevel, ...(ov.objectives ?? d.objectives).slice(0, 2)] },
     { title: "Communication Passport", icon: "💬", color: "#a78bfa", items: client.communication.split(". ").filter(Boolean).map(s => s.trim().replace(/\.$/, "") + ".") },
-    { title: "Care Objectives", icon: "🎯", color: COLORS.teal, items: d.objectives },
-    { title: "Preventive Strategies", icon: "🛡️", color: COLORS.amber, items: d.preventive },
-    { title: "Risks & Precautions", icon: "⚠️", color: COLORS.red, items: d.risks },
-    { title: "Post-Medication Monitoring", icon: "💊", color: COLORS.teal, items: d.postMed },
-    { title: "Last Review", icon: "📋", color: COLORS.g2, items: d.lastReview },
+    { title: "Care Objectives", icon: "🎯", color: COLORS.teal, items: ov.objectives ?? d.objectives },
+    { title: "Preventive Strategies", icon: "🛡️", color: COLORS.amber, items: ov.preventive ?? d.preventive },
+    { title: "Risks & Precautions", icon: "⚠️", color: COLORS.red, items: ov.risks ?? d.risks },
+    { title: "Post-Medication Monitoring", icon: "💊", color: COLORS.teal, items: ov.postMed ?? d.postMed },
+    { title: "Last Review", icon: "📋", color: COLORS.g2, items: ov.lastReview ?? d.lastReview },
   ];
 
   const pbsStates = [
-    { label: `${n} is Calm / Happy`, color: COLORS.green, bg: "rgba(34,197,94,0.1)", border: "rgba(34,197,94,0.25)", emoji: "😊", signs: d.pbsCalmSigns, staffActions: d.pbsCalmActions },
-    { label: `${n} is Anxious / Distressed`, color: COLORS.amber, bg: "rgba(246,183,60,0.1)", border: "rgba(246,183,60,0.25)", emoji: "😟", signs: d.pbsAnxiousSigns, staffActions: d.pbsAnxiousActions },
-    { label: `${n} displays Risk Behaviour`, color: COLORS.red, bg: "rgba(255,90,95,0.1)", border: "rgba(255,90,95,0.3)", emoji: "⚠️", signs: d.pbsRiskSigns, staffActions: d.pbsRiskActions },
+    { label: `${n} is Calm / Happy`, color: COLORS.green, bg: "rgba(34,197,94,0.1)", border: "rgba(34,197,94,0.25)", emoji: "😊", signs: ov.calmSigns ?? d.pbsCalmSigns, staffActions: ov.calmActions ?? d.pbsCalmActions },
+    { label: `${n} is Anxious / Distressed`, color: COLORS.amber, bg: "rgba(246,183,60,0.1)", border: "rgba(246,183,60,0.25)", emoji: "😟", signs: ov.anxiousSigns ?? d.pbsAnxiousSigns, staffActions: ov.anxiousActions ?? d.pbsAnxiousActions },
+    { label: `${n} displays Risk Behaviour`, color: COLORS.red, bg: "rgba(255,90,95,0.1)", border: "rgba(255,90,95,0.3)", emoji: "⚠️", signs: ov.riskSigns ?? d.pbsRiskSigns, staffActions: ov.riskActions ?? d.pbsRiskActions },
   ];
 
-  return { standardSections, pbsStates, pbsTriggers: d.pbsTriggers as string[], safetyPlanItems: d.safetyPlan as string[] };
+  return { standardSections, pbsStates, pbsTriggers: (ov.pbsTriggers ?? d.pbsTriggers) as string[], safetyPlanItems: (ov.safetyPlan ?? d.safetyPlan) as string[] };
 }
 
-function CarePlanScreen({ client, onBack }: { client: typeof SCHEDULE_CLIENTS[0]; onBack: () => void }) {
-  const { standardSections, pbsStates, pbsTriggers, safetyPlanItems } = buildCarePlan(client);
+function CarePlanScreen({ client, onBack, overrides }: { client: typeof SCHEDULE_CLIENTS[0]; onBack: () => void; overrides?: CarePlanOverride }) {
+  const { standardSections, pbsStates, pbsTriggers, safetyPlanItems } = buildCarePlan(client, overrides);
   const firstName = client.name.split(" ")[0];
   return (
     <div style={{ height: "100%", background: COLORS.darkNavy, display: "flex", flexDirection: "column" }}>
@@ -6814,7 +6824,116 @@ function InviteCarerScreen({ onBack, onInvited, agencyName }: {
   );
 }
 
-function ClientManagementScreen({ onBack, agencyName, teamCarers }: { onBack: () => void; agencyName: string; teamCarers: typeof DEMO_CARERS }) {
+function ManagerCarePlanEditScreen({ client, overrides, onSave, onBack, managerName }: {
+  client: typeof SCHEDULE_CLIENTS[0];
+  overrides?: CarePlanOverride;
+  onSave: (clientId: string, data: CarePlanOverride) => void;
+  onBack: () => void;
+  managerName: string;
+}) {
+  const base = buildCarePlan(client);
+  const ss = base.standardSections;
+  const [form, setForm] = useState<Record<string, string>>(() => ({
+    objectives:     (overrides?.objectives     ?? ss.find(s => s.title === "Care Objectives")?.items             ?? []).join("\n"),
+    preventive:     (overrides?.preventive     ?? ss.find(s => s.title === "Preventive Strategies")?.items       ?? []).join("\n"),
+    risks:          (overrides?.risks          ?? ss.find(s => s.title === "Risks & Precautions")?.items         ?? []).join("\n"),
+    postMed:        (overrides?.postMed        ?? ss.find(s => s.title === "Post-Medication Monitoring")?.items  ?? []).join("\n"),
+    lastReview:     (overrides?.lastReview     ?? ss.find(s => s.title === "Last Review")?.items                 ?? []).join("\n"),
+    pbsTriggers:    (overrides?.pbsTriggers    ?? base.pbsTriggers).join("\n"),
+    calmSigns:      (overrides?.calmSigns      ?? base.pbsStates[0].signs).join("\n"),
+    calmActions:    (overrides?.calmActions    ?? base.pbsStates[0].staffActions).join("\n"),
+    anxiousSigns:   (overrides?.anxiousSigns   ?? base.pbsStates[1].signs).join("\n"),
+    anxiousActions: (overrides?.anxiousActions ?? base.pbsStates[1].staffActions).join("\n"),
+    riskSigns:      (overrides?.riskSigns      ?? base.pbsStates[2].signs).join("\n"),
+    riskActions:    (overrides?.riskActions    ?? base.pbsStates[2].staffActions).join("\n"),
+    safetyPlan:     (overrides?.safetyPlan     ?? base.safetyPlanItems).join("\n"),
+  }));
+  const [saved, setSaved] = useState(false);
+  const [openSection, setOpenSection] = useState<string>("objectives");
+  const f = (k: string) => (e: React.ChangeEvent<HTMLTextAreaElement>) => setForm(p => ({ ...p, [k]: e.target.value }));
+  const taStyle: React.CSSProperties = {
+    width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(79,209,197,0.2)",
+    borderRadius: 10, color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 12,
+    lineHeight: 1.6, padding: "10px 12px", resize: "none" as const, outline: "none", boxSizing: "border-box" as const,
+  };
+  function handleSave() {
+    const now = new Date().toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    const toArr = (s: string) => s.split("\n").map(l => l.trim()).filter(Boolean);
+    onSave(client.id, {
+      objectives: toArr(form.objectives), preventive: toArr(form.preventive), risks: toArr(form.risks),
+      postMed: toArr(form.postMed), lastReview: toArr(form.lastReview), pbsTriggers: toArr(form.pbsTriggers),
+      calmSigns: toArr(form.calmSigns), calmActions: toArr(form.calmActions),
+      anxiousSigns: toArr(form.anxiousSigns), anxiousActions: toArr(form.anxiousActions),
+      riskSigns: toArr(form.riskSigns), riskActions: toArr(form.riskActions),
+      safetyPlan: toArr(form.safetyPlan), lastSaved: now, savedBy: managerName,
+    });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  }
+  type SectionDef = { key: string; label: string; icon: string; color: string; hint: string; fields: { k: string; label: string; rows: number }[] };
+  const sections: SectionDef[] = [
+    { key: "objectives",  label: "Care Objectives",            icon: "🎯", color: COLORS.teal,  hint: "One objective per line",           fields: [{ k: "objectives",  label: "", rows: 5 }] },
+    { key: "preventive",  label: "Preventive Strategies",      icon: "🛡️", color: COLORS.amber, hint: "One strategy per line",            fields: [{ k: "preventive",  label: "", rows: 5 }] },
+    { key: "risks",       label: "Risks & Precautions",        icon: "⚠️", color: COLORS.red,   hint: "One risk per line",                fields: [{ k: "risks",       label: "", rows: 5 }] },
+    { key: "postMed",     label: "Post-Medication Monitoring", icon: "💊", color: COLORS.teal,  hint: "One instruction per line",         fields: [{ k: "postMed",     label: "", rows: 4 }] },
+    { key: "pbs-trg",     label: "PBS Triggers",               icon: "⚡", color: "#a78bfa",   hint: "Known triggers for distress",       fields: [{ k: "pbsTriggers", label: "", rows: 4 }] },
+    { key: "pbs-calm",    label: "PBS — Calm State",           icon: "😊", color: COLORS.green, hint: "Green state signs & staff actions", fields: [{ k: "calmSigns", label: "Signs (one per line)", rows: 3 }, { k: "calmActions", label: "Staff Actions (one per line)", rows: 3 }] },
+    { key: "pbs-anxious", label: "PBS — Anxious State",        icon: "😟", color: COLORS.amber, hint: "Amber state signs & staff actions", fields: [{ k: "anxiousSigns", label: "Signs (one per line)", rows: 3 }, { k: "anxiousActions", label: "Staff Actions (one per line)", rows: 3 }] },
+    { key: "pbs-risk",    label: "PBS — Risk State",           icon: "🔴", color: COLORS.red,   hint: "Red state signs & staff actions",  fields: [{ k: "riskSigns", label: "Signs (one per line)", rows: 3 }, { k: "riskActions", label: "Staff Actions (one per line)", rows: 3 }] },
+    { key: "safety",      label: "Safety Plan",                icon: "🚨", color: COLORS.red,   hint: "One escalation step per line",     fields: [{ k: "safetyPlan", label: "", rows: 4 }] },
+    { key: "review",      label: "Review Details",             icon: "📋", color: COLORS.g2,    hint: "Reviewer, dates, care package",    fields: [{ k: "lastReview", label: "", rows: 3 }] },
+  ];
+  return (
+    <div style={{ height: "100%", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, display: "flex", flexDirection: "column" }}>
+      <div style={{ padding: "16px 18px 12px", flexShrink: 0, borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0, marginBottom: 10 }}>‹</button>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 20, color: "#fff" }}>Edit Care Plan</div>
+            <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>{client.name}</div>
+          </div>
+          <button onClick={handleSave} style={{ background: saved ? `linear-gradient(90deg,${COLORS.green},#16a34a)` : `linear-gradient(90deg,${COLORS.teal},${COLORS.teal2})`, border: "none", borderRadius: 10, padding: "9px 16px", color: COLORS.darkNavy, fontFamily: "DM Sans,sans-serif", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+            {saved ? "✓ Saved" : "Save"}
+          </button>
+        </div>
+        {overrides?.lastSaved && <div style={{ color: COLORS.g3, fontSize: 10, marginTop: 6 }}>Last saved {overrides.lastSaved} by {overrides.savedBy}</div>}
+      </div>
+      <div style={{ padding: "8px 18px", background: "rgba(79,209,197,0.05)", borderBottom: "1px solid rgba(79,209,197,0.1)", flexShrink: 0 }}>
+        <div style={{ color: COLORS.teal, fontSize: 11 }}>Each line becomes one bullet point in the carer's view. Tap a section to expand it.</div>
+      </div>
+      <div className="phone-scroll" style={{ flex: 1, padding: "10px 14px 32px", display: "flex", flexDirection: "column", gap: 8 }}>
+        {sections.map(sec => {
+          const isOpen = openSection === sec.key;
+          return (
+            <div key={sec.key} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 14, border: `1px solid ${isOpen ? sec.color + "55" : "rgba(255,255,255,0.07)"}`, overflow: "hidden" }}>
+              <button onClick={() => setOpenSection(isOpen ? "" : sec.key)} style={{ width: "100%", background: "none", border: "none", padding: "13px 14px", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", textAlign: "left" as const }}>
+                <span style={{ fontSize: 16 }}>{sec.icon}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: "#fff", fontWeight: 600, fontSize: 13 }}>{sec.label}</div>
+                  {!isOpen && <div style={{ color: COLORS.g3, fontSize: 10, marginTop: 1 }}>{sec.hint}</div>}
+                </div>
+                <span style={{ color: isOpen ? sec.color : COLORS.g3, fontSize: 14, display: "inline-block", transform: isOpen ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>›</span>
+              </button>
+              {isOpen && (
+                <div style={{ padding: "0 14px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ color: COLORS.g3, fontSize: 10, marginBottom: 2 }}>{sec.hint}</div>
+                  {sec.fields.map(field => (
+                    <div key={field.k}>
+                      {field.label && <div style={{ color: COLORS.g2, fontSize: 11, marginBottom: 4, fontWeight: 600 }}>{field.label}</div>}
+                      <textarea rows={field.rows} value={form[field.k]} onChange={f(field.k)} style={taStyle} spellCheck={false} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ClientManagementScreen({ onBack, agencyName, teamCarers, onEditCarePlan }: { onBack: () => void; agencyName: string; teamCarers: typeof DEMO_CARERS; onEditCarePlan: (clientId: string) => void }) {
   const [showAdd, setShowAdd] = useState(false);
   const [addedClients, setAddedClients] = useState<{ name: string; dob: string; address: string; condition: string; gp: string; carer: string; contact: string }[]>([]);
   const [form, setForm] = useState({ name: "", dob: "", address: "", condition: "", gp: "", carer: "Unassigned", contact: "" });
@@ -6874,6 +6993,11 @@ function ClientManagementScreen({ onBack, agencyName, teamCarers }: { onBack: ()
                 <div style={{ color: COLORS.g3, fontSize: 9, fontWeight: 600, letterSpacing: 0.5 }}>ADDRESS</div>
                 <div style={{ color: COLORS.g1, fontSize: 11, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{c.address}</div>
               </div>
+            </div>
+            <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.05)", display: "flex", gap: 8 }}>
+              <button onClick={() => onEditCarePlan(c.id)} style={{ flex: 1, background: "rgba(79,209,197,0.1)", border: "1px solid rgba(79,209,197,0.25)", borderRadius: 8, padding: "7px 0", color: COLORS.teal, fontFamily: "DM Sans,sans-serif", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                📋 Edit Care Plan
+              </button>
             </div>
           </div>
         ))}
@@ -7330,7 +7454,7 @@ export default function CAREiApp() {
     try {
       const saved = sessionStorage.getItem("carei_screen") as Screen;
       const account = sessionStorage.getItem("carei_account");
-      const valid: Screen[] = ["today","client-overview","active-visit","medication","handover","continucare-summary","care-plan","bodymap","emergency","visit-history","incident-report","rota","operations","schedule","family","family-summary","manager-approvals","copilot","profile","admin","admin-dashboard","role-select","manager-portal","team-management","invite-carer","client-management","agency-settings"];
+      const valid: Screen[] = ["today","client-overview","active-visit","medication","handover","continucare-summary","care-plan","bodymap","emergency","visit-history","incident-report","rota","operations","schedule","family","family-summary","manager-approvals","copilot","profile","admin","admin-dashboard","role-select","manager-portal","team-management","invite-carer","client-management","manager-care-plan-edit","agency-settings"];
       return (account && valid.includes(saved)) ? saved : "splash";
     } catch {
       return "splash";
@@ -7375,6 +7499,8 @@ export default function CAREiApp() {
   const [visitMoodSet, setVisitMoodSet] = useState(false);
   const [medReminderActions, setMedReminderActions] = useState<Record<string, MedReminderAction>>({});
   const [dueReminders, setDueReminders] = useState<MedReminder[]>([]);
+  const [carePlanOverrides, setCarePlanOverrides] = useState<Record<string, CarePlanOverride>>({});
+  const [mgrEditClientId, setMgrEditClientId] = useState<string>("mary");
   const alertedKeysRef = useRef<Set<string>>(new Set());
 
   function handleMedReminderAction(key: string, action: MedReminderAction["action"], reason?: string) {
@@ -7511,7 +7637,18 @@ export default function CAREiApp() {
           onBack={() => nav("manager-portal")}
           agencyName={carerAgency}
           teamCarers={managerCarers}
+          onEditCarePlan={(id) => { setMgrEditClientId(id); nav("manager-care-plan-edit"); }}
         />;
+      case "manager-care-plan-edit": {
+        const mgrCpClient = SCHEDULE_CLIENTS.find(c => c.id === mgrEditClientId) || SCHEDULE_CLIENTS[0];
+        return <ManagerCarePlanEditScreen
+          client={mgrCpClient}
+          overrides={carePlanOverrides[mgrCpClient.id]}
+          onSave={(clientId, data) => setCarePlanOverrides(prev => ({ ...prev, [clientId]: data }))}
+          onBack={() => nav("client-management")}
+          managerName={carerName}
+        />;
+      }
       case "agency-settings":
         return <AgencySettingsScreen
           onBack={() => nav("manager-portal")}
@@ -7576,7 +7713,7 @@ export default function CAREiApp() {
       }
       case "care-plan": {
         const cpClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
-        return <CarePlanScreen client={cpClient} onBack={() => nav(visitReturnScreen)} />;
+        return <CarePlanScreen client={cpClient} onBack={() => nav(visitReturnScreen)} overrides={carePlanOverrides[cpClient.id]} />;
       }
       case "emergency": {
         const emergClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];

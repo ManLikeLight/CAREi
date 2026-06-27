@@ -54,3 +54,9 @@ id = "GybLZigN4nN0P65fb29Md"
 uri = "file://CAREi_source.zip"
 type = "unspecified"
 title = "CAREi — Source Code Bundle (CAREiApp.tsx + AdminDashboard.tsx + Features doc)"
+
+[[outputs]]
+id = "bS9-fxNGXgPnjrc0UEs5Y"
+uri = "file://carei-care-plan-spec.md"
+type = "text"
+title = "CAREi — Care Plan Feature Specification"

@@ -2,6 +2,18 @@ import { useState } from "react";
 
 type FVScreen = "home" | "story" | "prefs" | "context" | "worried" | "worried-confirm";
 
+type VisitInput = {
+  confirmedMeds:    string[];
+  skippedMeds:      string[];
+  fluidMl:          number;
+  mealStatus:       string;
+  mood:             string;
+  notes:            string;
+  medTakenAt:       Record<string, string>;
+  visitStartTime:   string;
+  visitEndTime:     string;
+};
+
 const C = {
   dark:  "#0A1628",
   navy:  "#1B2A49",
@@ -17,36 +29,22 @@ const C = {
   g3:    "#475569",
 };
 
-const CLIENT_FIRST = "Mary";
-const FAMILY_FIRST = "James";
-const CARER_NAME   = "Sarah O'Brien";
-const AGENCY       = "Adjoy Healthcare";
-const NEXT_VISIT   = "Tomorrow, 09:00";
+const AGENCY    = "Adjoy Healthcare";
+const NEXT_VISIT = "Tomorrow, 09:00";
 
-const VISITS = [
-  {
-    id:       "today",
-    label:    "Today",
-    date:     "24 Jun 2026",
-    time:     "09:00 – 10:05",
-    concerns: null as string | null,
-    meds:     [{ name: "Aspirin 75mg", time: "09:42" }, { name: "Donepezil 10mg", time: "09:44" }],
-    meal:     "Full breakfast — toast, tea, orange juice",
-    mood:     "Good spirits",
-    story:    `Sarah visited Mary this morning. Mary was in great spirits — she asked about the weather and chatted warmly about her grandchildren over breakfast. She had a full meal and finished her morning tea. Both medications were given without any difficulty, and Sarah recorded no concerns. It was a positive, comfortable visit.`,
-  },
-  {
-    id:       "yesterday",
-    label:    "Yesterday",
-    date:     "23 Jun 2026",
-    time:     "09:00 – 10:00",
-    concerns: "Mary was a little quieter than usual and had about half of her breakfast. No urgent concern — noted for monitoring on the next visit.",
-    meds:     [{ name: "Aspirin 75mg", time: "09:38" }, { name: "Donepezil 10mg", time: "09:40" }],
-    meal:     "Half breakfast — appetite slightly reduced",
-    mood:     "Calm but quieter than usual",
-    story:    `Sarah visited Mary yesterday morning. Mary was calm and cooperative throughout, though she was a little quieter than usual and had about half of her breakfast. Both medications were given as prescribed. Sarah noted Mary's reduced appetite as something to keep an eye on — no urgent concern, but it has been flagged for the next visit.`,
-  },
-];
+const MOCK_TODAY_VISIT: VisitInput = {
+  confirmedMeds:  ["Aspirin 75mg", "Donepezil 10mg"],
+  skippedMeds:    [],
+  fluidMl:        750,
+  mealStatus:     "Full",
+  mood:           "😊",
+  notes:          "",
+  medTakenAt:     { "Aspirin": "09:42", "Donepezil": "09:44" },
+  visitStartTime: "09:00",
+  visitEndTime:   "10:05",
+};
+
+const YESTERDAY_CONCERNS = "Mary was a little quieter than usual and had about half of her breakfast. No urgent concern — noted for monitoring.";
 
 const INIT_NOTES = [
   { id: "n1", text: "Mum mentioned she didn't sleep well last night. She was up a few times.", when: "Yesterday, 8:14pm" },
@@ -62,13 +60,84 @@ const WORRIED_PICKS = [
 ];
 
 const PREF_OPTIONS = [
-  { key: "missed",   label: "Visit missed",                        desc: "If a scheduled visit doesn't happen" },
-  { key: "late",     label: "Visit starts late",                   desc: "If arrival is more than 15 minutes late" },
-  { key: "med",      label: "Medication could not be given",       desc: "If a dose is refused or skipped" },
-  { key: "concern",  label: "A concern is recorded",               desc: "If the carer notes anything unusual" },
-  { key: "gp",       label: "GP is contacted",                     desc: "If the team contacts a doctor" },
-  { key: "good",     label: "A particularly good day",             desc: "Positive highlights worth sharing" },
+  { key: "missed",  label: "Visit missed",                  desc: "If a scheduled visit doesn't happen" },
+  { key: "late",    label: "Visit starts late",             desc: "If arrival is more than 15 minutes late" },
+  { key: "med",     label: "Medication could not be given", desc: "If a dose is refused or skipped" },
+  { key: "concern", label: "A concern is recorded",        desc: "If the carer notes anything unusual" },
+  { key: "gp",      label: "GP is contacted",               desc: "If the team contacts a doctor" },
+  { key: "good",    label: "A particularly good day",       desc: "Positive highlights worth sharing" },
 ];
+
+// ─── Derivation helpers ────────────────────────────────────────────────────────
+
+const MOOD_MAP: Record<string, string> = {
+  "😊": "Great spirits", "🙂": "Good spirits", "😐": "Calm and settled",
+  "😕": "Quieter than usual", "😔": "Low in mood",
+};
+
+function moodText(raw: string): string {
+  if (!raw) return "";
+  return MOOD_MAP[raw.trim()] ?? raw;
+}
+
+function mealText(status: string): string {
+  if (status === "Full")    return "Full meal supported — ate well";
+  if (status === "Half")    return "About half a meal — appetite a little lower today";
+  if (status === "Refused") return "Declined meal this visit — noted for the care team";
+  return "Meal support provided";
+}
+
+function deriveToday(v: VisitInput, carerFirst: string, clientFirst: string) {
+  const meds = v.confirmedMeds.map(name => {
+    const shortName = name.split(" ")[0];
+    const time = v.medTakenAt[shortName] ?? v.medTakenAt[name] ?? "";
+    return { name, time };
+  });
+  const hasConcern = v.skippedMeds.length > 0 ||
+    v.mealStatus === "Refused" ||
+    (v.fluidMl > 0 && v.fluidMl < 300);
+  const concerns: string | null = v.skippedMeds.length > 0
+    ? `Medication could not be given this visit: ${v.skippedMeds.join(", ")}. The care team has been informed.`
+    : v.mealStatus === "Refused"
+    ? `${clientFirst} declined her meal this visit. The care team has noted this and will monitor at the next visit.`
+    : (v.fluidMl > 0 && v.fluidMl < 300)
+    ? `Fluid intake was lower than usual today (${v.fluidMl}ml). ${carerFirst} has noted this for monitoring.`
+    : null;
+  const story = buildStory(v, carerFirst, clientFirst);
+  const time = (v.visitStartTime && v.visitEndTime)
+    ? `${v.visitStartTime} – ${v.visitEndTime}`
+    : v.visitStartTime ? v.visitStartTime : "This morning";
+  return { meds, meal: mealText(v.mealStatus), mood: moodText(v.mood), concerns, story, time, hasConcern };
+}
+
+function buildStory(v: VisitInput, carerFirst: string, clientFirst: string): string {
+  const parts: string[] = [];
+  parts.push(`${carerFirst} visited ${clientFirst} this morning.`);
+  const mood = MOOD_MAP[v.mood?.trim()] ?? v.mood;
+  if (mood) parts.push(`${clientFirst} was ${mood === "Great spirits" || mood === "Good spirits" ? "in " + mood.toLowerCase() : mood.toLowerCase()}.`);
+  if (v.mealStatus === "Full")    parts.push("She had a full meal and ate well.");
+  else if (v.mealStatus === "Half")    parts.push("She had about half of her meal — her appetite was a little lower than usual today.");
+  else if (v.mealStatus === "Refused") parts.push("She declined her meal this visit — this has been noted.");
+  if (v.fluidMl >= 500)        parts.push(`${clientFirst} had a good amount to drink — ${v.fluidMl}ml recorded.`);
+  else if (v.fluidMl >= 300)   parts.push(`${v.fluidMl}ml of fluids recorded — a little below the usual target.`);
+  else if (v.fluidMl > 0)      parts.push(`Fluid intake was lower than usual today at ${v.fluidMl}ml — noted for monitoring.`);
+  if (v.confirmedMeds.length > 0 && v.skippedMeds.length === 0) {
+    parts.push("All medications were given as prescribed, without any difficulty.");
+  } else if (v.confirmedMeds.length > 0 && v.skippedMeds.length > 0) {
+    parts.push(`Most medications were given, though ${v.skippedMeds.join(" and ")} could not be administered — this is documented.`);
+  } else if (v.skippedMeds.length > 0) {
+    parts.push(`Medication could not be given this visit — this has been logged by ${carerFirst}.`);
+  }
+  if (v.notes?.trim()) {
+    const sentence = v.notes.trim().split(/[.!?]/)[0].trim();
+    if (sentence && sentence.length < 120) parts.push(sentence + ".");
+  }
+  const hasConcern = v.skippedMeds.length > 0 || v.mealStatus === "Refused" || (v.fluidMl > 0 && v.fluidMl < 300);
+  parts.push(hasConcern
+    ? `${carerFirst} has flagged this with the care team — no action is needed from you unless you have additional concerns.`
+    : "It was a positive, comfortable visit.");
+  return parts.join(" ");
+}
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -93,7 +162,19 @@ function SectionLabel({ children }: { children: string }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function FamilyView({ onBack }: { onBack: () => void }) {
+export default function FamilyView({
+  onBack,
+  visitData,
+  carerName,
+  clientFirstName,
+  familyFirstName,
+}: {
+  onBack:            () => void;
+  visitData?:        VisitInput;
+  carerName?:        string;
+  clientFirstName?:  string;
+  familyFirstName?:  string;
+}) {
   const [screen,    setScreen]    = useState<FVScreen>("home");
   const [notes,     setNotes]     = useState(INIT_NOTES);
   const [noteText,  setNoteText]  = useState("");
@@ -102,7 +183,15 @@ export default function FamilyView({ onBack }: { onBack: () => void }) {
   const [worryPick, setWorryPick] = useState("");
   const [storyDay,  setStoryDay]  = useState<"today" | "yesterday">("today");
 
-  const today   = VISITS[0];
+  const clientFirst = clientFirstName ?? "Mary";
+  const familyFirst = familyFirstName ?? "James";
+  const carerFirst  = (carerName ?? "Sarah O'Brien").split(" ")[0];
+  const carerFull   = carerName   ?? "Sarah O'Brien";
+
+  const sourceData = visitData ?? MOCK_TODAY_VISIT;
+  const visitDone  = !!visitData;
+  const today      = deriveToday(sourceData, carerFirst, clientFirst);
+
   const hideNav = screen === "worried" || screen === "worried-confirm";
 
   function nav(s: FVScreen) { setScreen(s); }
@@ -130,34 +219,60 @@ export default function FamilyView({ onBack }: { onBack: () => void }) {
 
         {/* Greeting */}
         <div>
-          <div style={{ color: C.g2, fontSize: 13 }}>Good morning, {FAMILY_FIRST}</div>
+          <div style={{ color: C.g2, fontSize: 13 }}>Good morning, {familyFirst}</div>
           <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 26, color: "#fff", marginTop: 4, lineHeight: 1.25 }}>
-            Here's how<br />{CLIENT_FIRST} is doing
+            Here's how<br />{clientFirst} is doing
           </div>
         </div>
 
         {/* Confidence banner */}
-        <div style={{ background: "rgba(167,243,208,0.1)", borderRadius: 16, padding: "16px", border: "1px solid rgba(167,243,208,0.25)" }}>
+        <div style={{ background: visitDone ? "rgba(167,243,208,0.1)" : "rgba(255,255,255,0.05)", borderRadius: 16, padding: "16px", border: `1px solid ${visitDone ? "rgba(167,243,208,0.25)" : "rgba(255,255,255,0.1)"}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(167,243,208,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>✓</div>
+            <div style={{ width: 40, height: 40, borderRadius: "50%", background: visitDone ? "rgba(167,243,208,0.2)" : "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
+              {visitDone ? "✓" : "📅"}
+            </div>
             <div>
-              <div style={{ color: C.mint, fontWeight: 700, fontSize: 15 }}>Today's visit is complete</div>
-              <div style={{ color: C.g2, fontSize: 12, marginTop: 2 }}>{CARER_NAME} · {today.time}</div>
+              <div style={{ color: visitDone ? C.mint : C.g1, fontWeight: 700, fontSize: 15 }}>
+                {visitDone ? "Today's visit is complete" : "Visit not yet recorded"}
+              </div>
+              <div style={{ color: C.g2, fontSize: 12, marginTop: 2 }}>
+                {visitDone ? `${carerFull} · ${today.time}` : `${carerFull} · Due this morning`}
+              </div>
             </div>
           </div>
-          <button
-            onClick={() => nav("story")}
-            style={{ width: "100%", background: "rgba(167,243,208,0.15)", border: "1px solid rgba(167,243,208,0.35)", borderRadius: 10, padding: "10px 0", color: C.mint, fontFamily: "DM Sans,sans-serif", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
-          >
-            Read today's story →
-          </button>
+          {visitDone && (
+            <button
+              onClick={() => nav("story")}
+              style={{ width: "100%", background: "rgba(167,243,208,0.15)", border: "1px solid rgba(167,243,208,0.35)", borderRadius: 10, padding: "10px 0", color: C.mint, fontFamily: "DM Sans,sans-serif", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+            >
+              Read today's story →
+            </button>
+          )}
         </div>
 
         {/* Evidence */}
         <SectionLabel>Today at a glance</SectionLabel>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <Row icon="💊" title="Medication taken"      detail={today.meds.map(m => m.name).join(" · ")} ok={true} />
-          <Row icon="🍽️" title="Meal supported"        detail={today.meal}                              ok={true} />
+          <Row
+            icon="💊"
+            title={today.meds.length > 0 ? "Medication taken" : "No medications recorded yet"}
+            detail={today.meds.length > 0 ? today.meds.map(m => m.name + (m.time ? ` at ${m.time}` : "")).join(" · ") : "Check back after the visit"}
+            ok={today.meds.length > 0 && sourceData.skippedMeds.length === 0}
+          />
+          <Row
+            icon="🍽️"
+            title="Meal supported"
+            detail={today.meal}
+            ok={sourceData.mealStatus === "Full" || (!sourceData.mealStatus && visitDone)}
+          />
+          {sourceData.fluidMl > 0 && (
+            <Row
+              icon="💧"
+              title="Fluid intake"
+              detail={`${sourceData.fluidMl}ml recorded · ${sourceData.fluidMl >= 500 ? "Good hydration" : "A little lower than usual — being monitored"}`}
+              ok={sourceData.fluidMl >= 500}
+            />
+          )}
           <Row
             icon="❤️"
             title={today.concerns ? "A note from the team" : "No concerns"}
@@ -167,10 +282,10 @@ export default function FamilyView({ onBack }: { onBack: () => void }) {
         </div>
 
         {/* Yesterday note */}
-        {VISITS[1].concerns && (
+        {YESTERDAY_CONCERNS && (
           <div style={{ background: "rgba(246,183,60,0.07)", borderRadius: 14, padding: "12px 14px", border: "1px solid rgba(246,183,60,0.2)" }}>
             <div style={{ color: C.amber, fontWeight: 600, fontSize: 12, marginBottom: 4 }}>Yesterday · Noted by the care team</div>
-            <div style={{ color: C.g2, fontSize: 12, lineHeight: 1.55 }}>{VISITS[1].concerns}</div>
+            <div style={{ color: C.g2, fontSize: 12, lineHeight: 1.55 }}>{YESTERDAY_CONCERNS}</div>
           </div>
         )}
 
@@ -179,7 +294,7 @@ export default function FamilyView({ onBack }: { onBack: () => void }) {
           <span style={{ fontSize: 22 }}>📅</span>
           <div>
             <div style={{ color: C.g3, fontSize: 11 }}>Next visit</div>
-            <div style={{ color: "#fff", fontWeight: 600, fontSize: 13, marginTop: 2 }}>{NEXT_VISIT} · {CARER_NAME}</div>
+            <div style={{ color: "#fff", fontWeight: 600, fontSize: 13, marginTop: 2 }}>{NEXT_VISIT} · {carerFull}</div>
           </div>
         </div>
 
@@ -188,7 +303,7 @@ export default function FamilyView({ onBack }: { onBack: () => void }) {
           onClick={() => nav("worried")}
           style={{ width: "100%", background: "rgba(255,90,95,0.1)", border: "1px solid rgba(255,90,95,0.3)", borderRadius: 14, padding: "14px 0", color: "#FF5A5F", fontFamily: "DM Sans,sans-serif", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
         >
-          I'm worried about {CLIENT_FIRST}
+          I'm worried about {clientFirst}
         </button>
 
         <div style={{ textAlign: "center", color: C.g3, fontSize: 10 }}>🔒 Information shared only with {AGENCY}</div>
@@ -197,13 +312,31 @@ export default function FamilyView({ onBack }: { onBack: () => void }) {
   }
 
   function renderStory() {
-    const visit = storyDay === "today" ? VISITS[0] : VISITS[1];
+    const isToday = storyDay === "today";
+    const storyText = isToday
+      ? today.story
+      : `${carerFull.split(" ")[0]} visited ${clientFirst} yesterday morning. ${clientFirst} was calm and cooperative throughout, though she was a little quieter than usual and had about half of her breakfast. Both medications were given as prescribed. ${carerFull.split(" ")[0]} noted ${clientFirst}'s reduced appetite as something to keep an eye on — no urgent concern, but it has been flagged for the next visit.`;
+
+    const facts = isToday
+      ? [
+          { icon: "💊", label: "Medication", value: today.meds.length > 0 ? today.meds.map(m => m.name + (m.time ? ` at ${m.time}` : "")).join(" · ") : "None recorded", amber: false },
+          { icon: "🍽️", label: "Meal",       value: today.meal, amber: false },
+          { icon: "😊", label: "Mood",        value: today.mood || "Not recorded", amber: false },
+          ...(sourceData.fluidMl > 0 ? [{ icon: "💧", label: "Fluids", value: `${sourceData.fluidMl}ml`, amber: sourceData.fluidMl < 400 }] : []),
+          { icon: "📝", label: "Concerns",   value: today.concerns ?? "None recorded", amber: !!today.concerns },
+        ]
+      : [
+          { icon: "💊", label: "Medication", value: "Aspirin 75mg at 09:38 · Donepezil 10mg at 09:40", amber: false },
+          { icon: "🍽️", label: "Meal",       value: "About half a meal — appetite slightly reduced",    amber: false },
+          { icon: "😊", label: "Mood",        value: "Calm but quieter than usual",                     amber: false },
+          { icon: "📝", label: "Concerns",   value: YESTERDAY_CONCERNS,                                 amber: true  },
+        ];
+
     return (
       <div className="phone-scroll" style={{ flex: 1, padding: "20px 18px 108px", display: "flex", flexDirection: "column", gap: 14 }}>
 
         <div>
           <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff", marginBottom: 12 }}>Daily Story</div>
-          {/* day picker */}
           <div style={{ display: "flex", gap: 8 }}>
             {(["today", "yesterday"] as const).map(d => (
               <button
@@ -220,26 +353,23 @@ export default function FamilyView({ onBack }: { onBack: () => void }) {
         {/* Story banner */}
         <div style={{ background: "rgba(167,243,208,0.08)", borderRadius: 16, padding: "14px 16px", border: "1px solid rgba(167,243,208,0.2)" }}>
           <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 20, color: "#fff", marginBottom: 4 }}>
-            {CLIENT_FIRST}'s {visit.label === "Today" ? "Morning" : "Day"}
+            {clientFirst}'s {isToday ? "Morning" : "Yesterday"}
           </div>
-          <div style={{ color: C.g2, fontSize: 12 }}>{visit.date} · {visit.carer} · {visit.time}</div>
+          <div style={{ color: C.g2, fontSize: 12 }}>
+            {isToday ? `Today · ${carerFull} · ${today.time}` : `Yesterday · ${carerFull} · 09:00 – 10:00`}
+          </div>
         </div>
 
         {/* Narrative */}
         <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "16px" }}>
-          <div style={{ color: C.g1, fontSize: 14, lineHeight: 1.75, fontStyle: "italic" as const }}>"{visit.story}"</div>
+          <div style={{ color: C.g1, fontSize: 14, lineHeight: 1.75, fontStyle: "italic" as const }}>"{storyText}"</div>
         </div>
 
         {/* Quick facts */}
         <SectionLabel>What was recorded</SectionLabel>
         <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 14, overflow: "hidden" }}>
-          {[
-            { icon: "💊", label: "Medication", value: visit.meds.map(m => `${m.name} at ${m.time}`).join(" · "), amber: false },
-            { icon: "🍽️", label: "Meal",       value: visit.meal,                                                 amber: false },
-            { icon: "😊", label: "Mood",       value: visit.mood,                                                 amber: false },
-            { icon: "📝", label: "Concerns",   value: visit.concerns ?? "None recorded",                          amber: !!visit.concerns },
-          ].map((item, i) => (
-            <div key={i} style={{ display: "flex", gap: 12, padding: "12px 14px", borderBottom: i < 3 ? "1px solid rgba(255,255,255,0.05)" : "none", alignItems: "flex-start" }}>
+          {facts.map((item, i) => (
+            <div key={i} style={{ display: "flex", gap: 12, padding: "12px 14px", borderBottom: i < facts.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", alignItems: "flex-start" }}>
               <span style={{ fontSize: 16, flexShrink: 0, marginTop: 2 }}>{item.icon}</span>
               <div style={{ flex: 1 }}>
                 <div style={{ color: C.g3, fontSize: 9, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" as const, marginBottom: 3 }}>{item.label}</div>
@@ -249,7 +379,7 @@ export default function FamilyView({ onBack }: { onBack: () => void }) {
           ))}
         </div>
 
-        {visit.concerns && (
+        {(isToday ? today.concerns : YESTERDAY_CONCERNS) && (
           <div style={{ background: "rgba(246,183,60,0.07)", borderRadius: 12, padding: "12px 14px", border: "1px solid rgba(246,183,60,0.2)" }}>
             <div style={{ color: C.amber, fontSize: 12, lineHeight: 1.55 }}>The care team is aware of this and will monitor it at the next visit. No action is needed from you unless you have additional concerns.</div>
           </div>
@@ -265,7 +395,7 @@ export default function FamilyView({ onBack }: { onBack: () => void }) {
         <div>
           <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>Leave a note</div>
           <div style={{ color: C.g2, fontSize: 13, marginTop: 6, lineHeight: 1.6 }}>
-            Your message will be shared with {CARER_NAME} before the next visit on {NEXT_VISIT}.
+            Your message will be shared with {carerFull} before the next visit on {NEXT_VISIT}.
           </div>
         </div>
 
@@ -323,7 +453,6 @@ export default function FamilyView({ onBack }: { onBack: () => void }) {
                 <div style={{ color: "#fff", fontWeight: 600, fontSize: 13 }}>{opt.label}</div>
                 <div style={{ color: C.g3, fontSize: 11, marginTop: 3 }}>{opt.desc}</div>
               </div>
-              {/* Toggle */}
               <div style={{ width: 46, height: 26, borderRadius: 13, background: prefs[opt.key] ? `linear-gradient(90deg,${C.teal},${C.teal2})` : "rgba(255,255,255,0.12)", position: "relative" as const, flexShrink: 0, transition: "background 0.2s" }}>
                 <div style={{ position: "absolute" as const, top: 3, left: prefs[opt.key] ? 23 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
               </div>
@@ -345,7 +474,7 @@ export default function FamilyView({ onBack }: { onBack: () => void }) {
       <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "20px 18px 14px", flexShrink: 0 }}>
           <button onClick={() => nav("home")} style={{ background: "none", border: "none", color: C.g2, fontSize: 22, cursor: "pointer", padding: 0, marginBottom: 12 }}>‹</button>
-          <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>I'm worried about {CLIENT_FIRST}</div>
+          <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>I'm worried about {clientFirst}</div>
           <div style={{ color: C.g2, fontSize: 13, marginTop: 6, lineHeight: 1.6 }}>
             Tell us what's on your mind. This goes straight to the care manager at {AGENCY} — not to an individual carer.
           </div>
@@ -412,7 +541,7 @@ export default function FamilyView({ onBack }: { onBack: () => void }) {
           onClick={() => nav("home")}
           style={{ width: "100%", padding: "14px 0", borderRadius: 12, border: "none", background: `linear-gradient(90deg,${C.teal},${C.teal2})`, color: "#0F1D34", fontFamily: "DM Sans,sans-serif", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
         >
-          Back to {CLIENT_FIRST}'s updates
+          Back to {clientFirst}'s updates
         </button>
       </div>
     );
@@ -427,55 +556,41 @@ export default function FamilyView({ onBack }: { onBack: () => void }) {
         <div style={{ padding: "14px 18px 12px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
           <button onClick={onBack} style={{ background: "none", border: "none", color: C.g2, fontSize: 22, cursor: "pointer", padding: 0 }}>‹</button>
           <div style={{ textAlign: "center" as const }}>
-            <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>{CLIENT_FIRST}'s Updates</div>
-            <div style={{ color: C.g3, fontSize: 10, marginTop: 1 }}>Family View · {AGENCY}</div>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>{clientFirst}'s Updates</div>
+            <div style={{ color: C.g3, fontSize: 10, marginTop: 1 }}>{AGENCY} · Family Portal</div>
           </div>
-          <button
-            onClick={() => nav("worried")}
-            style={{ background: "rgba(255,90,95,0.1)", border: "1px solid rgba(255,90,95,0.3)", borderRadius: 8, padding: "6px 10px", color: "#FF5A5F", fontFamily: "DM Sans,sans-serif", fontSize: 10, fontWeight: 700, cursor: "pointer" }}
-          >
-            Worried?
-          </button>
+          <div style={{ width: 28 }} />
         </div>
       )}
 
-      {/* Screen */}
-      {screen === "home"             && renderHome()}
-      {screen === "story"            && renderStory()}
-      {screen === "context"          && renderContext()}
-      {screen === "prefs"            && renderPrefs()}
-      {screen === "worried"          && renderWorried()}
-      {screen === "worried-confirm"  && renderConfirm()}
+      {/* Screen content */}
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+        {screen === "home"           && renderHome()}
+        {screen === "story"          && renderStory()}
+        {screen === "context"        && renderContext()}
+        {screen === "prefs"          && renderPrefs()}
+        {screen === "worried"        && renderWorried()}
+        {screen === "worried-confirm" && renderConfirm()}
+      </div>
 
-      {/* Tab bar */}
+      {/* Bottom nav */}
       {!hideNav && (
-        <div style={{ position: "absolute" as const, bottom: 0, left: 0, right: 0, background: "rgba(10,22,40,0.97)", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", padding: "8px 0 20px" }}>
-          {([
-            { key: "home",    icon: "🏠", label: "Today"   },
-            { key: "story",   icon: "📖", label: "Story"   },
-            { key: "context", icon: "💬", label: "Notes"   },
-            { key: "prefs",   icon: "🔔", label: "Updates" },
-          ] as { key: FVScreen; icon: string; label: string }[]).map(tab => {
-            const active = screen === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => nav(tab.key)}
-                style={{ flex: 1, background: "none", border: "none", display: "flex", flexDirection: "column" as const, alignItems: "center", gap: 3, cursor: "pointer", padding: "4px 0" }}
-              >
-                <span style={{ fontSize: 20, opacity: active ? 1 : 0.4 }}>{tab.icon}</span>
-                <span style={{ color: active ? C.teal : C.g3, fontSize: 9, fontWeight: active ? 700 : 400 }}>{tab.label}</span>
-              </button>
-            );
-          })}
-          {/* Worried tab — styled distinctly */}
-          <button
-            onClick={() => nav("worried")}
-            style={{ flex: 1, background: "none", border: "none", display: "flex", flexDirection: "column" as const, alignItems: "center", gap: 3, cursor: "pointer", padding: "4px 0" }}
-          >
-            <span style={{ fontSize: 20, opacity: screen === "worried" ? 1 : 0.55 }}>🆘</span>
-            <span style={{ color: "#FF5A5F", fontSize: 9, fontWeight: 700 }}>Worried?</span>
-          </button>
+        <div style={{ position: "absolute" as const, bottom: 0, left: 0, right: 0, background: "rgba(10,22,40,0.97)", borderTop: "1px solid rgba(255,255,255,0.07)", display: "flex", padding: "8px 0 20px" }}>
+          {[
+            { id: "home",    icon: "🏠", label: "Home"    },
+            { id: "story",   icon: "📖", label: "Story"   },
+            { id: "context", icon: "💬", label: "Notes"   },
+            { id: "prefs",   icon: "🔔", label: "Alerts"  },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => nav(tab.id as FVScreen)}
+              style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, background: "none", border: "none", cursor: "pointer", padding: "6px 0" }}
+            >
+              <span style={{ fontSize: 20 }}>{tab.icon}</span>
+              <span style={{ color: screen === tab.id ? C.teal : C.g3, fontSize: 10, fontWeight: screen === tab.id ? 700 : 400, fontFamily: "DM Sans,sans-serif" }}>{tab.label}</span>
+            </button>
+          ))}
         </div>
       )}
     </div>

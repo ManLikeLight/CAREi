@@ -7807,7 +7807,15 @@ export default function CAREiApp() {
           userRole={userRole}
         />;
       case "family":
-        return <FamilyView onBack={() => nav("today")} />;
+        return (
+          <FamilyView
+            onBack={() => nav("today")}
+            visitData={lastVisitData}
+            carerName={carerName || "Sarah O'Brien"}
+            clientFirstName="Mary"
+            familyFirstName="James"
+          />
+        );
       case "family-summary": {
         const familyClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
         return (

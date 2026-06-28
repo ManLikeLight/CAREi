@@ -1,0 +1,21 @@
+Add a “Family View” to the CAREi prototype (React + Vite + TypeScript + Tailwind). This is a family-facing experience, separate from the carer app, that lets an authorised family member see reassuring, verified updates about their loved one’s care. Use sample/mock data only for now (no real client data). Brand colours: Navy #1B2A49, Teal #4FD1C5, Mint #A7F3D0, Amber #F6B73C. The guiding principle is “Confidence, not monitoring”: the whole experience answers one question for the family, “If I can’t be there today, should I feel reassured?”
+
+Build these five core features only. Do not build any other family features.
+
+	1.	The Daily Story.
+A warm, human, plain-language summary of each visit, shown to the family. Not a task list. Example tone: “Sarah visited this morning. Your mum enjoyed breakfast, chatted about her grandchildren, and was comfortable throughout the visit. Medication was taken and there were no concerns today.” It must be generated only from the underlying recorded visit data (mock data for now), and must stay strictly truthful to that data, never invent details. Show one Daily Story per completed visit, most recent first.
+	2.	The Family Confidence Engine (the home screen).
+The main Family View screen answers “should I feel reassured today?” with evidence, not a score. Show, for today: visit(s) completed (with time), medication taken, meals supported, and concerns (“None” or, if there is one, a calm note that the agency is aware and handling it). Present it as clear, reassuring evidence. Pull from mock data. Do not show a numeric score.
+	3.	“Would You Like To Know?” notification preferences.
+A settings screen where the family member chooses which updates they want. Options (toggles): visit missed, visit starts late, medication could not be administered, a concern is recorded, a GP is contacted, a particularly good day. Store the toggle state in React state only (no backend, no browser storage). These are preferences only in the prototype; actual notifications are simulated/illustrative.
+	4.	Family Context (family contributes info before a visit).
+Let the family member add a short note that would reach the carer before the next visit, e.g. “Mum didn’t sleep well last night” or “Dad is anxious this week.” Show these notes in a simple list, with the most recent first, and indicate they would be shared with the upcoming visit’s carer. Mock data; React state only.
+	5.	The “I’m Worried” channel.
+A clearly visible button: “I’m worried about [name].” When pressed, ask a short follow-up (“What are you worried about?”) with a free-text field and a few quick-pick examples (“She sounded confused,” “She didn’t answer the phone,” “She seems quieter”). On submit, show a confirmation that the message has gone to the care manager (not the individual carer) and is logged. In the prototype, simulate this (add it to a mock “manager dashboard” list or just confirm visually). Make clear in the UI that it routes to the manager/agency, never to an individual carer.
+
+Design requirements:
+
+	•	Calm, warm, reassuring tone throughout. This is about peace of mind, not monitoring or surveillance. Avoid anything that feels like tracking or spying on the carer.
+	•	Match the existing CAREi design system, components, and styling.
+	•	Use mock/sample data only. No backend, no real personal data, no browser storage (use React state).
+	•	Do not build: Care Circle, Memory Vault, “Things That Make Me Smile” profile, Family Timeline, “you know them best” check-ins, any continuity score, or any feature that interprets or diagnoses health. Those are later phases and must not be included now.

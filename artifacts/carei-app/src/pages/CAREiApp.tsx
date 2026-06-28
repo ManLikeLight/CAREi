@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, Component, type ReactNode } from "react";
 import AdminDashboard from "./AdminDashboard";
+import FamilyView from "./FamilyView";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Screen =
@@ -7672,10 +7673,8 @@ export default function CAREiApp() {
           carerAgency={carerAgency}
           userRole={userRole}
         />;
-      case "family": {
-        const familyClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
-        return <FamilyPortalScreen onBack={() => nav("today")} onSummary={() => nav("family-summary")} carerName={carerName} carerAgency={carerAgency} client={familyClient} />;
-      }
+      case "family":
+        return <FamilyView onBack={() => nav("today")} />;
       case "family-summary": {
         const familyClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
         return (

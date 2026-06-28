@@ -193,7 +193,7 @@ const SCHEDULE_CLIENTS = [
     ],
     meds: [
       { name: "Aspirin", dose: "75mg", dueTime: "10:45", dosingGapHours: 24, timeSensitive: false, adminNote: "Give with morning meal. Monitor for dizziness.", interactions: ["Aspirin may reduce Lisinopril's blood pressure-lowering effect — monitor BP closely after both are given"], possibleDuplicate: true, duplicateNote: "Aspirin also appears in Tom's earlier visit record today. Please confirm this is the correct scheduled dose for this visit and not a duplicate before proceeding." },
-      { name: "Lisinopril", dose: "10mg", dueTime: minsFromNow(5), dosingGapHours: 24, timeSensitive: true, adminNote: "Give with food. Monitor blood pressure. Report readings above baseline.", interactions: ["Aspirin may reduce Lisinopril's blood pressure-lowering effect — monitor BP closely after both are given"] },
+      { name: "Lisinopril", dose: "10mg", dueTime: minsFromNow(8), dosingGapHours: 24, timeSensitive: true, adminNote: "Give with food. Monitor blood pressure. Report readings above baseline.", interactions: ["Aspirin may reduce Lisinopril's blood pressure-lowering effect — monitor BP closely after both are given"] },
     ],
     conditions: ["Post-Stroke", "Hypertension", "Dysphagia Risk"],
     chokingRisk: true,
@@ -235,7 +235,7 @@ const SCHEDULE_CLIENTS = [
       { trigger: "Record mood", content: "Always explain each step before doing it, Aisha values being in control of her care. Note any signs of withdrawal or reduced engagement; these may indicate low blood sugar." },
     ],
     meds: [
-      { name: "Metformin", dose: "500mg", dueTime: minsFromNow(5), dosingGapHours: 6, timeSensitive: true, adminNote: "⚠ Give AFTER meals only, never on an empty stomach. Monitor for nausea for 30 mins after.", interactions: [], possibleDuplicate: true, duplicateNote: "Metformin may be prescribed more than once daily. Please confirm this is the correct lunchtime dose for this visit and check the medication administration record." },
+      { name: "Metformin", dose: "500mg", dueTime: minsFromNow(8), dosingGapHours: 6, timeSensitive: true, adminNote: "⚠ Give AFTER meals only, never on an empty stomach. Monitor for nausea for 30 mins after.", interactions: [], possibleDuplicate: true, duplicateNote: "Metformin may be prescribed more than once daily. Please confirm this is the correct lunchtime dose for this visit and check the medication administration record." },
       { name: "Lisinopril", dose: "10mg", dueTime: "12:15", dosingGapHours: 24, timeSensitive: false, adminNote: "Give with food. Monitor blood pressure and report readings above 140/90.", interactions: [], possibleDuplicate: true, duplicateNote: "Lisinopril is a once-daily medication. Please confirm today's dose has not already been recorded before administering." },
     ],
     conditions: ["Type 2 Diabetes", "Hypertension", "Peripheral Neuropathy"],

@@ -4577,6 +4577,9 @@ function IncidentReportScreen({ onBack, onSubmit }: { onBack: () => void; onSubm
 function HandoverScreen({ client, onSubmit }: { client: typeof SCHEDULE_CLIENTS[0]; onSubmit: () => void }) {
   const [mood, setMood] = useState<number | null>(null);
   const [appetite, setAppetite] = useState("");
+  const [fluids, setFluids] = useState("");
+  const [sleepObs, setSleepObs] = useState("");
+  const [moodNote, setMoodNote] = useState("");
   const [mobility, setMobility] = useState("");
   const [observations, setObservations] = useState("");
   const [pendingTasks, setPendingTasks] = useState("");
@@ -4638,6 +4641,32 @@ function HandoverScreen({ client, onSubmit }: { client: typeof SCHEDULE_CLIENTS[
             <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 8 }}>MOBILITY *</label>
             {["Independent", "Needs support", "Limited"].map((v) => (
               <button key={v} onClick={() => setMobility(v)} style={{ display: "block", width: "100%", marginBottom: 6, padding: "8px 0", borderRadius: 8, border: `1px solid ${mobility === v ? COLORS.teal : "rgba(255,255,255,0.1)"}`, background: mobility === v ? "rgba(79,209,197,0.1)" : "transparent", color: mobility === v ? COLORS.teal : COLORS.g2, fontSize: 12, fontWeight: mobility === v ? 700 : 400, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>{v}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Fluids + Sleep */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div>
+            <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 8 }}>FLUID INTAKE</label>
+            {["Good", "Fair", "Poor"].map((v) => (
+              <button key={v} onClick={() => setFluids(v)} style={{ display: "block", width: "100%", marginBottom: 6, padding: "8px 0", borderRadius: 8, border: `1px solid ${fluids === v ? COLORS.teal : "rgba(255,255,255,0.1)"}`, background: fluids === v ? "rgba(79,209,197,0.1)" : "transparent", color: fluids === v ? COLORS.teal : COLORS.g2, fontSize: 12, fontWeight: fluids === v ? 700 : 400, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>{v}</button>
+            ))}
+          </div>
+          <div>
+            <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 8 }}>SLEEP (REPORTED)</label>
+            {["Good", "Poor", "Disturbed"].map((v) => (
+              <button key={v} onClick={() => setSleepObs(v)} style={{ display: "block", width: "100%", marginBottom: 6, padding: "8px 0", borderRadius: 8, border: `1px solid ${sleepObs === v ? COLORS.teal : "rgba(255,255,255,0.1)"}`, background: sleepObs === v ? "rgba(79,209,197,0.1)" : "transparent", color: sleepObs === v ? COLORS.teal : COLORS.g2, fontSize: 12, fontWeight: sleepObs === v ? 700 : 400, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>{v}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Mood as noted */}
+        <div>
+          <label style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600, display: "block", marginBottom: 8 }}>MOOD AS NOTED</label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {["Settled", "Quiet", "Bright", "Low", "Agitated"].map((v) => (
+              <button key={v} onClick={() => setMoodNote(v)} style={{ padding: "7px 14px", borderRadius: 99, border: `1px solid ${moodNote === v ? COLORS.teal : "rgba(255,255,255,0.1)"}`, background: moodNote === v ? "rgba(79,209,197,0.1)" : "transparent", color: moodNote === v ? COLORS.teal : COLORS.g2, fontSize: 12, fontWeight: moodNote === v ? 700 : 400, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>{v}</button>
             ))}
           </div>
         </div>
@@ -5095,6 +5124,77 @@ function TodayCareScreen({
   );
 }
 
+// ─── Structured visit history & deterministic change detection ────────────────
+
+type StructuredVisit = {
+  date: string;
+  appetite: "Good" | "Fair" | "Poor";
+  fluids:   "Good" | "Fair" | "Poor";
+  sleep:    "Good" | "Poor" | "Disturbed";
+  moodNote: "Settled" | "Quiet" | "Agitated" | "Low" | "Bright";
+  notes?:   string;
+};
+
+type ChangeFlag = { field: string; message: string; direction: "worse" | "better" };
+
+const STRUCTURED_HISTORY: Record<string, StructuredVisit[]> = {
+  mary: [
+    { date: "23 Jun 2026", appetite: "Fair", fluids: "Fair", sleep: "Disturbed", moodNote: "Quiet",   notes: "Mary seemed a little low today, quieter than usual. Finished about half her breakfast." },
+    { date: "22 Jun 2026", appetite: "Good", fluids: "Good", sleep: "Good",      moodNote: "Settled", notes: "Positive visit. Mary was chatty and engaged well. Full breakfast eaten." },
+    { date: "21 Jun 2026", appetite: "Good", fluids: "Good", sleep: "Good",      moodNote: "Bright",  notes: "Mary in great spirits, asked about grandchildren. All tasks completed." },
+  ],
+  tom: [
+    { date: "23 Jun 2026", appetite: "Fair", fluids: "Good", sleep: "Poor",      moodNote: "Quiet",   notes: "Tom quieter than usual. Reported poor sleep. BP 136/84 — within range." },
+    { date: "22 Jun 2026", appetite: "Good", fluids: "Good", sleep: "Poor",      moodNote: "Settled", notes: "Tom mentioned disturbed sleep again. Otherwise engaged well. BP 134/82." },
+    { date: "21 Jun 2026", appetite: "Good", fluids: "Good", sleep: "Good",      moodNote: "Settled", notes: "Good visit. Tom cooperated with all transfers. Good sleep reported." },
+  ],
+  aisha: [
+    { date: "23 Jun 2026", appetite: "Good", fluids: "Fair", sleep: "Good",      moodNote: "Quiet",   notes: "Aisha quieter than usual. Fluid intake a little lower. Blood sugar stable." },
+    { date: "22 Jun 2026", appetite: "Good", fluids: "Good", sleep: "Good",      moodNote: "Settled", notes: "Positive visit. Aisha engaged well. Full meal eaten, good fluids." },
+    { date: "21 Jun 2026", appetite: "Good", fluids: "Good", sleep: "Good",      moodNote: "Bright",  notes: "Aisha in great spirits. Meds taken, good appetite." },
+  ],
+};
+
+/** Pure deterministic change detection — no LLM, works offline */
+function detectChanges(clientId: string): ChangeFlag[] {
+  const history = STRUCTURED_HISTORY[clientId];
+  if (!history || history.length < 2) return [];
+  const latest = history[0];
+  const prev   = history.slice(1, 3);
+  const flags: ChangeFlag[] = [];
+
+  // Appetite
+  if (latest.appetite === "Poor" && prev.some(v => v.appetite !== "Poor"))
+    flags.push({ field: "appetite", message: "Appetite: less than recent visits", direction: "worse" });
+  else if (latest.appetite === "Good" && prev.some(v => v.appetite === "Poor"))
+    flags.push({ field: "appetite", message: "Appetite: improved compared to recent visits", direction: "better" });
+
+  // Fluids
+  if (latest.fluids === "Poor" && prev.some(v => v.fluids !== "Poor"))
+    flags.push({ field: "fluids", message: "Fluid intake: lower than recent visits — encourage fluids", direction: "worse" });
+  else if (latest.fluids === "Good" && prev.some(v => v.fluids === "Poor"))
+    flags.push({ field: "fluids", message: "Fluid intake: improved compared to recent visits", direction: "better" });
+
+  // Sleep — only flag if poor on at least 2 of the last 3 visits
+  const recentPoor = history.slice(0, 3).filter(v => v.sleep === "Poor" || v.sleep === "Disturbed").length;
+  if (recentPoor >= 2 && prev.some(v => v.sleep === "Good"))
+    flags.push({ field: "sleep", message: "Sleep: reported as disturbed over the last two visits", direction: "worse" });
+  else if (recentPoor === 1 && latest.sleep !== "Good" && prev.every(v => v.sleep === "Good"))
+    flags.push({ field: "sleep", message: "Sleep: poorer than recent visits — noted last visit", direction: "worse" });
+
+  // Mood
+  if ((latest.moodNote === "Agitated" || latest.moodNote === "Low") && prev.some(v => v.moodNote === "Settled" || v.moodNote === "Bright"))
+    flags.push({ field: "mood", message: `Mood noted as ${latest.moodNote.toLowerCase()} last visit — a change from recent visits`, direction: "worse" });
+  else if (latest.moodNote === "Quiet" && prev.every(v => v.moodNote === "Settled" || v.moodNote === "Bright"))
+    flags.push({ field: "mood", message: "Mood: quieter than usual, noted last visit", direction: "worse" });
+  else if ((latest.moodNote === "Settled" || latest.moodNote === "Bright") && prev.some(v => v.moodNote === "Low" || v.moodNote === "Agitated"))
+    flags.push({ field: "mood", message: "Mood: improved compared to recent visits", direction: "better" });
+
+  // Deduplicate by field
+  const seen = new Set<string>();
+  return flags.filter(f => !seen.has(f.field) && seen.add(f.field));
+}
+
 function ActiveVisitScreen({
   client,
   onComplete,
@@ -5162,6 +5262,7 @@ function ActiveVisitScreen({
   const [mealPromptDismissed, setMealPromptDismissed] = useState(false);
   const [shownCues, setShownCues] = useState<Set<string>>(new Set());
   const [showPrevVisits, setShowPrevVisits] = useState(false);
+  const [showContinuityPanel, setShowContinuityPanel] = useState(true);
   const [showInlineIncident, setShowInlineIncident] = useState(false);
   const [incidentSeverity, setIncidentSeverity] = useState("");
   const [incidentType, setIncidentType] = useState("");
@@ -5549,6 +5650,36 @@ function ActiveVisitScreen({
             <div style={{ color: COLORS.g3, fontSize: 10 }}>Falls, skin changes, behaviour, safeguarding</div>
           </div>
         </button>
+
+        {/* Continuity flags — changes since last visit (deterministic, offline-safe) */}
+        {(() => {
+          const flags = detectChanges(client.id);
+          if (flags.length === 0) return null;
+          return (
+            <div style={{ marginBottom: 14 }}>
+              <button
+                onClick={() => setShowContinuityPanel(v => !v)}
+                style={{ width: "100%", padding: "9px 14px", borderRadius: 10, border: "1px solid rgba(246,183,60,0.3)", background: "rgba(246,183,60,0.07)", color: COLORS.amber, fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif", display: "flex", alignItems: "center", justifyContent: "space-between" }}
+              >
+                <span>📊 Changes since last visit ({flags.length})</span>
+                <span>{showContinuityPanel ? "▾" : "▸"}</span>
+              </button>
+              {showContinuityPanel && (
+                <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 6 }}>
+                  {flags.map(flag => (
+                    <div key={flag.field} style={{ background: flag.direction === "worse" ? "rgba(246,183,60,0.07)" : "rgba(34,197,94,0.07)", border: `1px solid ${flag.direction === "worse" ? "rgba(246,183,60,0.25)" : "rgba(34,197,94,0.25)"}`, borderRadius: 10, padding: "9px 12px", display: "flex", gap: 8, alignItems: "flex-start" }}>
+                      <span style={{ fontSize: 13, flexShrink: 0 }}>{flag.direction === "worse" ? "📉" : "📈"}</span>
+                      <div>
+                        <div style={{ color: flag.direction === "worse" ? COLORS.amber : COLORS.green, fontSize: 12, fontWeight: 700, marginBottom: 2 }}>{flag.message}</div>
+                        <div style={{ color: COLORS.g3, fontSize: 10, lineHeight: 1.4 }}>Continuity note · from previous visit records · for the carer to notice and judge</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* SECTION 2: Medications Due */}
         <div style={{ color: COLORS.g3, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, marginBottom: 8 }}>MEDICATIONS DUE</div>
@@ -6215,6 +6346,8 @@ function ContinuCareSummaryScreen({
         if (visitData?.skippedMeds?.length) parts.push(`Medication not administered this visit: ${visitData.skippedMeds.join(", ")}. Reason documented — please review before next dose.`);
         if (visitData?.mealStatus && visitData.mealStatus !== "Full") parts.push(`Meal intake was ${(visitData.mealStatus ?? "").toLowerCase()} — monitor appetite at next visit.`);
         if ((visitData?.fluidMl ?? 0) < 500 && visitData?.fluidMl !== undefined) parts.push("Fluid intake below recommended target — encourage hydration at next visit.");
+        const contFlags = detectChanges(client.id).filter(f => f.direction === "worse");
+        if (contFlags.length > 0) parts.push("Continuity note: " + contFlags.map(f => f.message).join("; ") + ".");
         parts.push(`Continue care as per plan for ${client.name.split(" ")[0]}. Review carer's observations above for any concerns from this visit.`);
         setHandover(parts.join("\n\n"));
       } finally {

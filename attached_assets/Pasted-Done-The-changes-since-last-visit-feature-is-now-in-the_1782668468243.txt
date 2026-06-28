@@ -1,0 +1,21 @@
+Done. The “changes since last visit” feature is now in the MVP spec as section 4C, with a clear step-by-step build guide, and I’ve added a general “how to build” principles section near the top. Here’s the Replit prompt to add it to your prototype.
+
+The Replit prompt:
+
+Add a “Changes Since Last Visit” feature to the CAREi prototype (React + Vite + TypeScript + Tailwind). It surfaces meaningful changes between visits so patterns aren’t lost between carers who don’t overlap. Use sample/mock data. Brand colours: Navy #1B2A49, Teal #4FD1C5, Amber #F6B73C.
+
+How it must work:
+
+	1.	Structured observation data: ensure comparable observations are captured as structured fields, not free text. At minimum: appetite (good / some / little / none), fluids (good / some / little / none), sleep (good / poor / disturbed), and mood-as-noted (settled / quiet / agitated / low / bright). If the prototype currently captures these as free text, add these structured fields to the visit-recording form. Keep any free-text notes as well.
+	2.	Detect changes with plain deterministic code (NOT the LLM): when a carer opens a visit, compare the current/most-recent structured values against the previous few visits for that client (use mock history). Produce a factual change flag when a value has shifted notably, e.g. appetite dropped from “good”/“some” to “little”/“none” across recent visits, or sleep moved to “poor”/“disturbed”. This comparison is simple local logic and must work offline.
+	3.	Show the change as a plain factual flag: in the visit view and the handover, display detected changes plainly, e.g. “Appetite: less than recent visits” or “Sleep: poorer over the last 2 visits.” Calm presentation, not an aggressive alarm. Only surface genuinely notable changes (avoid flagging tiny or one-off variations), to prevent fatigue.
+	4.	Optional natural-language phrasing (LLM, online only): if/when online, the existing LLM can turn the detected flag into a readable sentence for the handover or family summary, e.g. “Appetite has been lower than usual over the last three visits.” The LLM only phrases a change the deterministic step already detected. Offline, show the plain flag from step 3 instead. Never let the LLM detect or judge the change.
+
+Critical guardrails (must hold):
+
+	•	Descriptive, never diagnostic. State what changed (“ate less than recent visits”). Never interpret what it means clinically (“may indicate an infection”, “may be depressed”). No clinical interpretation anywhere.
+	•	Detection is deterministic code, not the LLM, so it’s reliable and works offline.
+	•	Surface subjective observations (like “spoke less”) honestly as “noted last visit”, not as a definitive trend.
+	•	This is continuity support for a human to notice and judge, not health monitoring.
+
+Use mock/sample data and mock visit history. No backend, no browser storage (React state only). Match the existing CAREi design system.

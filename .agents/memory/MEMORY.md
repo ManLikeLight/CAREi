@@ -1,0 +1,4 @@
+- [Rota architecture](rota-architecture.md) — rota logic lives in lib/rota.ts + components/RotaScreen.tsx; old inline RotaScreen in CAREiApp.tsx was removed.
+- [EVV clock-in](evv-architecture.md) — lib/evv.ts + components/EVVClockIn.tsx; geo auto-runs on mount, NFC Android-Chrome-only, offline fallback always available.
+- [Security layer](security-layer.md) — AES-GCM 256-bit IDB encryption via lib/careStore.ts, PIN lock via App.tsx + AppLockScreen.tsx, bcrypt on API server auth.ts (cost 12), remote wipe via /api/auth/status check on launch.
+- [Pre-existing TS errors](preexisting-ts-errors.md) — four categories of pre-existing errors to ignore in typecheck output.

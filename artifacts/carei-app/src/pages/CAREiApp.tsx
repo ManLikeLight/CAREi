@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, Component, type ReactNode } from "react";
 import AdminDashboard from "./AdminDashboard";
 import FamilyView from "./FamilyView";
 import { saveEncrypted, loadEncrypted, reencryptAll, getOrCreateSalt, deriveKey } from "../lib/careStore";
+import EVVClockIn from "../components/EVVClockIn";
+import { type EVVRecord, CLIENT_COORDS } from "../lib/evv";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Screen =
@@ -366,6 +368,8 @@ interface VisitData {
   fluidTime?: string;
   vitalsSavedTime?: string;
   taskCompletedAt: Record<string, string>;
+  /** Electronic Visit Verification record — captured at clock-in */
+  evv?: EVVRecord;
 }
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
@@ -720,15 +724,18 @@ function ClientOverviewScreen({
   client,
   onStartVisit,
   onBack,
+  nfcTagUid,
 }: {
   client: typeof SCHEDULE_CLIENTS[0];
-  onStartVisit: () => void;
+  onStartVisit: (evv: EVVRecord) => void;
   onBack: () => void;
+  nfcTagUid?: string;
 }) {
   const isAllergyRisk = client.allergy && client.allergy !== "None known";
   const isMetformin = client.meds.some((m) => m.name === "Metformin");
   // Feature 5, Handover read receipt
   const [handoverRead, setHandoverRead] = useState(false);
+  const [showEVV, setShowEVV] = useState(false);
   const firstName = client.name.split(" ")[0];
 
   return (
@@ -850,13 +857,25 @@ function ClientOverviewScreen({
       {/* Start Visit CTA */}
       <div style={{ padding: "6px 16px 20px", flexShrink: 0 }}>
         <button
-          onClick={onStartVisit}
+          onClick={() => handoverRead && setShowEVV(true)}
           disabled={!handoverRead}
           style={{ width: "100%", padding: "15px 0", borderRadius: 14, border: "none", background: handoverRead ? `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})` : "rgba(255,255,255,0.1)", color: handoverRead ? COLORS.darkNavy : COLORS.g3, fontFamily: "DM Sans, sans-serif", fontSize: 16, fontWeight: 700, cursor: handoverRead ? "pointer" : "not-allowed", letterSpacing: 0.3 }}
         >
           {handoverRead ? "Start Visit →" : "Confirm handover first"}
         </button>
       </div>
+
+      {/* EVV clock-in sheet — slides up over the screen */}
+      {showEVV && (
+        <EVVClockIn
+          clientId={client.id}
+          clientName={client.name}
+          clientCoords={CLIENT_COORDS[client.id]}
+          nfcTagUid={nfcTagUid}
+          onConfirm={(evv) => { setShowEVV(false); onStartVisit(evv); }}
+          onCancel={() => setShowEVV(false)}
+        />
+      )}
     </div>
   );
 }
@@ -7206,11 +7225,52 @@ function ManagerCarePlanEditScreen({ client, overrides, onSave, onBack, managerN
   );
 }
 
-function ClientManagementScreen({ onBack, agencyName, teamCarers, onEditCarePlan }: { onBack: () => void; agencyName: string; teamCarers: typeof DEMO_CARERS; onEditCarePlan: (clientId: string) => void }) {
+function ClientManagementScreen({ onBack, agencyName, teamCarers, onEditCarePlan, nfcTags, onAssignNfcTag }: { onBack: () => void; agencyName: string; teamCarers: typeof DEMO_CARERS; onEditCarePlan: (clientId: string) => void; nfcTags: Record<string, string>; onAssignNfcTag: (clientId: string, uid: string) => void }) {
   const [showAdd, setShowAdd] = useState(false);
   const [addedClients, setAddedClients] = useState<{ name: string; dob: string; address: string; condition: string; gp: string; carer: string; contact: string }[]>([]);
   const [form, setForm] = useState({ name: "", dob: "", address: "", condition: "", gp: "", carer: "Unassigned", contact: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [nfcScanClientId, setNfcScanClientId] = useState<string | null>(null);
+  const [nfcScanState, setNfcScanState] = useState<"idle" | "scanning" | "done" | "error">("idle");
+  const [nfcScanResult, setNfcScanResult] = useState("");
+  const nfcAbort = useRef<AbortController | null>(null);
+
+  const nfcSupported = typeof window !== "undefined" && "NDEFReader" in window;
+
+  async function startNfcAssign(clientId: string) {
+    if (!nfcSupported) return;
+    setNfcScanClientId(clientId);
+    setNfcScanState("scanning");
+    setNfcScanResult("");
+    try {
+      const abort = new AbortController();
+      nfcAbort.current = abort;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const reader = new (window as any).NDEFReader();
+      await reader.scan({ signal: abort.signal });
+      reader.addEventListener("reading", ({ serialNumber }: { serialNumber: string }) => {
+        abort.abort();
+        setNfcScanResult(serialNumber);
+        setNfcScanState("done");
+      }, { once: true });
+      reader.addEventListener("error", () => {
+        setNfcScanState("error");
+        setNfcScanResult("NFC scan failed. Try again.");
+      });
+    } catch {
+      setNfcScanState("error");
+      setNfcScanResult("Could not start NFC scan.");
+    }
+  }
+
+  function confirmNfcAssign() {
+    if (nfcScanClientId && nfcScanResult) {
+      onAssignNfcTag(nfcScanClientId, nfcScanResult);
+    }
+    setNfcScanClientId(null);
+    setNfcScanState("idle");
+    setNfcScanResult("");
+  }
 
   const inputBase: React.CSSProperties = {
     width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.12)",
@@ -7271,7 +7331,20 @@ function ClientManagementScreen({ onBack, agencyName, teamCarers, onEditCarePlan
               <button onClick={() => onEditCarePlan(c.id)} style={{ flex: 1, background: "rgba(79,209,197,0.1)", border: "1px solid rgba(79,209,197,0.25)", borderRadius: 8, padding: "7px 0", color: COLORS.teal, fontFamily: "DM Sans,sans-serif", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
                 📋 Edit Care Plan
               </button>
+              {nfcSupported && (
+                <button
+                  onClick={() => startNfcAssign(c.id)}
+                  style={{ flex: 1, background: nfcTags[c.id] ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.06)", border: `1px solid ${nfcTags[c.id] ? "rgba(34,197,94,0.25)" : "rgba(255,255,255,0.1)"}`, borderRadius: 8, padding: "7px 0", color: nfcTags[c.id] ? COLORS.green : COLORS.g2, fontFamily: "DM Sans,sans-serif", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                >
+                  {nfcTags[c.id] ? "📱 Tag set" : "📱 Assign tag"}
+                </button>
+              )}
             </div>
+            {nfcTags[c.id] && (
+              <div style={{ marginTop: 6, color: COLORS.g3, fontSize: 10, paddingLeft: 2 }}>
+                NFC UID: {nfcTags[c.id]}
+              </div>
+            )}
           </div>
         ))}
         {addedClients.map((cl, i) => (
@@ -7290,6 +7363,48 @@ function ClientManagementScreen({ onBack, agencyName, teamCarers, onEditCarePlan
           </div>
         ))}
       </div>
+      {/* NFC tag assignment modal */}
+      {nfcScanClientId && (
+        <div style={{ position: "absolute" as const, inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "flex-end", zIndex: 110 }}>
+          <div style={{ background: COLORS.navy, width: "100%", borderRadius: "20px 20px 0 0", padding: "24px 22px 40px", border: "1px solid rgba(255,255,255,0.1)", borderBottom: "none" }}>
+            <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto 18px" }} />
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 17, marginBottom: 4 }}>Assign NFC Entry Tag</div>
+            <div style={{ color: COLORS.g2, fontSize: 12, marginBottom: 18 }}>
+              {SCHEDULE_CLIENTS.find(c => c.id === nfcScanClientId)?.name ?? "Client"} · Hold phone near the tag at the property
+            </div>
+            {nfcScanState === "scanning" && (
+              <div style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", gap: 14, padding: "20px 0" }}>
+                <div style={{ fontSize: 44 }}>📱</div>
+                <div style={{ color: COLORS.teal, fontWeight: 700, fontSize: 14 }}>Waiting for NFC tag…</div>
+                <div style={{ display: "flex", gap: 5 }}>
+                  {[0,1,2].map(d => <div key={d} style={{ width: 7, height: 7, borderRadius: "50%", background: COLORS.teal, animation: `pulse-dot 1.2s ease-in-out ${d*0.4}s infinite` }} />)}
+                </div>
+              </div>
+            )}
+            {nfcScanState === "done" && (
+              <div style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 12, padding: "14px", marginBottom: 14 }}>
+                <div style={{ color: COLORS.green, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>✓ Tag detected</div>
+                <div style={{ color: COLORS.g2, fontSize: 12, fontFamily: "monospace" }}>{nfcScanResult}</div>
+              </div>
+            )}
+            {nfcScanState === "error" && (
+              <div style={{ background: "rgba(255,90,95,0.08)", borderRadius: 10, padding: "12px", marginBottom: 14 }}>
+                <div style={{ color: COLORS.red, fontSize: 12 }}>{nfcScanResult}</div>
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+              <button onClick={() => { nfcAbort.current?.abort(); setNfcScanClientId(null); setNfcScanState("idle"); }} style={{ flex: 1, padding: "13px 0", borderRadius: 12, border: "1px solid rgba(255,255,255,0.15)", background: "transparent", color: COLORS.g2, fontFamily: "DM Sans,sans-serif", fontSize: 14, cursor: "pointer" }}>Cancel</button>
+              {nfcScanState === "done" && (
+                <button onClick={confirmNfcAssign} style={{ flex: 2, padding: "13px 0", borderRadius: 12, border: "none", background: `linear-gradient(90deg,${COLORS.teal},${COLORS.teal2})`, color: COLORS.darkNavy, fontFamily: "DM Sans,sans-serif", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Save Tag</button>
+              )}
+              {nfcScanState === "error" && (
+                <button onClick={() => startNfcAssign(nfcScanClientId!)} style={{ flex: 2, padding: "13px 0", borderRadius: 12, border: "none", background: COLORS.amber, color: COLORS.darkNavy, fontFamily: "DM Sans,sans-serif", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Try Again</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {showAdd && (
         <div style={{ position: "absolute" as const, inset: 0, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "flex-end", zIndex: 100 }}>
           <div className="phone-scroll" style={{ background: COLORS.navy, width: "100%", borderRadius: "20px 20px 0 0", padding: "20px 20px 44px", display: "flex", flexDirection: "column" as const, gap: 12, border: "1px solid rgba(255,255,255,0.1)", borderBottom: "none", maxHeight: "88%", overflowY: "auto" as const }}>
@@ -7784,6 +7899,8 @@ export default function CAREiApp({
   const [mgrEditClientId, setMgrEditClientId] = useState<string>("mary");
   const alertedKeysRef = useRef<Set<string>>(new Set());
   const encryptedDataLoadedRef = useRef(false);
+  const [nfcTags, setNfcTags] = useState<Record<string, string>>({}); // clientId → NFC UID
+  const [pendingEvv, setPendingEvv] = useState<EVVRecord | null>(null);
 
   // ── Encrypted persistence: load on mount (after key is available) ──────────
   useEffect(() => {
@@ -7954,6 +8071,8 @@ export default function CAREiApp({
           agencyName={carerAgency}
           teamCarers={managerCarers}
           onEditCarePlan={(id) => { setMgrEditClientId(id); nav("manager-care-plan-edit"); }}
+          nfcTags={nfcTags}
+          onAssignNfcTag={(clientId, uid) => setNfcTags(prev => ({ ...prev, [clientId]: uid }))}
         />;
       case "manager-care-plan-edit": {
         const mgrCpClient = SCHEDULE_CLIENTS.find(c => c.id === mgrEditClientId) || SCHEDULE_CLIENTS[0];
@@ -8102,7 +8221,14 @@ export default function CAREiApp({
           <ClientOverviewScreen
             client={overviewClient}
             onBack={() => nav("today")}
-            onStartVisit={() => { setVisitStatuses((s) => ({ ...s, [overviewClient.id]: "in-progress" })); setVisitMedStatus({}); setVisitTasks([false, false, false]); setVisitNotes(""); setVisitFluidGlasses(0); setVisitMood(""); setVisitMoodSet(false); nav("active-visit"); }}
+            nfcTagUid={nfcTags[overviewClient.id]}
+            onStartVisit={(evv) => {
+              setPendingEvv(evv);
+              setVisitStatuses((s) => ({ ...s, [overviewClient.id]: "in-progress" }));
+              setVisitMedStatus({}); setVisitTasks([false, false, false]); setVisitNotes("");
+              setVisitFluidGlasses(0); setVisitMood(""); setVisitMoodSet(false);
+              nav("active-visit");
+            }}
           />
         );
       }
@@ -8114,7 +8240,7 @@ export default function CAREiApp({
         return (
           <ActiveVisitScreen
             client={activeClient}
-            onComplete={(data) => { setLastVisitData(data); setVisitMedStatus({}); setVisitTasks([false, false, false]); setVisitNotes(""); setVisitFluidGlasses(0); setVisitMood(""); setVisitMoodSet(false); nav("handover"); }}
+            onComplete={(data) => { setLastVisitData({ ...data, evv: pendingEvv ?? undefined }); setPendingEvv(null); setVisitMedStatus({}); setVisitTasks([false, false, false]); setVisitNotes(""); setVisitFluidGlasses(0); setVisitMood(""); setVisitMoodSet(false); nav("handover"); }}
             onBack={() => nav("today")}
             onSOS={() => setShowSOS(true)}
             onAssistant={() => setShowAssistant(true)}

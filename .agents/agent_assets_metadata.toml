@@ -67,3 +67,10 @@ uri = "file://carei-source-complete.zip"
 type = "unspecified"
 title = "CAREi Complete Source Code"
 description = "Full source code for the CAREi app — React/Vite frontend, Express API server, shared libraries, and config files."
+
+[[outputs]]
+id = "-VBqsaQ9Guz5cVh7SujfY"
+uri = "file://carei-source.zip"
+type = "unspecified"
+title = "CAREi Complete Source Code"
+description = "All source files: CAREiApp.tsx, FamilyView.tsx, AdminDashboard.tsx, API server routes, index.css, vite.config.ts, package.json files, and all UI components."

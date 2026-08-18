@@ -60,3 +60,10 @@ id = "bS9-fxNGXgPnjrc0UEs5Y"
 uri = "file://carei-care-plan-spec.md"
 type = "text"
 title = "CAREi — Care Plan Feature Specification"
+
+[[outputs]]
+id = "r-9-l8C3BvL-SrU2gOJmW"
+uri = "file://carei-source-complete.zip"
+type = "unspecified"
+title = "CAREi Complete Source Code"
+description = "Full source code for the CAREi app — React/Vite frontend, Express API server, shared libraries, and config files."

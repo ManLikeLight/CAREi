@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, Component, type ReactNode } from "react";
 import AdminDashboard from "./AdminDashboard";
 import FamilyView from "./FamilyView";
+import { saveEncrypted, loadEncrypted, reencryptAll, getOrCreateSalt, deriveKey } from "../lib/careStore";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Screen =
@@ -2983,7 +2984,85 @@ Next visit: Continue monitoring as per care plan. Follow any medication timing i
   );
 }
 
-function ProfileScreen({ onSignOut, onSettings, onSwitchRole, carerName, carerEmail, carerAgency, userRole }: { onSignOut: () => void; onSettings?: () => void; onSwitchRole?: () => void; carerName: string; carerEmail: string; carerAgency: string; userRole: "manager" | "carer" | null }) {
+function ProfileScreen({
+  onSignOut, onSettings, onSwitchRole,
+  carerName, carerEmail, carerAgency, userRole,
+  onChangePIN,
+}: {
+  onSignOut: () => void;
+  onSettings?: () => void;
+  onSwitchRole?: () => void;
+  carerName: string;
+  carerEmail: string;
+  carerAgency: string;
+  userRole: "manager" | "carer" | null;
+  onChangePIN?: (oldPin: string, newPin: string) => Promise<{ ok: boolean; error?: string }>;
+}) {
+  const [showChangePIN, setShowChangePIN] = useState(false);
+  const [cpStep, setCpStep] = useState<"old" | "new" | "confirm">("old");
+  const [cpOld, setCpOld] = useState(["", "", "", ""]);
+  const [cpNew, setCpNew] = useState(["", "", "", ""]);
+  const [cpConfirm, setCpConfirm] = useState(["", "", "", ""]);
+  const [cpError, setCpError] = useState("");
+  const [cpLoading, setCpLoading] = useState(false);
+  const [cpDone, setCpDone] = useState(false);
+  const cpRefs0 = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
+  const cpRefs1 = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
+  const cpRefs2 = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
+
+  function cpPinChange(
+    arr: string[], setArr: (v: string[]) => void,
+    refs: React.RefObject<HTMLInputElement | null>[],
+    i: number, val: string,
+    onComplete?: (pin: string) => void,
+  ) {
+    const next = [...arr]; next[i] = val; setArr(next);
+    if (val && i < 3) setTimeout(() => refs[i + 1].current?.focus(), 0);
+    if (next.every(d => d) && onComplete) onComplete(next.join(""));
+  }
+  function cpPinKey(
+    arr: string[], setArr: (v: string[]) => void,
+    refs: React.RefObject<HTMLInputElement | null>[],
+    i: number, e: React.KeyboardEvent<HTMLInputElement>,
+  ) {
+    if (e.key === "Backspace" && !arr[i] && i > 0) {
+      const next = [...arr]; next[i - 1] = ""; setArr(next);
+      setTimeout(() => refs[i - 1].current?.focus(), 0);
+    }
+  }
+
+  async function handleChangePIN() {
+    const oldPin = cpOld.join(""); const newPin = cpNew.join(""); const conf = cpConfirm.join("");
+    if (oldPin.length < 4) { setCpError("Enter your current PIN."); return; }
+    if (newPin.length < 4) { setCpError("Enter a new 4-digit PIN."); return; }
+    if (newPin !== conf) { setCpError("New PINs don't match. Try again."); setCpConfirm(["","","",""]); setTimeout(() => cpRefs2[0].current?.focus(), 50); return; }
+    if (newPin === oldPin) { setCpError("New PIN must be different from current PIN."); return; }
+    setCpError(""); setCpLoading(true);
+    try {
+      const result = onChangePIN ? await onChangePIN(oldPin, newPin) : { ok: false, error: "PIN change unavailable." };
+      if (!result.ok) { setCpError(result.error ?? "PIN change failed."); setCpOld(["","","",""]); setCpNew(["","","",""]); setCpConfirm(["","","",""]); setCpStep("old"); setTimeout(() => cpRefs0[0].current?.focus(), 50); }
+      else { setCpDone(true); setTimeout(() => { setShowChangePIN(false); setCpDone(false); setCpStep("old"); setCpOld(["","","",""]); setCpNew(["","","",""]); setCpConfirm(["","","",""]); }, 1800); }
+    } catch { setCpError("Network error. Try again."); }
+    finally { setCpLoading(false); }
+  }
+
+  function PinRow({ label, arr, setArr, refs, onComplete }: { label: string; arr: string[]; setArr: (v: string[]) => void; refs: React.RefObject<HTMLInputElement | null>[]; onComplete?: (p: string) => void }) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
+        <div style={{ color: COLORS.g2, fontSize: 11, fontWeight: 600 }}>{label}</div>
+        <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+          {arr.map((v, i) => (
+            <input key={i} ref={refs[i]} value={v ? "●" : ""} autoFocus={i === 0}
+              onChange={e => { const raw = e.target.value.replace("●","").replace(/\D/g,""); if (raw.length <= 1) cpPinChange(arr, setArr, refs, i, raw, onComplete); }}
+              onKeyDown={e => cpPinKey(arr, setArr, refs, i, e)}
+              maxLength={1} inputMode="numeric"
+              style={{ width: 52, height: 60, borderRadius: 12, border: `2px solid ${v ? COLORS.teal : "rgba(255,255,255,0.2)"}`, background: "rgba(255,255,255,0.07)", color: v ? COLORS.teal : "transparent", fontSize: 26, fontWeight: 700, textAlign: "center" as const, outline: "none", caretColor: "transparent", fontFamily: "DM Sans,sans-serif" }} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
@@ -2993,8 +3072,43 @@ function ProfileScreen({ onSignOut, onSettings, onSwitchRole, carerName, carerEm
         flexDirection: "column",
         padding: "32px 20px",
         gap: 20,
+        position: "relative" as const,
+        overflow: "hidden",
       }}
     >
+      {/* Change PIN modal */}
+      {showChangePIN && (
+        <div style={{ position: "absolute" as const, inset: 0, background: "rgba(0,0,0,0.65)", display: "flex", flexDirection: "column" as const, justifyContent: "flex-end", zIndex: 50 }}>
+          <div style={{ background: COLORS.navy, borderRadius: "20px 20px 0 0", padding: 24 }}>
+            <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto 18px" }} />
+            {cpDone ? (
+              <div style={{ textAlign: "center" as const, padding: "12px 0 20px" }}>
+                <div style={{ fontSize: 36, marginBottom: 10 }}>✅</div>
+                <div style={{ color: COLORS.green, fontWeight: 700, fontSize: 16 }}>PIN changed successfully</div>
+                <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 4 }}>Your data has been re-encrypted with the new PIN</div>
+              </div>
+            ) : (
+              <>
+                <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 18, color: "#fff", marginBottom: 4 }}>Change PIN</div>
+                <div style={{ color: COLORS.g2, fontSize: 12, marginBottom: 20 }}>
+                  {cpStep === "old" ? "Enter your current PIN" : cpStep === "new" ? "Choose a new 4-digit PIN" : "Confirm your new PIN"}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column" as const, gap: 20 }}>
+                  {cpStep === "old" && <PinRow label="CURRENT PIN" arr={cpOld} setArr={setCpOld} refs={cpRefs0} onComplete={() => { if (cpOld.every(d => d)) setCpStep("new"); setTimeout(() => cpRefs1[0].current?.focus(), 80); }} />}
+                  {cpStep === "new" && <PinRow label="NEW PIN" arr={cpNew} setArr={setCpNew} refs={cpRefs1} onComplete={() => { if (cpNew.every(d => d)) setCpStep("confirm"); setTimeout(() => cpRefs2[0].current?.focus(), 80); }} />}
+                  {cpStep === "confirm" && <PinRow label="CONFIRM NEW PIN" arr={cpConfirm} setArr={setCpConfirm} refs={cpRefs2} />}
+                </div>
+                {cpError && <div style={{ color: COLORS.red, fontSize: 12, textAlign: "center" as const, marginTop: 12 }}>{cpError}</div>}
+                <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+                  <button onClick={() => { setShowChangePIN(false); setCpStep("old"); setCpOld(["","","",""]); setCpNew(["","","",""]); setCpConfirm(["","","",""]); setCpError(""); }} style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: COLORS.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans,sans-serif" }}>Cancel</button>
+                  {cpStep === "confirm" && <button onClick={handleChangePIN} disabled={cpLoading || !cpConfirm.every(d => d)} style={{ flex: 2, padding: "11px 0", borderRadius: 10, border: "none", background: cpConfirm.every(d => d) && !cpLoading ? `linear-gradient(90deg,${COLORS.teal},${COLORS.teal2})` : "rgba(255,255,255,0.08)", color: cpConfirm.every(d => d) && !cpLoading ? COLORS.darkNavy : COLORS.g3, fontSize: 13, fontWeight: 700, cursor: cpConfirm.every(d => d) && !cpLoading ? "pointer" : "not-allowed", fontFamily: "DM Sans,sans-serif" }}>{cpLoading ? "Changing…" : "Change PIN"}</button>}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
         <div
           style={{
@@ -3035,6 +3149,7 @@ function ProfileScreen({ onSignOut, onSettings, onSwitchRole, carerName, carerEm
           { icon: "🏢", label: "Organisation", value: carerAgency || "—" },
           { icon: "📋", label: "Role", value: userRole === "manager" ? "Care Manager" : "Care Worker" },
           { icon: "🌍", label: "Region", value: "United Kingdom" },
+          { icon: "🔐", label: "Data encryption", value: "AES-256 · on-device" },
         ].map((item, i, arr) => (
           <div
             key={item.label}
@@ -3077,6 +3192,30 @@ function ProfileScreen({ onSignOut, onSettings, onSwitchRole, carerName, carerEm
         >
           <span>🏢</span>
           {userRole === "carer" ? "Switch to Manager View" : "Switch to Carer View"}
+        </button>
+      )}
+
+      {onChangePIN && (
+        <button
+          onClick={() => setShowChangePIN(true)}
+          style={{
+            width: "100%",
+            padding: "13px 0",
+            borderRadius: 12,
+            border: "1px solid rgba(79,209,197,0.25)",
+            background: "rgba(79,209,197,0.06)",
+            color: COLORS.teal,
+            fontFamily: "DM Sans, sans-serif",
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+          }}
+        >
+          🔑 Change PIN
         </button>
       )}
 
@@ -7583,7 +7722,15 @@ function ScheduleScreen({
 
 // ─── Main App ──────────────────────────────────────────────────────────────────
 
-export default function CAREiApp() {
+export default function CAREiApp({
+  cryptoKey,
+  carerEmailForStore,
+  onLock,
+}: {
+  cryptoKey?: CryptoKey | null;
+  carerEmailForStore?: string;
+  onLock?: () => void;
+} = {}) {
   const [screen, setScreen] = useState<Screen>(() => {
     try {
       const saved = sessionStorage.getItem("carei_screen") as Screen;
@@ -7636,6 +7783,41 @@ export default function CAREiApp() {
   const [carePlanOverrides, setCarePlanOverrides] = useState<Record<string, CarePlanOverride>>({});
   const [mgrEditClientId, setMgrEditClientId] = useState<string>("mary");
   const alertedKeysRef = useRef<Set<string>>(new Set());
+  const encryptedDataLoadedRef = useRef(false);
+
+  // ── Encrypted persistence: load on mount (after key is available) ──────────
+  useEffect(() => {
+    if (!cryptoKey || encryptedDataLoadedRef.current) return;
+    encryptedDataLoadedRef.current = true;
+    (async () => {
+      try {
+        const storedOverrides = await loadEncrypted<Record<string, CarePlanOverride>>(cryptoKey, "carePlanOverrides");
+        if (storedOverrides) setCarePlanOverrides(storedOverrides);
+        const storedVisit = await loadEncrypted<VisitData>(cryptoKey, "lastVisitData");
+        if (storedVisit) setLastVisitData(storedVisit);
+        const storedStatuses = await loadEncrypted<Record<string, string>>(cryptoKey, "visitStatuses");
+        if (storedStatuses) setVisitStatuses(storedStatuses);
+      } catch {
+        // Non-fatal — use defaults if decryption fails
+      }
+    })();
+  }, [cryptoKey]);
+
+  // ── Encrypted persistence: save whenever data changes ─────────────────────
+  useEffect(() => {
+    if (!cryptoKey || !encryptedDataLoadedRef.current) return;
+    saveEncrypted(cryptoKey, "carePlanOverrides", carePlanOverrides).catch(() => {});
+  }, [cryptoKey, carePlanOverrides]);
+
+  useEffect(() => {
+    if (!cryptoKey || !encryptedDataLoadedRef.current || !lastVisitData) return;
+    saveEncrypted(cryptoKey, "lastVisitData", lastVisitData).catch(() => {});
+  }, [cryptoKey, lastVisitData]);
+
+  useEffect(() => {
+    if (!cryptoKey || !encryptedDataLoadedRef.current) return;
+    saveEncrypted(cryptoKey, "visitStatuses", visitStatuses).catch(() => {});
+  }, [cryptoKey, visitStatuses]);
 
   function handleMedReminderAction(key: string, action: MedReminderAction["action"], reason?: string) {
     const time = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
@@ -7805,6 +7987,32 @@ export default function CAREiApp() {
           carerEmail={carerEmail}
           carerAgency={carerAgency}
           userRole={userRole}
+          onChangePIN={cryptoKey && carerEmailForStore ? async (oldPin, newPin) => {
+            try {
+              // 1. Verify old PIN and update hash on server
+              const res = await fetch("/api/auth/change-pin", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: carerEmailForStore, oldPin, newPin }),
+              });
+              const data = await res.json();
+              if (!res.ok) return { ok: false, error: data.error ?? "PIN change failed." };
+
+              // 2. Derive new CryptoKey from new PIN
+              const salt = await getOrCreateSalt(carerEmailForStore);
+              const newKey = await deriveKey(newPin, salt);
+
+              // 3. Re-encrypt all stored blobs (decrypt with old key, re-encrypt with new)
+              await reencryptAll(cryptoKey, newKey);
+
+              // 4. Lock the app so the next unlock derives the key from the new PIN
+              if (onLock) onLock();
+
+              return { ok: true };
+            } catch {
+              return { ok: false, error: "Network error. Please try again." };
+            }
+          } : undefined}
         />;
       case "family":
         return (

@@ -2,3 +2,4 @@
 - [EVV clock-in](evv-architecture.md) — lib/evv.ts + components/EVVClockIn.tsx; geo auto-runs on mount, NFC Android-Chrome-only, offline fallback always available.
 - [Security layer](security-layer.md) — AES-GCM 256-bit IDB encryption via lib/careStore.ts, PIN lock via App.tsx + AppLockScreen.tsx, bcrypt on API server auth.ts (cost 12), remote wipe via /api/auth/status check on launch.
 - [Pre-existing TS errors](preexisting-ts-errors.md) — four categories of pre-existing errors to ignore in typecheck output.
+- [Messaging architecture](messaging-architecture.md) — carer↔manager messages: server routes/messages.ts (@replit/db), client lib/messaging.ts, components/MessagingScreen.tsx; encrypted in IDB via careStore; offline queue drained on reconnect; 60s server poll in CAREiApp.

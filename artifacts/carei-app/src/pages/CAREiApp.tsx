@@ -6,6 +6,8 @@ import EVVClockIn from "../components/EVVClockIn";
 import { type EVVRecord, CLIENT_COORDS } from "../lib/evv";
 import RotaScreenComponent from "../components/RotaScreen";
 import { type RotaEntry, type CarerAvailability, DEMO_ROTA_ENTRIES, DEMO_AVAILABILITY } from "../lib/rota";
+import MessagingScreen from "../components/MessagingScreen";
+import { type Message, type QueuedMessage, apiFetchMessages } from "../lib/messaging";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Screen =
@@ -32,6 +34,7 @@ type Screen =
   | "visit-history"
   | "incident-report"
   | "rota"
+  | "messages"
   | "operations"
   | "schedule"
   | "family"
@@ -4887,23 +4890,27 @@ function TodayCareScreen({
   onSelectClient,
   onOperations,
   onRota,
+  onMessages,
   onAssistant,
   onSOS,
   onProfile,
   carerName,
   medReminders,
   onMedReminderAction,
+  msgUnreadCount,
 }: {
   visitStatuses: Record<string, string>;
   onSelectClient: (id: string) => void;
   onOperations: () => void;
   onRota: () => void;
+  onMessages: () => void;
   onAssistant: () => void;
   onSOS: () => void;
   onProfile: () => void;
   carerName: string;
   medReminders: MedReminder[];
   onMedReminderAction: (key: string, action: MedReminderAction["action"], reason?: string) => void;
+  msgUnreadCount: number;
 }) {
   const now = new Date();
   const hour = now.getHours();
@@ -5019,13 +5026,21 @@ function TodayCareScreen({
       {/* Bottom nav */}
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 78, background: "rgba(15,29,52,0.97)", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "space-around", padding: "0 8px" }}>
         {[
-          { icon: "🏠", label: "Home", action: undefined as undefined | (() => void) },
-          { icon: "📅", label: "My Rota", action: onRota },
-          { icon: "⚙️", label: "Operations", action: onOperations },
-          { icon: "👤", label: "Profile", action: onProfile },
+          { icon: "🏠", label: "Home",       action: undefined as undefined | (() => void), badge: 0 },
+          { icon: "📅", label: "My Rota",    action: onRota,       badge: 0 },
+          { icon: "💬", label: "Messages",   action: onMessages,   badge: msgUnreadCount },
+          { icon: "⚙️", label: "Operations", action: onOperations, badge: 0 },
+          { icon: "👤", label: "Profile",    action: onProfile,    badge: 0 },
         ].map((n) => (
-          <div key={n.label} onClick={n.action} style={{ display: "flex", flexDirection: "column", alignItems: "center", cursor: n.action ? "pointer" : "default", gap: 2, opacity: n.label === "Home" ? 1 : 0.5 }}>
-            <span style={{ fontSize: 20 }}>{n.icon}</span>
+          <div key={n.label} onClick={n.action} style={{ display: "flex", flexDirection: "column", alignItems: "center", cursor: n.action ? "pointer" : "default", gap: 2, opacity: n.label === "Home" ? 1 : 0.5, position: "relative" }}>
+            <div style={{ position: "relative", display: "inline-flex" }}>
+              <span style={{ fontSize: 20 }}>{n.icon}</span>
+              {n.badge > 0 && (
+                <div style={{ position: "absolute", top: -4, right: -6, width: 16, height: 16, borderRadius: "50%", background: COLORS.red, color: "#fff", fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {n.badge > 9 ? "9+" : n.badge}
+                </div>
+              )}
+            </div>
             <span style={{ color: COLORS.g2, fontSize: 10 }}>{n.label}</span>
           </div>
         ))}
@@ -6544,11 +6559,11 @@ function RoleSelectScreen({ onManager, onCarer, name }: { onManager: () => void;
 }
 
 function ManagerPortalScreen({
-  managerName, agencyName, onTeam, onClients, onApprovals, onDashboard, onSettings, onSignOut, carers, pendingApprovals,
+  managerName, agencyName, onTeam, onClients, onApprovals, onDashboard, onSettings, onMessages, onSignOut, carers, pendingApprovals,
 }: {
   managerName: string; agencyName: string; pendingApprovals: number;
   onTeam: () => void; onClients: () => void; onApprovals: () => void;
-  onDashboard: () => void; onSettings: () => void; onSignOut: () => void;
+  onDashboard: () => void; onSettings: () => void; onMessages: () => void; onSignOut: () => void;
   carers: typeof DEMO_CARERS;
 }) {
   const activeCarers = carers.filter(c => c.status === "active").length;
@@ -6613,6 +6628,7 @@ function ManagerPortalScreen({
             {[
               { icon: "👥", title: "Care Team", sub: `${activeCarers} active · ${invitedCarers} invited`, action: onTeam, badge: null },
               { icon: "🧑‍🦳", title: "Clients", sub: `${SCHEDULE_CLIENTS.length} registered clients`, action: onClients, badge: null },
+              { icon: "💬", title: "Team Messages", sub: "Read and reply to carer messages", action: onMessages, badge: null },
               { icon: "✅", title: "Shift Approvals", sub: pendingApprovals > 0 ? `${pendingApprovals} awaiting review` : "All shifts reviewed", action: onApprovals, badge: pendingApprovals > 0 ? String(pendingApprovals) : null },
               { icon: "📊", title: "Compliance Dashboard", sub: "Scores, audit trail, alerts", action: onDashboard, badge: null },
               { icon: "⚙️", title: "Agency Settings", sub: "Profile, subscription, security", action: onSettings, badge: null },
@@ -7602,7 +7618,7 @@ export default function CAREiApp({
     try {
       const saved = sessionStorage.getItem("carei_screen") as Screen;
       const account = sessionStorage.getItem("carei_account");
-      const valid: Screen[] = ["today","client-overview","active-visit","medication","handover","continucare-summary","care-plan","bodymap","emergency","visit-history","incident-report","rota","operations","schedule","family","family-summary","manager-approvals","copilot","profile","admin","admin-dashboard","role-select","manager-portal","team-management","invite-carer","client-management","manager-care-plan-edit","agency-settings"];
+      const valid: Screen[] = ["today","client-overview","active-visit","medication","handover","continucare-summary","care-plan","bodymap","emergency","visit-history","incident-report","rota","messages","operations","schedule","family","family-summary","manager-approvals","copilot","profile","admin","admin-dashboard","role-select","manager-portal","team-management","invite-carer","client-management","manager-care-plan-edit","agency-settings"];
       return (account && valid.includes(saved)) ? saved : "splash";
     } catch {
       return "splash";
@@ -7657,6 +7673,9 @@ export default function CAREiApp({
   const [availability, setAvailability] = useState<Record<string, CarerAvailability>>(
     () => Object.fromEntries(DEMO_AVAILABILITY.map(a => [a.carerId, a]))
   );
+  const [serverMessages, setServerMessages] = useState<Message[]>([]);
+  const [messageQueue, setMessageQueue] = useState<QueuedMessage[]>([]);
+  const [msgUnreadCount, setMsgUnreadCount] = useState(0);
 
   // ── Encrypted persistence: load on mount (after key is available) ──────────
   useEffect(() => {
@@ -7670,11 +7689,16 @@ export default function CAREiApp({
         if (storedVisit) setLastVisitData(storedVisit);
         const storedStatuses = await loadEncrypted<Record<string, string>>(cryptoKey, "visitStatuses");
         if (storedStatuses) setVisitStatuses(storedStatuses);
+        // Messages cache
+        const storedMsgs = await loadEncrypted<Message[]>(cryptoKey, `msgs_${carerEmailForStore ?? "carer"}`);
+        if (storedMsgs) { setServerMessages(storedMsgs); setMsgUnreadCount(storedMsgs.filter(m => !m.read).length); }
+        const storedQueue = await loadEncrypted<QueuedMessage[]>(cryptoKey, `msgqueue_${carerEmailForStore ?? "carer"}`);
+        if (storedQueue) setMessageQueue(storedQueue);
       } catch {
         // Non-fatal — use defaults if decryption fails
       }
     })();
-  }, [cryptoKey]);
+  }, [cryptoKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Encrypted persistence: save whenever data changes ─────────────────────
   useEffect(() => {
@@ -7691,6 +7715,39 @@ export default function CAREiApp({
     if (!cryptoKey || !encryptedDataLoadedRef.current) return;
     saveEncrypted(cryptoKey, "visitStatuses", visitStatuses).catch(() => {});
   }, [cryptoKey, visitStatuses]);
+
+  // ── Encrypted persistence: messages cache ──────────────────────────────────
+  useEffect(() => {
+    if (!cryptoKey || !encryptedDataLoadedRef.current) return;
+    saveEncrypted(cryptoKey, `msgs_${carerEmailForStore ?? "carer"}`, serverMessages).catch(() => {});
+    setMsgUnreadCount(serverMessages.filter(m => !m.read).length);
+  }, [cryptoKey, serverMessages]);
+
+  useEffect(() => {
+    if (!cryptoKey || !encryptedDataLoadedRef.current) return;
+    saveEncrypted(cryptoKey, `msgqueue_${carerEmailForStore ?? "carer"}`, messageQueue).catch(() => {});
+  }, [cryptoKey, messageQueue]);
+
+  // ── Poll messages from server (60 s interval, carer sees own; manager sees all) ─
+  useEffect(() => {
+    if (!cryptoKey) return;
+    const CARER_EMAIL_TO_ID: Record<string, string> = {
+      "sarah.obrien@agency.com": "c1",
+      "john.mensah@agency.com":  "c2",
+      "amina.diallo@agency.com": "c3",
+      "priya.sharma@agency.com": "c4",
+    };
+    const pollCarerId = userRole === "manager" ? undefined : (CARER_EMAIL_TO_ID[carerEmail ?? ""] ?? "c1");
+    const poll = async () => {
+      try {
+        const fetched = await apiFetchMessages(pollCarerId);
+        setServerMessages(fetched);
+      } catch { /* offline – keep cache */ }
+    };
+    poll();
+    const id = setInterval(poll, 60_000);
+    return () => clearInterval(id);
+  }, [cryptoKey, userRole, carerEmail]);
 
   function handleMedReminderAction(key: string, action: MedReminderAction["action"], reason?: string) {
     const time = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
@@ -7792,6 +7849,7 @@ export default function CAREiApp({
           onApprovals={() => nav("manager-approvals")}
           onDashboard={() => nav("admin-dashboard")}
           onSettings={() => nav("agency-settings")}
+          onMessages={() => nav("messages")}
           onSignOut={() => { setUserRole(null); nav("splash"); }}
         />;
       case "team-management":
@@ -7963,12 +8021,14 @@ export default function CAREiApp({
             onSelectClient={(id) => { setActiveClientId(id); nav("client-overview"); }}
             onOperations={() => nav("operations")}
             onRota={() => nav("rota")}
+            onMessages={() => nav("messages")}
             onAssistant={() => setShowAssistant(true)}
             onSOS={() => setShowSOS(true)}
             onProfile={() => nav("profile")}
             carerName={carerName}
             medReminders={dueReminders}
             onMedReminderAction={handleMedReminderAction}
+            msgUnreadCount={msgUnreadCount}
           />
         );
       case "client-overview": {
@@ -8059,6 +8119,24 @@ export default function CAREiApp({
             teamCarers={managerCarers}
           />
         );
+      case "messages": {
+        const MSG_EMAIL_TO_ID: Record<string, string> = {
+          "sarah.obrien@agency.com": "c1",
+          "john.mensah@agency.com":  "c2",
+          "amina.diallo@agency.com": "c3",
+          "priya.sharma@agency.com": "c4",
+        };
+        const msgCarerId = MSG_EMAIL_TO_ID[carerEmail ?? ""] ?? "c1";
+        return (
+          <MessagingScreen
+            role={userRole}
+            carerId={msgCarerId}
+            carerName={carerName ?? "Carer"}
+            cryptoKey={cryptoKey ?? undefined}
+            onBack={() => nav(userRole === "manager" ? "manager-portal" : "today")}
+          />
+        );
+      }
       case "rota": {
         const CARER_EMAIL_TO_ID: Record<string, string> = {
           "sarah.obrien@agency.com": "c1",

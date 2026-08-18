@@ -10,8 +10,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.get("/api/download/source", (_req, res) => {
-  const file = path.join(process.cwd(), "src", "carei-source-complete.zip");
-  res.download(file, "carei-source-complete.zip");
+  const file = path.join(process.cwd(), "src", "carei-source-complete.docx");
+  res.download(file, "carei-source-complete.docx");
 });
 
 app.use("/api", router);

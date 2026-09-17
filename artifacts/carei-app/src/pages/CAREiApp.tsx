@@ -1,13 +1,19 @@
 import { useState, useEffect, useRef, Component, type ReactNode } from "react";
 import AdminDashboard from "./AdminDashboard";
 import FamilyView from "./FamilyView";
-import { saveEncrypted, loadEncrypted, reencryptAll, getOrCreateSalt, deriveKey } from "../lib/careStore";
+import { saveEncrypted, loadEncrypted, loadEncryptedStrict, deleteEncrypted, reencryptAll, getOrCreateSalt, deriveKey } from "../lib/careStore";
 import EVVClockIn from "../components/EVVClockIn";
 import { type EVVRecord, CLIENT_COORDS } from "../lib/evv";
 import RotaScreenComponent from "../components/RotaScreen";
+import StaffMatchingPanel from "../components/StaffMatchingPanel";
 import { type RotaEntry, type CarerAvailability, DEMO_ROTA_ENTRIES, DEMO_AVAILABILITY } from "../lib/rota";
 import MessagingScreen from "../components/MessagingScreen";
 import { type Message, type QueuedMessage, apiFetchMessages } from "../lib/messaging";
+import CarePlanGenerator from "../components/CarePlanGenerator";
+import DocumentReportStudio from "../components/DocumentReportStudio";
+import { chatWithCareAssistant } from "../lib/careAssistant";
+import { drainCareRecordQueue, recordCompletedVisit } from "../lib/careRecords";
+import { discardVoiceDraftIfMatches, processVoiceQueue, readVoiceState, savePendingVoice, saveVoiceDraft, structureAndCommitVoice, voiceDraftKey, type VoiceContext, type VoiceQueueItem, type VoiceStructuredDraft } from "../lib/voiceDocumentation";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Screen =
@@ -21,6 +27,7 @@ type Screen =
   | "invite-carer"
   | "client-management"
   | "manager-care-plan-edit"
+  | "manager-care-plan-generate"
   | "agency-settings"
   | "today"
   | "client-overview"
@@ -43,11 +50,53 @@ type Screen =
   | "copilot"
   | "profile"
   | "admin"
-  | "admin-dashboard";
+  | "admin-dashboard"
+  | "documents-reports";
 
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+}
+
+const assistantDraftWriteChains = new Map<string, Promise<void>>();
+
+function readSessionToken(): string | undefined {
+  try {
+    const account = JSON.parse(sessionStorage.getItem("carei_account") ?? "{}") as { sessionToken?: unknown };
+    return typeof account.sessionToken === "string" ? account.sessionToken : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function queueAssistantDraftOperation(key: string, operation: () => Promise<void>): Promise<void> {
+  const previous = assistantDraftWriteChains.get(key) ?? Promise.resolve();
+  const next = previous.catch(() => {}).then(operation);
+  assistantDraftWriteChains.set(key, next);
+  next.catch(() => {});
+  return next;
+}
+
+interface BrowserSpeechRecognitionEvent {
+  resultIndex: number;
+  results: {
+    length: number;
+    [index: number]: {
+      isFinal: boolean;
+      [index: number]: { transcript: string };
+    };
+  };
+}
+
+interface BrowserSpeechRecognition {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: BrowserSpeechRecognitionEvent) => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
 }
 
 type MedReminder = {
@@ -362,6 +411,7 @@ interface VisitData {
   confirmedMeds: string[];
   skippedMeds: string[];
   fluidMl: number;
+  fluidGlasses: number;
   completedTasks: string[];
   mealStatus: string;
   mood: string;
@@ -375,6 +425,7 @@ interface VisitData {
   taskCompletedAt: Record<string, string>;
   /** Electronic Visit Verification record — captured at clock-in */
   evv?: EVVRecord;
+  appliedVoiceDraftId?: string;
 }
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
@@ -887,7 +938,7 @@ function ClientOverviewScreen({
 
 function PinBoxes({ pin, refs, onChange, onKeyDown }: {
   pin: string[];
-  refs: React.RefObject<HTMLInputElement>[];
+  refs: React.RefObject<HTMLInputElement | null>[];
   onChange: (i: number, val: string) => void;
   onKeyDown: (i: number, e: React.KeyboardEvent<HTMLInputElement>) => void;
 }) {
@@ -937,7 +988,7 @@ function AuthSuccess({ message }: { message: string }) {
   );
 }
 
-function SignUpScreen({ onNext, onLogin }: { onNext: (name: string, agency: string, email: string, role: "manager" | "carer") => void; onLogin: () => void }) {
+function SignUpScreen({ onNext, onLogin, onSessionKey }: { onNext: (name: string, agency: string, email: string, role: "manager" | "carer") => void; onLogin: () => void; onSessionKey: (key: CryptoKey, email: string) => void }) {
   const [step, setStep] = useState<"name" | "role" | "pin" | "done">("name");
   const [fullName, setFullName] = useState("");
   const [pin, setPin] = useState(["", "", "", ""]);
@@ -985,14 +1036,22 @@ function SignUpScreen({ onNext, onLogin }: { onNext: (name: string, agency: stri
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: fullName.trim(), email: email.trim(), agency: agency.trim(), pin: p }),
+        body: JSON.stringify({ name: fullName.trim(), email: email.trim(), agency: agency.trim(), pin: p, role: selectedRole ?? "manager" }),
       });
       const data = await res.json();
       if (!res.ok) { setPinError(data.error ?? "Signup failed. Please try again."); setLoading(false); return; }
       const role = selectedRole ?? "manager";
-      try { sessionStorage.setItem("carei_account", JSON.stringify({ name: data.name, email: data.email, agency: data.agency, role })); } catch {}
+      try {
+        sessionStorage.setItem("carei_account", JSON.stringify({
+          name: data.name, email: data.email, agency: data.agency, role,
+          sessionToken: data.assistantSessionToken,
+        }));
+      } catch {}
       setStep("done");
-      setTimeout(() => onNext(data.name, data.agency, email.trim(), role), 1200);
+       const salt = await getOrCreateSalt(email.trim());
+       const key = await deriveKey(p, salt);
+       onSessionKey(key, email.trim());
+       setTimeout(() => onNext(data.name, data.agency, email.trim(), role), 1200);
     } catch {
       setPinError("Network error. Please check your connection and try again.");
       setLoading(false);
@@ -1125,7 +1184,7 @@ function SignUpScreen({ onNext, onLogin }: { onNext: (name: string, agency: stri
   );
 }
 
-function LoginScreen({ onNext, onSignUp }: { onNext: (name: string, agency: string, email: string, role: "manager" | "carer") => void; onSignUp: () => void }) {
+function LoginScreen({ onNext, onSignUp, onSessionKey }: { onNext: (name: string, agency: string, email: string, role: "manager" | "carer") => void; onSignUp: () => void; onSessionKey: (key: CryptoKey, email: string) => void }) {
   const [email, setEmail] = useState("");
   const [pin, setPin] = useState(["", "", "", ""]);
   const [emailError, setEmailError] = useState("");
@@ -1192,9 +1251,18 @@ function LoginScreen({ onNext, onSignUp }: { onNext: (name: string, agency: stri
         const stored = JSON.parse(sessionStorage.getItem("carei_account") ?? "{}");
         if (stored.role === "carer" || stored.role === "manager") role = stored.role;
       } catch {}
-      try { sessionStorage.setItem("carei_account", JSON.stringify({ name: data.name, email: data.email, agency: data.agency, role })); } catch {}
+      try {
+        sessionStorage.setItem("carei_account", JSON.stringify({
+          name: data.name, email: data.email, agency: data.agency, role,
+          sessionToken: data.assistantSessionToken,
+        }));
+      } catch {}
       setDone(true);
-      setTimeout(() => onNext(data.name, data.agency, data.email ?? email.trim(), role), 1200);
+       const sessionEmail = data.email ?? email.trim();
+       const salt = await getOrCreateSalt(sessionEmail);
+       const key = await deriveKey(p, salt);
+       onSessionKey(key, sessionEmail);
+       setTimeout(() => onNext(data.name, data.agency, sessionEmail, role), 1200);
     } catch {
       setError("Network error. Please check your connection and try again.");
       setPin(["", "", "", ""]);
@@ -1591,7 +1659,7 @@ function LiveVisitScreen({
     if (!canvas) return;
     canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
   }
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const visitIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const loneIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -1631,11 +1699,11 @@ function LiveVisitScreen({
       setNotes((n) => (n ? n + "\n" : "") + "[Dictation requires Chrome or Edge, open the app in a full browser tab and allow microphone access, then try again.]");
       return;
     }
-    const rec = new SR();
+    const rec = new SR() as BrowserSpeechRecognition;
     rec.continuous = true;
     rec.interimResults = true;
     rec.lang = "en-GB";
-    rec.onresult = (e: SpeechRecognitionEvent) => {
+    rec.onresult = (e: BrowserSpeechRecognitionEvent) => {
       let final = "";
       let inter = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -1645,7 +1713,7 @@ function LiveVisitScreen({
       if (final) setNotes((n) => n + final + " ");
       setInterim(inter);
     };
-    rec.onerror = (e: any) => {
+    rec.onerror = (e) => {
       setIsRecording(false);
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
         setNotes((n) => (n ? n + "\n" : "") + "[Microphone access denied, please allow microphone permission in your browser and try again.]");
@@ -2656,7 +2724,8 @@ function MedicationScreen({ onNext, client }: { onNext: () => void; client: type
                   {med.name} {med.dose}
                 </div>
                 <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 2 }}>
-                  {med.time} · {med.route}
+                  {"time" in med && typeof med.time === "string" ? med.time : med.dueTime} ·{" "}
+                  {"route" in med && typeof med.route === "string" ? med.route : "Oral"}
                 </div>
               </div>
               {medStatus[med.name] && (
@@ -3983,6 +4052,8 @@ function buildCarePlan(client: typeof SCHEDULE_CLIENTS[0], overrides?: CarePlanO
     pbsAnxiousActions: string[];
     pbsRiskSigns: string[];
     pbsRiskActions: string[];
+    pbsTriggers: string[];
+    safetyPlan: string[];
     lastReview: string[];
   }> = {
     mary: {
@@ -4894,6 +4965,7 @@ function TodayCareScreen({
   onAssistant,
   onSOS,
   onProfile,
+  onDocuments,
   carerName,
   medReminders,
   onMedReminderAction,
@@ -4907,6 +4979,7 @@ function TodayCareScreen({
   onAssistant: () => void;
   onSOS: () => void;
   onProfile: () => void;
+  onDocuments: () => void;
   carerName: string;
   medReminders: MedReminder[];
   onMedReminderAction: (key: string, action: MedReminderAction["action"], reason?: string) => void;
@@ -5015,6 +5088,18 @@ function TodayCareScreen({
             </div>
           );
         })}
+        <button
+          type="button"
+          onClick={onDocuments}
+          aria-label="Open Documents and Reports"
+          style={{ width: "100%", padding: "13px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(79,209,197,0.09)", border: "1px solid rgba(79,209,197,0.28)", borderRadius: 14, color: COLORS.teal, cursor: "pointer", fontFamily: "DM Sans, sans-serif", textAlign: "left" }}
+        >
+          <span>
+            <span style={{ display: "block", fontWeight: 700, fontSize: 13 }}>Documents &amp; Reports</span>
+            <span style={{ display: "block", color: COLORS.g2, fontSize: 11, marginTop: 3 }}>Create and review care documents</span>
+          </span>
+          <span aria-hidden="true" style={{ fontSize: 20 }}>›</span>
+        </button>
       </div>
 
       {/* Floating CAREi Assistant button - bottom left */}
@@ -5143,6 +5228,8 @@ function ActiveVisitScreen({
   setMoodSet,
   medReminders,
   onMedReminderAction,
+  cryptoKey,
+  userEmail,
 }: {
   client: typeof SCHEDULE_CLIENTS[0];
   onComplete: (data: VisitData) => void;
@@ -5166,6 +5253,8 @@ function ActiveVisitScreen({
   setMoodSet: React.Dispatch<React.SetStateAction<boolean>>;
   medReminders: MedReminder[];
   onMedReminderAction: (key: string, action: MedReminderAction["action"], reason?: string) => void;
+  cryptoKey?: CryptoKey | null;
+  userEmail: string;
 }) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -5185,6 +5274,15 @@ function ActiveVisitScreen({
   const [mealStatus, setMealStatus] = useState<"" | "Full" | "Half" | "Refused">("");
   const [showMealPrompt, setShowMealPrompt] = useState(false);
   const [mealPromptDismissed, setMealPromptDismissed] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState("");
+  const [voiceInterim, setVoiceInterim] = useState("");
+  const [voiceDraft, setVoiceDraft] = useState<VoiceStructuredDraft | null>(null);
+  const [voiceMessage, setVoiceMessage] = useState("");
+  const [showVoiceReview, setShowVoiceReview] = useState(false);
+  const [voiceHydrated, setVoiceHydrated] = useState(false);
+  const [hydrationFailed, setHydrationFailed] = useState(false);
+  const [voiceDraftId, setVoiceDraftId] = useState<string | undefined>();
+  const [appliedVoiceDraftId, setAppliedVoiceDraftId] = useState<string | undefined>();
   const [shownCues, setShownCues] = useState<Set<string>>(new Set());
   const [showPrevVisits, setShowPrevVisits] = useState(false);
   const [showContinuityPanel, setShowContinuityPanel] = useState(true);
@@ -5214,8 +5312,25 @@ function ActiveVisitScreen({
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastActivityRef = useRef<number>(Date.now());
   const medAlertFiredRef = useRef(false);
+  const voiceTranscriptRef = useRef("");
+  const voiceFinishRef = useRef(false);
+  const voiceProcessingRef = useRef(false);
+  const voiceDraftRef = useRef<VoiceStructuredDraft | null>(null);
+  useEffect(() => { voiceDraftRef.current = voiceDraft; }, [voiceDraft]);
+  function updateVoiceDraft(patch: Partial<VoiceStructuredDraft>) {
+    const draft = voiceDraftRef.current;
+    if (!draft) return;
+    const next = { ...draft, ...patch, revision: (draft.revision ?? 0) + 1 };
+    voiceDraftRef.current = next;
+    setVoiceDraft(next);
+  }
 
   const VISIT_TASKS = ["Prepare breakfast", "Assist with mobility", "Record mood"];
+  const voiceContext: VoiceContext = {
+    taskLabels: VISIT_TASKS,
+    currentVisitFacts: { notes, mood, mealStatus, completedTasks: VISIT_TASKS.filter((task, i) => tasks[i]) },
+    client: { id: client.id, name: client.name, conditions: client.conditions, allergy: client.allergy, pronouns: client.pronouns },
+  };
   const MEAL_TASK_IDX = 0;
   const CARE_HISTORY = [
     { date: "14 Mar 2026", summary: "Client in good spirits. All medication administered. Breakfast completed without issue." },
@@ -5227,6 +5342,46 @@ function ActiveVisitScreen({
     visitIntervalRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
     return () => { if (visitIntervalRef.current) clearInterval(visitIntervalRef.current); };
   }, []);
+
+  useEffect(() => {
+    setVoiceHydrated(false);
+    setHydrationFailed(false);
+    setVoiceDraft(null);
+    setVoiceDraftId(undefined);
+  }, [cryptoKey, userEmail, client.id]);
+
+  useEffect(() => {
+    if (!cryptoKey || voiceHydrated) return;
+    let cancelled = false;
+    void readVoiceState(userEmail, cryptoKey, client.id).then(({ draft: stored }) => {
+      if (cancelled) return;
+      if (stored) {
+        setVoiceDraft({ ...stored, revision: stored.revision ?? 0 });
+        setVoiceDraftId(stored.capturedAt);
+        setShowVoiceReview(true);
+      }
+      setVoiceHydrated(true);
+    }).catch(() => { if (!cancelled) { setHydrationFailed(true); setVoiceMessage("Secure voice draft could not be read. Voice documentation is locked to protect your data."); } });
+    return () => { cancelled = true; };
+  }, [cryptoKey, userEmail, client.id, voiceHydrated]);
+
+  useEffect(() => {
+    const process = () => {
+      if (cryptoKey && voiceHydrated && !hydrationFailed && !voiceProcessingRef.current) {
+        voiceProcessingRef.current = true;
+        void processVoiceQueue(userEmail, cryptoKey, voiceContext, voiceDraftId).then((result) => {
+        if (result.ready) { setVoiceDraft(result.ready); setVoiceDraftId(result.ready.queueItemId); setShowVoiceReview(true); }
+        }).catch(() => setVoiceMessage("Secure voice queue could not be processed yet.")).finally(() => { voiceProcessingRef.current = false; });
+      }
+    };
+    window.addEventListener("online", process);
+    if (isOnline) process();
+    return () => window.removeEventListener("online", process);
+  }, [cryptoKey, userEmail, isOnline, voiceDraftId, client.id, notes, mood, mealStatus, tasks]);
+
+  useEffect(() => {
+    if (cryptoKey && voiceHydrated && !hydrationFailed && voiceDraft) void saveVoiceDraft(userEmail, cryptoKey, voiceDraft).catch(() => setVoiceMessage("Secure voice draft could not be saved; your edits remain on screen."));
+  }, [cryptoKey, userEmail, client.id, voiceDraft, voiceHydrated, hydrationFailed]);
 
   useEffect(() => {
     const up = () => setIsOnline(true);
@@ -5323,25 +5478,58 @@ function ActiveVisitScreen({
   }
 
   function startRecording() {
+    if (isRecording) return;
+    if (showVoiceReview) { setVoiceMessage("Apply or discard the visible voice draft before starting a new recording."); return; }
+    if (!cryptoKey) { setVoiceMessage("Unlock secure storage before using voice documentation. You can type notes manually."); return; }
+    if (!voiceHydrated || hydrationFailed) { setVoiceMessage("Secure voice documentation is not ready; your manual notes remain available."); return; }
+    if (!showVoiceReview) {
+      voiceTranscriptRef.current = "";
+      setVoiceTranscript("");
+      setVoiceMessage("");
+    }
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) {
-      setNotes((n) => (n ? n + "\n" : "") + "[Voice dictation requires Chrome, allow microphone and try again.]");
+      setVoiceMessage("Voice dictation is not supported in this browser. You can type in the notes box instead.");
       return;
     }
     const rec = new SR();
+    voiceFinishRef.current = false;
     rec.continuous = true;
     rec.interimResults = true;
     rec.lang = "en-GB";
     rec.onresult = (e: any) => {
       let final = "";
+      let interim = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
         if (e.results[i].isFinal) final += e.results[i][0].transcript;
+        else interim += e.results[i][0].transcript;
       }
-      if (final) setNotes((n) => n + final + " ");
+      if (final) {
+        voiceTranscriptRef.current += `${final} `;
+        setVoiceTranscript(voiceTranscriptRef.current);
+      }
+      setVoiceInterim(interim);
     };
-    rec.onerror = () => stopRecording();
-    rec.onend = () => stopRecording();
-    rec.start();
+    rec.onerror = (e: any) => {
+      stopRecording();
+      if (voiceTranscriptRef.current.trim()) {
+        if (!voiceFinishRef.current) { voiceFinishRef.current = true; window.setTimeout(() => void finishVoiceDocumentation(), 250); }
+      } else {
+        voiceFinishRef.current = true;
+      }
+      setVoiceMessage(e?.error === "not-allowed" || e?.error === "service-not-allowed"
+        ? "Microphone permission was denied. You can type in the notes box instead."
+        : "Voice service is unavailable. You can type in the notes box instead.");
+    };
+    rec.onend = () => {
+      setVoiceInterim("");
+      stopRecording();
+      if (!voiceFinishRef.current) {
+        voiceFinishRef.current = true;
+        window.setTimeout(() => void finishVoiceDocumentation(), 250);
+      }
+    };
+    try { rec.start(); } catch { setVoiceMessage("Could not start voice dictation. You can type in the notes box instead."); return; }
     recognitionRef.current = rec;
     setIsRecording(true);
     setRecordingTime(0);
@@ -5353,6 +5541,92 @@ function ActiveVisitScreen({
     recognitionRef.current = null;
     if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
     setIsRecording(false);
+  }
+
+  async function finishVoiceDocumentation() {
+    if (hydrationFailed) { setVoiceMessage("Voice documentation is locked because secure storage could not be read."); return; }
+    const raw = voiceTranscriptRef.current.trim();
+    if (!raw) { setVoiceMessage("No final speech was captured. You can type in the notes box instead."); return; }
+    const item: VoiceQueueItem = {
+      rawTranscript: raw, careNotes: raw, mood: "", mealStatus: "", completedTasks: [], warnings: [],
+      clientId: client.id, clientName: client.name, capturedAt: new Date().toISOString(),
+      status: "pending", queueItemId: `${Date.now()}-${client.id}`,
+      revision: 0,
+      context: voiceContext,
+    };
+    let pendingSaved = false;
+    let ownsProcessing = false;
+    setVoiceDraftId(item.queueItemId);
+    if (!cryptoKey) {
+      setVoiceDraft(item); setShowVoiceReview(true);
+      setVoiceMessage(isOnline ? "Secure processing requires unlock. Review your transcript and apply it manually." : "Offline: secure background processing requires unlock. Your transcript remains editable here; it has not been queued.");
+      return;
+    }
+    try {
+      await savePendingVoice(userEmail, cryptoKey, item);
+      pendingSaved = true;
+      voiceDraftRef.current = item;
+      setVoiceDraft(item); setShowVoiceReview(true);
+      setVoiceMessage(isOnline ? "Transcript encrypted. Structuring…" : "Transcript encrypted and queued for when you reconnect.");
+      if (isOnline) {
+        if (voiceProcessingRef.current) {
+          setVoiceMessage("Transcript encrypted and queued; the current voice request will finish first.");
+          return;
+        }
+        voiceProcessingRef.current = true;
+        ownsProcessing = true;
+        const structured = await structureAndCommitVoice(userEmail, cryptoKey, item, voiceContext);
+        if (!structured) {
+          setVoiceMessage("The transcript changed while it was being structured; your edits were preserved. Re-structure again when ready.");
+          voiceProcessingRef.current = false;
+          return;
+        }
+        if (!voiceDraftRef.current || voiceDraftRef.current.queueItemId !== item.queueItemId || voiceDraftRef.current.revision !== item.revision) {
+          setVoiceMessage("The transcript changed while it was being structured; your edits were preserved. Re-structure again when ready.");
+          return;
+        }
+        setVoiceDraft(structured); setShowVoiceReview(true);
+        setVoiceMessage("Draft ready for review. Nothing changes in the visit until you apply it.");
+      }
+    } catch {
+      setVoiceMessage("Transcript could not be processed yet; it remains queued for a secure retry.");
+      if (!isOnline && pendingSaved) setVoiceMessage("Transcript encrypted and queued for when you reconnect.");
+      else if (!pendingSaved) setVoiceMessage("Transcript was not saved securely; it has not been queued.");
+    } finally {
+      if (ownsProcessing) {
+        voiceProcessingRef.current = false;
+        if (isOnline && cryptoKey) {
+          voiceProcessingRef.current = true;
+          void processVoiceQueue(userEmail, cryptoKey, voiceContext, voiceDraftId).then((result) => {
+            if (result.ready) { voiceDraftRef.current = result.ready; setVoiceDraft(result.ready); setVoiceDraftId(result.ready.queueItemId); setShowVoiceReview(true); }
+          }).catch(() => {}).finally(() => { voiceProcessingRef.current = false; });
+        }
+      }
+    }
+  }
+
+  async function restructureVoice() {
+    if (hydrationFailed || !voiceDraft || !cryptoKey) {
+      setVoiceMessage("Secure processing requires unlock; your edited pending draft is preserved.");
+      return;
+    }
+    try {
+      if (isOnline) {
+        if (voiceProcessingRef.current) { setVoiceMessage("Voice documentation is already processing; please wait."); return; }
+        voiceProcessingRef.current = true;
+      }
+      const edited = { ...voiceDraft, rawTranscript: voiceDraft.rawTranscript, status: "pending" as const };
+      await savePendingVoice(userEmail, cryptoKey, edited);
+      if (!isOnline) { setVoiceMessage("Edited transcript saved securely and will be re-structured when you reconnect."); return; }
+      const ready = await structureAndCommitVoice(userEmail, cryptoKey, edited, voiceContext);
+      if (!ready) { setVoiceMessage("The transcript changed while it was being structured; your edits were preserved. Re-structure again when ready."); return; }
+      if (!voiceDraftRef.current || voiceDraftRef.current.queueItemId !== edited.queueItemId || voiceDraftRef.current.revision !== edited.revision) {
+        setVoiceMessage("The transcript changed while it was being structured; your edits were preserved. Re-structure again when ready.");
+        return;
+      }
+      setVoiceDraft(ready); setVoiceMessage("Draft re-structured and ready to apply.");
+    } catch { setVoiceMessage("Re-structure failed; your encrypted edits are preserved."); }
+    finally { voiceProcessingRef.current = false; }
   }
 
   return (
@@ -5827,11 +6101,13 @@ function ActiveVisitScreen({
         <div style={{ marginBottom: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <div style={{ color: COLORS.g1, fontSize: 13, fontWeight: 600 }}>Care Notes</div>
-            <button onClick={isRecording ? stopRecording : startRecording}
+            <button onClick={isRecording ? () => { if (voiceFinishRef.current) return; voiceFinishRef.current = true; stopRecording(); window.setTimeout(() => void finishVoiceDocumentation(), 250); } : startRecording}
               style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 99, border: "none", background: isRecording ? `linear-gradient(90deg, ${COLORS.red}, #cc1a20)` : `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, color: isRecording ? "#fff" : COLORS.darkNavy, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
               {isRecording ? `⏺ ${recordingTime}s` : "🎤 Dictate"}
             </button>
           </div>
+           {voiceMessage && <div data-testid="status-voice-documentation" style={{ marginTop: 7, color: COLORS.amber, fontSize: 11, lineHeight: 1.45 }}>{voiceMessage}</div>}
+           {voiceInterim && <div data-testid="text-voice-interim" style={{ marginTop: 5, color: COLORS.g3, fontSize: 11, fontStyle: "italic" }}>Listening: {voiceInterim}</div>}
           <div style={{ position: "relative" }}>
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Tap Dictate or type care notes here…" rows={4}
               style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "9px 12px", paddingBottom: 38, color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, resize: "none", outline: "none" }} />
@@ -5852,6 +6128,37 @@ function ActiveVisitScreen({
             ))}
           </div>
         </div>
+
+        {showVoiceReview && voiceDraft && (
+          <div data-testid="panel-voice-review" style={{ background: "rgba(79,209,197,0.07)", border: "1px solid rgba(79,209,197,0.28)", borderRadius: 12, padding: 14, marginBottom: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <div style={{ color: COLORS.teal, fontWeight: 700, fontSize: 13 }}>Voice documentation review</div>
+              <button type="button" data-testid="button-discard-voice-draft" onClick={() => {
+                if (!window.confirm("Discard this voice draft?")) return;
+                const discarded = voiceDraft;
+                setVoiceDraft(null); setShowVoiceReview(false); setVoiceMessage("");
+                if (cryptoKey && discarded) void discardVoiceDraftIfMatches(userEmail, cryptoKey, client.id, discarded.queueItemId).catch(() => setVoiceMessage("Draft was hidden, but secure cleanup could not be confirmed."));
+              }} style={{ background: "none", border: "none", color: COLORS.red, fontSize: 11, cursor: "pointer" }}>Discard</button>
+            </div>
+            <div style={{ color: COLORS.g3, fontSize: 10, marginBottom: 4 }}>Raw transcript (editable)</div>
+            <textarea data-testid="textarea-voice-transcript" value={voiceDraft.rawTranscript} onChange={(e) => updateVoiceDraft({ rawTranscript: e.target.value })} rows={3} style={{ width: "100%", background: "rgba(0,0,0,0.15)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: 8, color: "#fff", fontSize: 12, resize: "vertical" }} />
+            <div style={{ color: COLORS.g3, fontSize: 10, margin: "8px 0 4px" }}>Structured care notes (editable)</div>
+            <textarea data-testid="textarea-structured-care-notes" value={voiceDraft.careNotes} onChange={(e) => updateVoiceDraft({ careNotes: e.target.value })} rows={3} style={{ width: "100%", background: "rgba(0,0,0,0.15)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: 8, color: "#fff", fontSize: 12, resize: "vertical" }} />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, marginTop: 7 }}>
+              <input data-testid="input-voice-mood" placeholder="Mood" value={voiceDraft.mood} onChange={(e) => updateVoiceDraft({ mood: e.target.value })} style={{ background: "rgba(0,0,0,0.15)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 7, padding: 7, color: "#fff", fontSize: 12 }} />
+              <select data-testid="select-voice-meal-status" value={voiceDraft.mealStatus} onChange={(e) => updateVoiceDraft({ mealStatus: e.target.value as VoiceStructuredDraft["mealStatus"] })} style={{ background: COLORS.navy, border: "1px solid rgba(255,255,255,0.12)", borderRadius: 7, padding: 7, color: "#fff", fontSize: 12 }}>
+                <option value="">Meal status</option><option value="Full">Full</option><option value="Half">Half</option><option value="Refused">Refused</option>
+              </select>
+            </div>
+            <div style={{ color: COLORS.g3, fontSize: 10, margin: "8px 0 4px" }}>Completed tasks</div>
+            {VISIT_TASKS.map((task) => <label key={task} style={{ display: "block", color: COLORS.g2, fontSize: 11, marginBottom: 4 }}><input type="checkbox" checked={voiceDraft.completedTasks.includes(task)} onChange={(e) => updateVoiceDraft({ completedTasks: e.target.checked ? [...voiceDraft.completedTasks, task] : voiceDraft.completedTasks.filter((t) => t !== task) })} /> {task}</label>)}
+            {voiceDraft.warnings.length > 0 && <div data-testid="text-voice-warnings" style={{ color: COLORS.amber, fontSize: 11, marginTop: 7 }}>⚠️ {voiceDraft.warnings.join(" · ")}</div>}
+            <div style={{ display: "flex", gap: 7, marginTop: 10 }}>
+              <button type="button" data-testid="button-restructure-voice" onClick={() => void restructureVoice()} style={{ flex: 1, padding: "8px 5px", borderRadius: 8, border: "1px solid rgba(79,209,197,0.4)", background: "transparent", color: COLORS.teal, fontSize: 11, cursor: "pointer" }}>Re-structure</button>
+              <button type="button" data-testid="button-apply-voice" onClick={() => { setNotes(voiceDraft.careNotes || voiceDraft.rawTranscript); if (voiceDraft.mood) { setMood(voiceDraft.mood); setMoodSet(true); } if (voiceDraft.mealStatus) setMealStatus(voiceDraft.mealStatus); setTasks(VISIT_TASKS.map((task) => voiceDraft.completedTasks.includes(task))); setAppliedVoiceDraftId(voiceDraft.queueItemId); setShowVoiceReview(false); setVoiceMessage("Applied to this visit. Complete Visit remains the final save step."); }} style={{ flex: 1, padding: "8px 5px", borderRadius: 8, border: "none", background: COLORS.teal, color: COLORS.darkNavy, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Apply to visit</button>
+            </div>
+          </div>
+        )}
 
         {/* SECTION 4: Previous Visits (collapsible) */}
         <button onClick={() => setShowPrevVisits((v) => !v)}
@@ -5879,6 +6186,7 @@ function ActiveVisitScreen({
             confirmedMeds: client.meds.filter(m => medStatus[m.name] === "taken").map(m => `${m.name} ${m.dose}`),
             skippedMeds: client.meds.filter(m => medStatus[m.name] === "refused").map(m => `${m.name} ${m.dose}`),
             fluidMl: fluidGlasses * 250,
+            fluidGlasses,
             completedTasks: VISIT_TASKS.filter((_, i) => tasks[i]),
             mealStatus,
             mood,
@@ -5890,6 +6198,7 @@ function ActiveVisitScreen({
             fluidTime: fluidTimeRef.current ?? undefined,
             vitalsSavedTime: vitalsSavedTimeRef.current ?? undefined,
             taskCompletedAt,
+            appliedVoiceDraftId,
           }) : undefined}
           style={{ width: "100%", padding: "14px 0", borderRadius: 14, border: "none", background: allMedsAcknowledged ? `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})` : "rgba(255,255,255,0.1)", color: allMedsAcknowledged ? COLORS.darkNavy : COLORS.g3, fontFamily: "DM Sans, sans-serif", fontSize: 15, fontWeight: 700, cursor: allMedsAcknowledged ? "pointer" : "not-allowed" }}
         >
@@ -6104,31 +6413,128 @@ function ActiveVisitScreen({
   );
 }
 
-function CAREiAssistantModal({ onClose, clientName }: { onClose: () => void; clientName?: string }) {
+function CAREiAssistantModal({
+  onClose,
+  activeClient,
+  carePlanOverride,
+  carerName,
+  carerEmail,
+  isOnline,
+  cryptoKey,
+  sessionToken,
+}: {
+  onClose: () => void;
+  activeClient: typeof SCHEDULE_CLIENTS[0];
+  carePlanOverride?: CarePlanOverride;
+  carerName: string;
+  carerEmail: string;
+  isOnline: boolean;
+  cryptoKey?: CryptoKey | null;
+  sessionToken?: string;
+}) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
   const [loading, setLoading] = useState(false);
+  const [clientMode, setClientMode] = useState(true);
+  const [statusMessage, setStatusMessage] = useState("");
+  const [loadedDraftKey, setLoadedDraftKey] = useState<string | null>(null);
+  const draftReadFailedRef = useRef(false);
 
   const suggestions = ["Mood trend", "Medication history", "Recent concerns"];
 
+  const draftStorageKey = `careAssistantDraft:${(carerEmail || carerName || "carer").trim().toLowerCase()}:${clientMode ? activeClient.id : "general"}`;
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadedDraftKey(null);
+    if (!cryptoKey) {
+      setInput("");
+      setLoadedDraftKey(draftStorageKey);
+      return () => { cancelled = true; };
+    }
+    draftReadFailedRef.current = false;
+    loadEncryptedStrict<string>(cryptoKey, draftStorageKey)
+      .then((draft) => {
+        if (!cancelled) {
+          setInput(draft ?? "");
+          setLoadedDraftKey(draftStorageKey);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          // Do not treat unreadable ciphertext as an empty draft. Keep the
+          // current input visible and block autosave until the user retries.
+          draftReadFailedRef.current = true;
+          setStatusMessage("Secure storage could not be read. Your current input has been kept; please try again.");
+        }
+      });
+    return () => { cancelled = true; };
+  }, [cryptoKey, draftStorageKey]);
+
+  useEffect(() => {
+    if (!cryptoKey || loadedDraftKey !== draftStorageKey) return;
+    if (draftReadFailedRef.current || !input) return;
+    // Writes are serialized below so an older keystroke cannot overwrite a
+    // newer one after asynchronous encryption completes.
+    queueAssistantDraftOperation(draftStorageKey, () => saveEncrypted(cryptoKey, draftStorageKey, input));
+  }, [cryptoKey, draftStorageKey, input, loadedDraftKey]);
+
+  useEffect(() => {
+    if (!isOnline) setStatusMessage("Connection required to use CAREi Assistant. Your question will stay in the input.");
+    else if (statusMessage.startsWith("Connection required")) setStatusMessage("");
+  }, [isOnline, statusMessage]);
+
+  const carePlanContext = [
+    `Client ID: ${activeClient.id}`,
+    `Name: ${activeClient.name}`,
+    `Age: ${activeClient.age}`,
+    `Condition: ${activeClient.condition}`,
+    `Address: ${activeClient.address}`,
+    `GP: ${activeClient.gp}`,
+    `Allergy: ${activeClient.allergy}`,
+    `Support level: ${activeClient.supportLevel}`,
+    `Communication: ${activeClient.communication}`,
+    `Mobility: ${activeClient.mobilityNote}`,
+    `Medication note: ${activeClient.medNote}`,
+    `Medications: ${activeClient.meds.map((med) => `${med.name} ${med.dose} at ${med.dueTime}`).join("; ")}`,
+    ...(() => {
+      const plan = buildCarePlan(activeClient, carePlanOverride);
+      return [
+        `Care plan: ${plan.standardSections.map((section) => `${section.title}: ${section.items.slice(0, 3).join("; ")}`).join(" | ")}`,
+        `PBS triggers: ${plan.pbsTriggers.slice(0, 5).join("; ")}`,
+        `Safety plan: ${plan.safetyPlanItems.slice(0, 5).join("; ")}`,
+      ];
+    })(),
+  ].join("\n").slice(0, 12000);
+
   async function handleSend(text: string) {
-    if (!text.trim()) return;
-    setMessages((m) => [...m, { role: "user", content: text }]);
-    setInput("");
+    const question = text.trim();
+    if (!question || loading) return;
+    if (!isOnline) {
+      setStatusMessage("Connection required to use CAREi Assistant. Your question will stay in the input.");
+      return;
+    }
+    setStatusMessage("");
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    const contextName = clientName || "this client";
-    setMessages((m) => [...m, {
-      role: "assistant",
-      content: text.toLowerCase().includes("mood")
-        ? `Mood trend for ${contextName}: Yesterday recorded as neutral. Last week showed two positive days. Consider monitoring closely given recent withdrawal signs.`
-        : text.toLowerCase().includes("medication")
-        ? `Medication history: All scheduled medications taken on time over the past 7 days. No missed doses recorded. Last confirmed: yesterday at 10:00.`
-        : text.toLowerCase().includes("concern")
-        ? `Recent concerns logged: Mild mobility reduction noted 2 days ago. Supervisor informed. No escalation required at this time.`
-        : `Yesterday at 12:15, lunch was completed for ${contextName}. Mood recorded as neutral. No incidents logged.`,
-    }]);
-    setLoading(false);
+    try {
+      const result = await chatWithCareAssistant({
+        question,
+        ...(clientMode ? {
+          client: {
+            id: activeClient.id,
+            name: activeClient.name,
+            carePlanContext,
+          },
+        } : {}),
+      }, { sessionToken });
+      await queueAssistantDraftOperation(draftStorageKey, () => deleteEncrypted(draftStorageKey)).catch(() => {});
+      setMessages((m) => [...m, { role: "user", content: question }, { role: "assistant", content: result.answer }]);
+      setInput("");
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "Unable to reach CAREi Assistant. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -6140,10 +6546,33 @@ function CAREiAssistantModal({ onClose, clientName }: { onClose: () => void; cli
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>✦ CAREi Assistant</div>
-            {clientName && <div style={{ color: COLORS.g2, fontSize: 12 }}>Context: {clientName}</div>}
+            <div style={{ color: COLORS.g2, fontSize: 12 }}>{clientMode ? `Context: ${activeClient.name}` : "Context: General guidance"}</div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, color: COLORS.g2, fontSize: 13, padding: "6px 12px", cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>✕ Close</button>
         </div>
+        <div style={{ display: "flex", gap: 6, padding: 3, borderRadius: 10, background: "rgba(255,255,255,0.06)" }}>
+          {([
+            ["client", "This client"],
+            ["general", "General guidance"],
+          ] as const).map(([mode, label]) => (
+            <button
+              key={mode}
+              onClick={() => setClientMode(mode === "client")}
+              disabled={loading}
+              style={{ flex: 1, padding: "7px 8px", border: "none", borderRadius: 8, background: (clientMode === (mode === "client")) ? "rgba(79,209,197,0.2)" : "transparent", color: (clientMode === (mode === "client")) ? COLORS.teal : COLORS.g2, fontSize: 11, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", fontFamily: "DM Sans, sans-serif" }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div style={{ color: COLORS.g2, fontSize: 10, lineHeight: 1.4 }}>
+          Guidance only — follow the care plan and local policy; escalate emergencies through the usual process.
+        </div>
+        {statusMessage && (
+          <div style={{ color: isOnline ? "#FCA5A5" : COLORS.darkNavy, background: isOnline ? "rgba(255,90,95,0.12)" : "rgba(246,183,60,0.95)", borderRadius: 8, padding: "7px 10px", fontSize: 11 }}>
+            {statusMessage}
+          </div>
+        )}
         {/* Messages */}
         {messages.length > 0 && (
           <div className="phone-scroll" style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 200, overflowY: "auto" }}>
@@ -6162,14 +6591,14 @@ function CAREiAssistantModal({ onClose, clientName }: { onClose: () => void; cli
         {/* Suggestion chips */}
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {suggestions.map((s) => (
-            <button key={s} onClick={() => handleSend(s)} style={{ padding: "6px 12px", borderRadius: 99, border: "1px solid rgba(59,130,246,0.4)", background: "rgba(59,130,246,0.1)", color: "#93C5FD", fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>{s}</button>
+            <button key={s} onClick={() => handleSend(s)} disabled={loading || !isOnline} style={{ padding: "6px 12px", borderRadius: 99, border: "1px solid rgba(59,130,246,0.4)", background: "rgba(59,130,246,0.1)", color: "#93C5FD", fontSize: 12, cursor: loading || !isOnline ? "not-allowed" : "pointer", opacity: loading || !isOnline ? 0.55 : 1, fontFamily: "DM Sans, sans-serif" }}>{s}</button>
           ))}
         </div>
         {/* Input */}
         <div style={{ display: "flex", gap: 8 }}>
           <VoiceMicButton onAppend={(t) => setInput((v) => v + t)} />
-          <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSend(input)} placeholder="Ask about this client…" style={{ flex: 1, padding: "11px 14px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.07)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, outline: "none" }} />
-          <button onClick={() => handleSend(input)} style={{ width: 44, height: 44, borderRadius: 12, border: "none", background: "linear-gradient(135deg, #3B82F6, #1D4ED8)", color: "#fff", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
+          <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSend(input)} placeholder={clientMode ? "Ask about this client…" : "Ask for general guidance…"} style={{ flex: 1, padding: "11px 14px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.07)", color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 13, outline: "none" }} />
+          <button onClick={() => handleSend(input)} disabled={loading || !isOnline} style={{ width: 44, height: 44, borderRadius: 12, border: "none", background: "linear-gradient(135deg, #3B82F6, #1D4ED8)", color: "#fff", fontSize: 20, cursor: loading || !isOnline ? "not-allowed" : "pointer", opacity: loading || !isOnline ? 0.55 : 1, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
         </div>
       </div>
     </div>
@@ -6431,7 +6860,7 @@ function ContinuCareSummaryScreen({
                     <div>
                       <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>{med.name}</span>
                       <span style={{ color: COLORS.g2, fontSize: 12, marginLeft: 5 }}>{med.dose}</span>
-                      {med.isControlled && <span style={{ color: "#a78bfa", fontSize: 10, marginLeft: 6, fontWeight: 700 }}>⚿ CONTROLLED</span>}
+                      {"isControlled" in med && med.isControlled && <span style={{ color: "#a78bfa", fontSize: 10, marginLeft: 6, fontWeight: 700 }}>⚿ CONTROLLED</span>}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
                       {t && <span style={{ color: COLORS.g3, fontSize: 10, fontFamily: "monospace" }}>{t}</span>}
@@ -6993,7 +7422,7 @@ function ManagerCarePlanEditScreen({ client, overrides, onSave, onBack, managerN
   );
 }
 
-function ClientManagementScreen({ onBack, agencyName, teamCarers, onEditCarePlan, nfcTags, onAssignNfcTag }: { onBack: () => void; agencyName: string; teamCarers: typeof DEMO_CARERS; onEditCarePlan: (clientId: string) => void; nfcTags: Record<string, string>; onAssignNfcTag: (clientId: string, uid: string) => void }) {
+function ClientManagementScreen({ onBack, agencyName, teamCarers, onEditCarePlan, onGenerateCarePlan, nfcTags, onAssignNfcTag }: { onBack: () => void; agencyName: string; teamCarers: typeof DEMO_CARERS; onEditCarePlan: (clientId: string) => void; onGenerateCarePlan: (clientId: string) => void; nfcTags: Record<string, string>; onAssignNfcTag: (clientId: string, uid: string) => void }) {
   const [showAdd, setShowAdd] = useState(false);
   const [addedClients, setAddedClients] = useState<{ name: string; dob: string; address: string; condition: string; gp: string; carer: string; contact: string }[]>([]);
   const [form, setForm] = useState({ name: "", dob: "", address: "", condition: "", gp: "", carer: "Unassigned", contact: "" });
@@ -7096,6 +7525,9 @@ function ClientManagementScreen({ onBack, agencyName, teamCarers, onEditCarePlan
               </div>
             </div>
             <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.05)", display: "flex", gap: 8 }}>
+              <button onClick={() => onGenerateCarePlan(c.id)} style={{ flex: 1.25, background: `linear-gradient(90deg, ${COLORS.teal}, ${COLORS.teal2})`, border: "none", borderRadius: 8, padding: "7px 0", color: COLORS.darkNavy, fontFamily: "DM Sans,sans-serif", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                ✨ Generate Care Plan
+              </button>
               <button onClick={() => onEditCarePlan(c.id)} style={{ flex: 1, background: "rgba(79,209,197,0.1)", border: "1px solid rgba(79,209,197,0.25)", borderRadius: 8, padding: "7px 0", color: COLORS.teal, fontFamily: "DM Sans,sans-serif", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
                 📋 Edit Care Plan
               </button>
@@ -7549,12 +7981,16 @@ function ScheduleScreen({
   onBack,
   carerAgency,
   teamCarers,
+  rotas,
+  availability,
 }: {
   assignedCarers: Record<string, string>;
   onAssign: (clientId: string, carer: string) => void;
   onBack: () => void;
   carerAgency: string;
   teamCarers: typeof DEMO_CARERS;
+  rotas: RotaEntry[];
+  availability: Record<string, CarerAvailability>;
 }) {
   const CARERS = [...teamCarers.filter(c => c.status === "active").map(c => c.name.split(" ")[0]), "Unassigned"];
 
@@ -7591,6 +8027,12 @@ function ScheduleScreen({
                   {CARERS.map((c) => <option key={c} value={c} style={{ background: "#1B2A49" }}>{c}</option>)}
                 </select>
               </div>
+              <StaffMatchingPanel
+                client={client}
+                carers={teamCarers}
+                rotas={rotas}
+                availability={availability}
+              />
             </div>
           );
         })}
@@ -7609,16 +8051,18 @@ export default function CAREiApp({
   cryptoKey,
   carerEmailForStore,
   onLock,
+  onSessionKey,
 }: {
   cryptoKey?: CryptoKey | null;
   carerEmailForStore?: string;
   onLock?: () => void;
+  onSessionKey?: (key: CryptoKey, email: string) => void;
 } = {}) {
   const [screen, setScreen] = useState<Screen>(() => {
     try {
       const saved = sessionStorage.getItem("carei_screen") as Screen;
       const account = sessionStorage.getItem("carei_account");
-      const valid: Screen[] = ["today","client-overview","active-visit","medication","handover","continucare-summary","care-plan","bodymap","emergency","visit-history","incident-report","rota","messages","operations","schedule","family","family-summary","manager-approvals","copilot","profile","admin","admin-dashboard","role-select","manager-portal","team-management","invite-carer","client-management","manager-care-plan-edit","agency-settings"];
+      const valid: Screen[] = ["today","client-overview","active-visit","medication","handover","continucare-summary","care-plan","bodymap","emergency","visit-history","incident-report","rota","messages","operations","schedule","family","family-summary","manager-approvals","copilot","profile","admin","admin-dashboard","documents-reports","role-select","manager-portal","team-management","invite-carer","client-management","manager-care-plan-edit","manager-care-plan-generate","agency-settings"];
       return (account && valid.includes(saved)) ? saved : "splash";
     } catch {
       return "splash";
@@ -7652,6 +8096,7 @@ export default function CAREiApp({
   const [carerAgency, setCarerAgency] = useState<string>(() => {
     try { const a = sessionStorage.getItem("carei_account"); return a ? (JSON.parse(a).agency ?? "") : ""; } catch { return ""; }
   });
+  const [sessionToken, setSessionToken] = useState<string | undefined>(() => readSessionToken());
   const [userRole, setUserRole] = useState<"manager" | "carer" | null>(null);
   const [managerCarers, setManagerCarers] = useState<typeof DEMO_CARERS>([...DEMO_CARERS]);
   const [lastVisitData, setLastVisitData] = useState<VisitData | undefined>(undefined);
@@ -7802,18 +8247,27 @@ export default function CAREiApp({
   }, [visitStatuses, medReminderActions]);
 
   useEffect(() => {
-    const up = () => { setIsOffline(false); setQueuedCount(0); };
+    const syncCareRecords = () => {
+      const email = carerEmail || carerEmailForStore;
+      if (!email) return;
+      void drainCareRecordQueue({ userEmail: email, cryptoKey, sessionToken, isOnline: true }).then((result) => {
+        if (result.remaining === 0) setQueuedCount(0);
+      });
+    };
+    const up = () => { setIsOffline(false); syncCareRecords(); };
     const dn = () => { setIsOffline(true); };
     window.addEventListener("online", up);
     window.addEventListener("offline", dn);
+    if (navigator.onLine) syncCareRecords();
     return () => { window.removeEventListener("online", up); window.removeEventListener("offline", dn); };
-  }, []);
+  }, [carerEmail, carerEmailForStore, cryptoKey, sessionToken]);
 
   useEffect(() => {
     if (isOffline) {
       const t = setTimeout(() => setQueuedCount((n) => n + 1), 4000);
       return () => clearTimeout(t);
     }
+    return undefined;
   }, [isOffline, queuedCount]);
 
   function nav(s: Screen) {
@@ -7829,9 +8283,9 @@ export default function CAREiApp({
         return <SplashScreen onSignUp={() => nav("signup")} onLogin={() => nav("login")} />;
       case "otp":
       case "signup":
-        return <SignUpScreen onNext={(name, agency, email, role) => { setCarerName(name); setCarerAgency(agency); setCarerEmail(email); setUserRole(role); nav(role === "manager" ? "manager-portal" : "today"); }} onLogin={() => nav("login")} />;
+        return <SignUpScreen onNext={(name, agency, email, role) => { setCarerName(name); setCarerAgency(agency); setCarerEmail(email); setSessionToken(readSessionToken()); setUserRole(role); nav(role === "manager" ? "manager-portal" : "today"); }} onSessionKey={(key, email) => onSessionKey?.(key, email)} onLogin={() => nav("login")} />;
       case "login":
-        return <LoginScreen onNext={(name, agency, email, role) => { setCarerName(name); setCarerAgency(agency); setCarerEmail(email); setUserRole(role); nav(role === "manager" ? "manager-portal" : "today"); }} onSignUp={() => nav("signup")} />;
+        return <LoginScreen onNext={(name, agency, email, role) => { setCarerName(name); setCarerAgency(agency); setCarerEmail(email); setSessionToken(readSessionToken()); setUserRole(role); nav(role === "manager" ? "manager-portal" : "today"); }} onSessionKey={(key, email) => onSessionKey?.(key, email)} onSignUp={() => nav("signup")} />;
       case "role-select":
         return <RoleSelectScreen
           name={carerName}
@@ -7850,7 +8304,7 @@ export default function CAREiApp({
           onDashboard={() => nav("admin-dashboard")}
           onSettings={() => nav("agency-settings")}
           onMessages={() => nav("messages")}
-          onSignOut={() => { setUserRole(null); nav("splash"); }}
+           onSignOut={() => { sessionStorage.removeItem("carei_account"); sessionStorage.removeItem("carei_screen"); setUserRole(null); nav("splash"); }}
         />;
       case "team-management":
         return <TeamManagementScreen
@@ -7885,6 +8339,7 @@ export default function CAREiApp({
           agencyName={carerAgency}
           teamCarers={managerCarers}
           onEditCarePlan={(id) => { setMgrEditClientId(id); nav("manager-care-plan-edit"); }}
+          onGenerateCarePlan={(id) => { setMgrEditClientId(id); nav("manager-care-plan-generate"); }}
           nfcTags={nfcTags}
           onAssignNfcTag={(clientId, uid) => setNfcTags(prev => ({ ...prev, [clientId]: uid }))}
         />;
@@ -7896,6 +8351,16 @@ export default function CAREiApp({
           onSave={(clientId, data) => setCarePlanOverrides(prev => ({ ...prev, [clientId]: data }))}
           onBack={() => nav("client-management")}
           managerName={carerName}
+        />;
+      }
+      case "manager-care-plan-generate": {
+        const generatorClient = SCHEDULE_CLIENTS.find(c => c.id === mgrEditClientId) || SCHEDULE_CLIENTS[0];
+        return <CarePlanGenerator
+          client={generatorClient}
+          reviewerName={carerName}
+          cryptoKey={cryptoKey}
+          onBack={() => nav("client-management")}
+          renderVoiceButton={(onAppend) => <VoiceMicButton onAppend={onAppend} />}
         />;
       }
       case "agency-settings":
@@ -7913,7 +8378,7 @@ export default function CAREiApp({
       }
       case "profile":
         return <ProfileScreen
-          onSignOut={() => nav("otp")}
+          onSignOut={() => { sessionStorage.removeItem("carei_account"); sessionStorage.removeItem("carei_screen"); nav("splash"); }}
           onSettings={userRole === "manager" ? () => nav("agency-settings") : undefined}
           onSwitchRole={() => { setUserRole(r => r === "carer" ? "manager" : "carer"); nav(userRole === "carer" ? "manager-portal" : "today"); }}
           carerName={carerName}
@@ -7955,6 +8420,7 @@ export default function CAREiApp({
             carerName={carerName || "Sarah O'Brien"}
             clientFirstName="Mary"
             familyFirstName="James"
+            sessionToken={sessionToken}
           />
         );
       case "family-summary": {
@@ -8014,6 +8480,19 @@ export default function CAREiApp({
         );
       case "admin-dashboard":
         return null;
+      case "documents-reports":
+        return (
+          <div style={{ width: "100%", height: "100vh", overflowY: "auto", background: `linear-gradient(160deg, ${COLORS.darkNavy} 0%, ${COLORS.navy} 100%)`, padding: "28px 24px", fontFamily: "DM Sans, sans-serif" }}>
+            <DocumentReportStudio
+              role="carer"
+              userName={carerName || "Carer"}
+              userEmail={carerEmail || "unknown.carer@carei.local"}
+              clients={SCHEDULE_CLIENTS.map((client) => ({ id: client.id, name: client.name }))}
+              cryptoKey={cryptoKey ?? undefined}
+              onBack={() => nav("today")}
+            />
+          </div>
+        );
       case "today":
         return (
           <TodayCareScreen
@@ -8025,6 +8504,7 @@ export default function CAREiApp({
             onAssistant={() => setShowAssistant(true)}
             onSOS={() => setShowSOS(true)}
             onProfile={() => nav("profile")}
+            onDocuments={() => nav("documents-reports")}
             carerName={carerName}
             medReminders={dueReminders}
             onMedReminderAction={handleMedReminderAction}
@@ -8056,7 +8536,32 @@ export default function CAREiApp({
         return (
           <ActiveVisitScreen
             client={activeClient}
-            onComplete={(data) => { setLastVisitData({ ...data, evv: pendingEvv ?? undefined }); setPendingEvv(null); setVisitMedStatus({}); setVisitTasks([false, false, false]); setVisitNotes(""); setVisitFluidGlasses(0); setVisitMood(""); setVisitMoodSet(false); nav("handover"); }}
+            onComplete={(data) => {
+              const completedVisitData = { ...data, evv: pendingEvv ?? undefined };
+              setLastVisitData(completedVisitData);
+              void recordCompletedVisit({
+                identity: { carerName, carerEmail, agency: carerAgency },
+                client: {
+                  id: activeClient.id,
+                  name: activeClient.name,
+                  scheduledAt: null,
+                  meds: activeClient.meds.map((med) => ({ name: med.name, dose: med.dose, dueTime: med.dueTime })),
+                },
+                visitData: {
+                  ...completedVisitData,
+                  completedActivities: completedVisitData.completedTasks,
+                },
+                cryptoKey,
+                sessionToken,
+                isOnline: !isOffline,
+              }).then((result) => {
+                if (result.queued) setQueuedCount((count) => count + 1);
+                if ((result.sent || result.queued) && completedVisitData.appliedVoiceDraftId && cryptoKey) {
+                  void discardVoiceDraftIfMatches(carerEmail || "unknown.carer@carei.local", cryptoKey, activeClient.id, completedVisitData.appliedVoiceDraftId).catch(() => {});
+                }
+              });
+              setPendingEvv(null); setVisitMedStatus({}); setVisitTasks([false, false, false]); setVisitNotes(""); setVisitFluidGlasses(0); setVisitMood(""); setVisitMoodSet(false); nav("handover");
+            }}
             onBack={() => nav("today")}
             onSOS={() => setShowSOS(true)}
             onAssistant={() => setShowAssistant(true)}
@@ -8077,6 +8582,8 @@ export default function CAREiApp({
             setMoodSet={setVisitMoodSet}
             medReminders={activeVisitReminders}
             onMedReminderAction={handleMedReminderAction}
+            cryptoKey={cryptoKey}
+            userEmail={carerEmail || "unknown.carer@carei.local"}
           />
         );
       }
@@ -8117,6 +8624,8 @@ export default function CAREiApp({
             onBack={() => nav("admin")}
             carerAgency={carerAgency}
             teamCarers={managerCarers}
+            rotas={rotas}
+            availability={availability}
           />
         );
       case "messages": {
@@ -8164,10 +8673,32 @@ export default function CAREiApp({
   }
 
   if (screen === "admin-dashboard") {
+    if (userRole !== "manager") {
+      return (
+        <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#050d1a", color: "#fff", fontFamily: "DM Sans, sans-serif" }}>
+          <h2>Access Denied: Manager Only</h2>
+          <button onClick={() => nav("today")} style={{ marginLeft: 16, padding: "8px 16px", borderRadius: 8, background: "#4FD1C5", color: "#0F1D34", border: "none", cursor: "pointer", fontWeight: "bold" }}>Return to Today</button>
+        </div>
+      );
+    }
+
     return (
       <>
         <style>{globalStyles}</style>
-        <AdminDashboard onBack={() => nav("admin")} onCarerView={() => nav("today")} carerAgency={carerAgency} />
+        <AdminDashboard
+          onBack={() => nav("admin")}
+          onCarerView={() => nav("today")}
+          carerAgency={carerAgency}
+          userName={carerName || "Manager"}
+          userEmail={carerEmail || "unknown.carer@carei.local"}
+          cryptoKey={cryptoKey ?? undefined}
+          clients={SCHEDULE_CLIENTS.map((client) => ({ id: client.id, name: client.name }))}
+          sessionToken={readSessionToken()}
+          onNavigateToClientRecord={(screen, clientId) => {
+            if (clientId) setActiveClientId(clientId);
+            nav(screen as Screen);
+          }}
+        />
       </>
     );
   }
@@ -8236,7 +8767,7 @@ export default function CAREiApp({
 
           <div style={{ width: "100%", height: "100%", paddingTop: 24, overflow: "hidden" }}>
             {/* Global offline banner */}
-            {isOffline && screen !== "admin-dashboard" && (
+            {isOffline && (
               <div style={{ position: "absolute", top: 24, left: 0, right: 0, zIndex: 100, background: "rgba(246,183,60,0.95)", padding: "6px 14px", display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 14 }}>📵</span>
                 <span style={{ color: COLORS.darkNavy, fontWeight: 700, fontSize: 12, flex: 1 }}>Offline, data will sync on reconnect</span>
@@ -8249,7 +8780,13 @@ export default function CAREiApp({
               {showAssistant && (
                 <CAREiAssistantModal
                   onClose={() => setShowAssistant(false)}
-                  clientName={SCHEDULE_CLIENTS.find((c) => c.id === activeClientId)?.name}
+                  activeClient={SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0]}
+                  carePlanOverride={carePlanOverrides[activeClientId]}
+                  carerName={carerName}
+                  carerEmail={carerEmail}
+                  isOnline={!isOffline}
+                  cryptoKey={cryptoKey}
+                   sessionToken={sessionToken}
                 />
               )}
             </div>

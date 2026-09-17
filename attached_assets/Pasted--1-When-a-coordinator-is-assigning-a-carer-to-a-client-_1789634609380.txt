@@ -1,0 +1,19 @@
+	1.	When a coordinator is assigning a carer to a client (within the existing scheduling/assignment flow), offer a ranked list of suitable carers based on defined matching rules.
+	2.	Score each carer-client pair on transparent criteria using data already in the app:
+
+	•	Skills/qualifications the client's care needs require, matched to what the carer has.
+	•	Language match, where language preference is recorded.
+	•	Geographic proximity / travel distance between carer and client.
+	•	Continuity: strongly favour a carer who has visited this client before (this is CAREi's priority, weight continuity highly).
+	•	Availability, only suggest carers who are actually available for the slot.
+
+	3.	Make continuity a first-class factor in the ranking, not an afterthought. Where a carer already knows the client, that should push them up the list, and show the coordinator why (e.g. "has completed 12 previous visits with this client").
+	4.	The output is a suggestion to assist the coordinator, not an automatic assignment. The coordinator always makes the final choice. Show the reasoning behind each ranking (which criteria matched) so it's transparent.
+	5.	All logic must be rule-based and explainable, no black-box scoring, no ML, no prediction. The coordinator should be able to see exactly why each carer is ranked where they are.
+	6.	Respect the existing data model and scheduling flow, extend it, don't replace it. Handle missing data gracefully (e.g. if language isn't recorded, don't penalise, just note it's unknown).
+
+Do not change or remove existing scheduling/assignment functionality. Only add this matching feature. Keep the code consistent with the app's existing structure and styling.
+
+Notes on using it:
+
+	•	Two things to check: that continuity is genuinely weighted heavily (point 3, it's your differentiator, so a carer who knows the client should visibly rank higher), and that the reasoning is shown to the coordinator (point 4/5, transparency is the whole point of the rule-based version).

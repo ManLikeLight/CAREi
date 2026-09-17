@@ -1,4 +1,5 @@
 import app from "./app";
+import { drainFamilyUpdates } from "./family-update-processor";
 
 const rawPort = process.env["PORT"];
 
@@ -16,4 +17,7 @@ if (Number.isNaN(port) || port <= 0) {
 
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
+  const timer = setInterval(() => void drainFamilyUpdates(), 15_000);
+  timer.unref();
+  void drainFamilyUpdates();
 });

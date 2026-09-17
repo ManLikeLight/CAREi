@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { fetchFamilyUpdateConsent, fetchSentFamilyUpdates, saveFamilyUpdateConsent, type SentFamilyUpdate } from "../lib/familyUpdates";
 
 type FVScreen = "home" | "story" | "prefs" | "context" | "worried" | "worried-confirm";
 
@@ -168,12 +169,14 @@ export default function FamilyView({
   carerName,
   clientFirstName,
   familyFirstName,
+  sessionToken,
 }: {
   onBack:            () => void;
   visitData?:        VisitInput;
   carerName?:        string;
   clientFirstName?:  string;
   familyFirstName?:  string;
+  sessionToken?: string;
 }) {
   const [screen,    setScreen]    = useState<FVScreen>("home");
   const [notes,     setNotes]     = useState(INIT_NOTES);
@@ -182,17 +185,79 @@ export default function FamilyView({
   const [worryText, setWorryText] = useState("");
   const [worryPick, setWorryPick] = useState("");
   const [storyDay,  setStoryDay]  = useState<"today" | "yesterday">("today");
+  const [consent, setConsent] = useState(false);
+  const [consentLoaded, setConsentLoaded] = useState(false);
+  const [confirmation, setConfirmation] = useState(false);
+  const [consentBusy, setConsentBusy] = useState(false);
+  const [familyError, setFamilyError] = useState("");
+  const [updates, setUpdates] = useState<SentFamilyUpdate[]>([]);
+  const [online, setOnline] = useState(typeof navigator === "undefined" || navigator.onLine);
 
   const clientFirst = clientFirstName ?? "Mary";
   const familyFirst = familyFirstName ?? "James";
   const carerFirst  = (carerName ?? "Sarah O'Brien").split(" ")[0];
   const carerFull   = carerName   ?? "Sarah O'Brien";
+  const familyMemberId = "james-obrien";
 
   const sourceData = visitData ?? MOCK_TODAY_VISIT;
   const visitDone  = !!visitData;
   const today      = deriveToday(sourceData, carerFirst, clientFirst);
 
   const hideNav = screen === "worried" || screen === "worried-confirm";
+
+  useEffect(() => {
+    const onOnline = () => setOnline(true);
+    const onOffline = () => setOnline(false);
+    window.addEventListener("online", onOnline); window.addEventListener("offline", onOffline);
+    return () => { window.removeEventListener("online", onOnline); window.removeEventListener("offline", onOffline); };
+  }, []);
+
+  useEffect(() => {
+    if (!online || !sessionToken) return;
+    setFamilyError("");
+    Promise.all([
+      fetchFamilyUpdateConsent(sessionToken, "mary", familyMemberId),
+      fetchSentFamilyUpdates(sessionToken, "mary", familyMemberId),
+    ]).then(([record, sent]) => {
+      setConsent(record.optedIn);
+      setConsentLoaded(true);
+      setUpdates(sent);
+    }).catch((error) => {
+      setConsentLoaded(true);
+      setFamilyError(error instanceof Error ? error.message : "Could not load family updates.");
+    });
+  }, [online, sessionToken]);
+
+  async function updateConsent(optedIn: boolean) {
+    if (!sessionToken || !online || consentBusy || (optedIn && !confirmation)) return;
+    setConsentBusy(true); setFamilyError("");
+    try {
+      const saved = await saveFamilyUpdateConsent(sessionToken, {
+        clientId: "mary", familyMemberId, familyMemberName: "James O'Brien", optedIn,
+      });
+      setConsent(saved.optedIn);
+      if (optedIn) setConfirmation(false);
+    } catch (error) {
+      setFamilyError(error instanceof Error ? error.message : "Consent could not be changed.");
+    } finally { setConsentBusy(false); }
+  }
+
+  function UpdatesCard() {
+    return (
+      <div style={{ background: "rgba(79,209,197,0.07)", borderRadius: 14, padding: "13px 14px", border: "1px solid rgba(79,209,197,0.2)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ color: C.teal, fontWeight: 700, fontSize: 13 }}>Automated family update</div>
+          {updates.length > 0 && <span aria-label={`${updates.length} updates`} style={{ background: C.teal, color: C.dark, borderRadius: 99, padding: "2px 7px", fontSize: 10, fontWeight: 700 }}>{updates.length}</span>}
+        </div>
+        {!consent && consentLoaded ? <div style={{ color: C.g2, fontSize: 11, lineHeight: 1.5, marginTop: 6 }}>Future visit summaries will appear here after you opt in.</div>
+          : updates.length === 0 ? <div style={{ color: C.g2, fontSize: 11, lineHeight: 1.5, marginTop: 6 }}>No generated updates yet. Sent summaries will appear here after a completed visit.</div>
+          : updates.slice(0, 3).map((update) => <div key={update.id} style={{ borderTop: "1px solid rgba(255,255,255,0.08)", marginTop: 8, paddingTop: 8 }}>
+            <div style={{ color: C.g1, fontSize: 12, lineHeight: 1.5 }}>{update.summary}</div>
+            <div style={{ color: C.g3, fontSize: 10, marginTop: 4 }}>{new Date(update.sentAt).toLocaleString("en-GB")}</div>
+          </div>)}
+      </div>
+    );
+  }
 
   function nav(s: FVScreen) { setScreen(s); }
 
@@ -252,6 +317,7 @@ export default function FamilyView({
 
         {/* Evidence */}
         <SectionLabel>Today at a glance</SectionLabel>
+        <UpdatesCard />
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <Row
             icon="💊"
@@ -364,6 +430,7 @@ export default function FamilyView({
         <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "16px" }}>
           <div style={{ color: C.g1, fontSize: 14, lineHeight: 1.75, fontStyle: "italic" as const }}>"{storyText}"</div>
         </div>
+        <UpdatesCard />
 
         {/* Quick facts */}
         <SectionLabel>What was recorded</SectionLabel>
@@ -458,6 +525,29 @@ export default function FamilyView({
               </div>
             </div>
           ))}
+        </div>
+
+        <div style={{ background: "rgba(246,183,60,0.08)", borderRadius: 16, padding: "15px", border: "1px solid rgba(246,183,60,0.25)" }}>
+          <div style={{ color: C.amber, fontWeight: 700, fontSize: 14 }}>Automatic visit updates</div>
+          <div style={{ color: C.g2, fontSize: 12, lineHeight: 1.55, marginTop: 6 }}>
+            Receive future post-visit summaries for Mary in this app. These privacy-safe summaries are generated only from recorded visit facts; no emails are sent.
+          </div>
+          {!online && <div role="status" style={{ color: C.amber, fontSize: 11, marginTop: 8 }}>A connection is required to change this setting.</div>}
+          {familyError && <div role="alert" style={{ color: C.red, fontSize: 11, marginTop: 8 }}>{familyError}</div>}
+          {consentLoaded && !consent && (
+            <label style={{ display: "flex", gap: 8, alignItems: "flex-start", color: C.g1, fontSize: 12, lineHeight: 1.45, marginTop: 12 }}>
+              <input type="checkbox" checked={confirmation} onChange={(e) => setConfirmation(e.target.checked)} disabled={!online || consentBusy || !sessionToken} />
+              <span>I confirm James O’Brien has explicitly agreed to receive future in-app visit updates for Mary. This consent is recorded by the signed-in staff member.</span>
+            </label>
+          )}
+          <button
+            type="button"
+            onClick={() => void updateConsent(!consent)}
+            disabled={!online || !sessionToken || !consentLoaded || consentBusy || (!consent && !confirmation)}
+            style={{ width: "100%", marginTop: 12, padding: "10px 0", borderRadius: 10, border: "none", background: (!online || !sessionToken || !consentLoaded || consentBusy || (!consent && !confirmation)) ? "rgba(255,255,255,0.1)" : `linear-gradient(90deg,${C.teal},${C.teal2})`, color: (!online || !sessionToken || !consentLoaded || consentBusy || (!consent && !confirmation)) ? C.g3 : C.dark, fontWeight: 700, cursor: "pointer" }}
+          >
+            {consentBusy ? "Saving…" : consent ? "Turn off automatic updates" : "Confirm and turn on updates"}
+          </button>
         </div>
 
         <div style={{ background: "rgba(79,209,197,0.06)", borderRadius: 14, padding: "12px 14px", border: "1px solid rgba(79,209,197,0.15)" }}>

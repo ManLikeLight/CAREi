@@ -8,3 +8,552 @@
 export interface HealthStatus {
   status: string;
 }
+
+export interface Error {
+  error: string;
+}
+
+export interface CarePlanSuggestion {
+  suggestion: string;
+  /** @nullable */
+  source: string | null;
+}
+
+export type CarePlanDraftPersonalDetailsAndPreferences = {
+  summary: CarePlanSuggestion;
+};
+
+export type CarePlanDraftNeeds = {
+  personalCare: CarePlanSuggestion;
+  mobility: CarePlanSuggestion;
+  nutrition: CarePlanSuggestion;
+  medication: CarePlanSuggestion;
+  social: CarePlanSuggestion;
+};
+
+export interface CarePlanDraft {
+  personalDetailsAndPreferences: CarePlanDraftPersonalDetailsAndPreferences;
+  needs: CarePlanDraftNeeds;
+  /** @minItems 1 */
+  identifiedRisks: CarePlanSuggestion[];
+  /** @minItems 1 */
+  goalsAndDesiredOutcomes: CarePlanSuggestion[];
+  /** @minItems 1 */
+  dailyRoutine: CarePlanSuggestion[];
+  /** @minItems 1 */
+  notes: CarePlanSuggestion[];
+}
+
+export interface CarePlanClient {
+  /** @minLength 1 */
+  name: string;
+  /** @minimum 0 */
+  age: number;
+  address: string;
+}
+
+export interface GenerateCarePlanRequest {
+  client: CarePlanClient;
+  /**
+   * @minLength 1
+   * @maxLength 20000
+   */
+  assessmentInput: string;
+}
+
+export interface ConfirmCarePlanRequest {
+  /**
+   * @minLength 1
+   * @maxLength 20000
+   */
+  assessmentInput: string;
+  plan: CarePlanDraft;
+  /** @minLength 1 */
+  confirmedBy: string;
+}
+
+export interface CarePlanVersion {
+  id: number;
+  clientId: string;
+  version: number;
+  assessmentInput: string;
+  plan: CarePlanDraft;
+  confirmedBy: string;
+  createdAt: string;
+}
+
+export type CareAssistantClientId =
+  (typeof CareAssistantClientId)[keyof typeof CareAssistantClientId];
+
+export const CareAssistantClientId = {
+  mary: "mary",
+  tom: "tom",
+  aisha: "aisha",
+} as const;
+
+export interface CareAssistantClient {
+  id: CareAssistantClientId;
+  /** @minLength 1 */
+  name: string;
+  /**
+   * @minLength 1
+   * @maxLength 20000
+   */
+  carePlanContext: string;
+}
+
+export interface CareAssistantRequest {
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   */
+  question: string;
+  client?: CareAssistantClient;
+}
+
+export interface CareAssistantResponse {
+  answer: string;
+  emergencyEscalation: boolean;
+  auditId: number;
+}
+
+export interface DocumentSection {
+  heading: string;
+  content: string;
+}
+
+export interface DocumentClient {
+  /** @minLength 1 */
+  id: string;
+  /** @minLength 1 */
+  name: string;
+}
+
+export type DocumentIdentityUserRole =
+  (typeof DocumentIdentityUserRole)[keyof typeof DocumentIdentityUserRole];
+
+export const DocumentIdentityUserRole = {
+  carer: "carer",
+  manager: "manager",
+} as const;
+
+export interface DocumentIdentity {
+  /** @minLength 1 */
+  userName: string;
+  userEmail: string;
+  userRole: DocumentIdentityUserRole;
+}
+
+export type DocumentGenerationInputTemplateType =
+  (typeof DocumentGenerationInputTemplateType)[keyof typeof DocumentGenerationInputTemplateType];
+
+export const DocumentGenerationInputTemplateType = {
+  incident_report: "incident_report",
+  care_assessment_summary: "care_assessment_summary",
+  general_letter: "general_letter",
+} as const;
+
+export type DocumentGenerationInputStructuredDetails = {
+  [key: string]: string;
+};
+
+export interface DocumentGenerationInput {
+  templateType: DocumentGenerationInputTemplateType;
+  /** @maxLength 20000 */
+  freeText: string;
+  structuredDetails: DocumentGenerationInputStructuredDetails;
+  identity: DocumentIdentity;
+  client?: DocumentClient;
+}
+
+export type DocumentDraftDocumentType =
+  (typeof DocumentDraftDocumentType)[keyof typeof DocumentDraftDocumentType];
+
+export const DocumentDraftDocumentType = {
+  incident_report: "incident_report",
+  care_assessment_summary: "care_assessment_summary",
+  general_letter: "general_letter",
+} as const;
+
+export interface DocumentDraft {
+  documentType: DocumentDraftDocumentType;
+  title: string;
+  sections: DocumentSection[];
+}
+
+export type DocumentConfirmationInputDocumentType =
+  (typeof DocumentConfirmationInputDocumentType)[keyof typeof DocumentConfirmationInputDocumentType];
+
+export const DocumentConfirmationInputDocumentType = {
+  incident_report: "incident_report",
+  care_assessment_summary: "care_assessment_summary",
+  general_letter: "general_letter",
+} as const;
+
+export type DocumentConfirmationInputSourceDetails = { [key: string]: string };
+
+export interface DocumentConfirmationInput {
+  documentType: DocumentConfirmationInputDocumentType;
+  /** @minLength 1 */
+  title: string;
+  /** @minItems 1 */
+  sections: DocumentSection[];
+  sourceDetails: DocumentConfirmationInputSourceDetails;
+  identity: DocumentIdentity;
+  client?: DocumentClient;
+}
+
+export type GeneratedDocument = DocumentDraft & {
+  id: number;
+  status: "draft" | "confirmed";
+  userName: string;
+  userEmail: string;
+  userRole: "carer" | "manager";
+  /** @nullable */
+  clientId: string | null;
+  /** @nullable */
+  clientName: string | null;
+  sourceDetails: { [key: string]: string };
+  /** @nullable */
+  confirmedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type VisitRecordInputStatus =
+  (typeof VisitRecordInputStatus)[keyof typeof VisitRecordInputStatus];
+
+export const VisitRecordInputStatus = {
+  completed: "completed",
+} as const;
+
+/**
+ * @nullable
+ */
+export type VisitRecordInputMood =
+  | (typeof VisitRecordInputMood)[keyof typeof VisitRecordInputMood]
+  | null;
+
+export const VisitRecordInputMood = {
+  Good: "Good",
+  Neutral: "Neutral",
+  Low: "Low",
+  Anxious: "Anxious",
+  Tired: "Tired",
+} as const;
+
+/**
+ * @nullable
+ */
+export type VisitRecordInputMealStatus =
+  | (typeof VisitRecordInputMealStatus)[keyof typeof VisitRecordInputMealStatus]
+  | null;
+
+export const VisitRecordInputMealStatus = {
+  Full: "Full",
+  Half: "Half",
+  Refused: "Refused",
+} as const;
+
+export type VisitRecordInputCompletedActivitiesItem =
+  (typeof VisitRecordInputCompletedActivitiesItem)[keyof typeof VisitRecordInputCompletedActivitiesItem];
+
+export const VisitRecordInputCompletedActivitiesItem = {
+  Prepare_breakfast: "Prepare breakfast",
+  Assist_with_mobility: "Assist with mobility",
+  Record_mood: "Record mood",
+} as const;
+
+export interface VisitRecordInput {
+  /** @minLength 1 */
+  visitKey: string;
+  /** @minLength 1 */
+  clientId: string;
+  /** @minLength 1 */
+  clientName: string;
+  /** @minLength 1 */
+  carerName: string;
+  carerEmail: string;
+  /** @minLength 1 */
+  agency: string;
+  /** @nullable */
+  scheduledAt?: string | null;
+  completedAt: string;
+  status: VisitRecordInputStatus;
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  mood?: VisitRecordInputMood;
+  /** @nullable */
+  mealStatus?: VisitRecordInputMealStatus;
+  /**
+   * @minimum 0
+   * @maximum 50
+   * @nullable
+   */
+  fluidGlasses?: number | null;
+  /** @maxItems 3 */
+  completedActivities?: VisitRecordInputCompletedActivitiesItem[];
+}
+
+export type VisitRecord = VisitRecordInput & {
+  createdAt: string;
+};
+
+export type MedicationConfirmationInputStatus =
+  (typeof MedicationConfirmationInputStatus)[keyof typeof MedicationConfirmationInputStatus];
+
+export const MedicationConfirmationInputStatus = {
+  given: "given",
+  refused: "refused",
+  not_given: "not_given",
+  other: "other",
+} as const;
+
+export interface MedicationConfirmationInput {
+  /** @minLength 1 */
+  confirmationKey: string;
+  /** @nullable */
+  visitKey?: string | null;
+  /** @minLength 1 */
+  clientId: string;
+  /** @minLength 1 */
+  clientName: string;
+  /** @minLength 1 */
+  medicationName: string;
+  /** @nullable */
+  dose?: string | null;
+  /** @nullable */
+  dueAt?: string | null;
+  recordedAt: string;
+  status: MedicationConfirmationInputStatus;
+  /** @minLength 1 */
+  carerName: string;
+  carerEmail: string;
+  /** @minLength 1 */
+  agency: string;
+  /** @nullable */
+  reason?: string | null;
+}
+
+export type MedicationConfirmationRecord = MedicationConfirmationInput & {
+  createdAt: string;
+};
+
+export interface FamilyUpdateConsentInput {
+  /** @minLength 1 */
+  clientId: string;
+  /** @minLength 1 */
+  familyMemberId: string;
+  /** @minLength 1 */
+  familyMemberName: string;
+  optedIn: boolean;
+}
+
+export type FamilyUpdateConsent = FamilyUpdateConsentInput & {
+  id: number;
+  /** @nullable */
+  consentedAt: string | null;
+  /** @nullable */
+  withdrawnAt: string | null;
+  recordedByName: string;
+  recordedByEmail: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export interface FamilyUpdateConsentStatus {
+  clientId: string;
+  familyMemberId: string;
+  familyMemberName: string;
+  optedIn: boolean;
+  /** @nullable */
+  consentedAt: string | null;
+  /** @nullable */
+  withdrawnAt: string | null;
+}
+
+export type FamilyUpdateDeliveryChannel =
+  (typeof FamilyUpdateDeliveryChannel)[keyof typeof FamilyUpdateDeliveryChannel];
+
+export const FamilyUpdateDeliveryChannel = {
+  in_app: "in_app",
+} as const;
+
+export type FamilyUpdateDeliveryStatus =
+  (typeof FamilyUpdateDeliveryStatus)[keyof typeof FamilyUpdateDeliveryStatus];
+
+export const FamilyUpdateDeliveryStatus = {
+  pending: "pending",
+  processing: "processing",
+  sent: "sent",
+  failed: "failed",
+  cancelled: "cancelled",
+} as const;
+
+export interface FamilyUpdateDelivery {
+  id: number;
+  visitKey: string;
+  clientId: string;
+  familyMemberId: string;
+  familyMemberName: string;
+  channel: FamilyUpdateDeliveryChannel;
+  status: FamilyUpdateDeliveryStatus;
+  /** @nullable */
+  summary?: string | null;
+  createdAt: string;
+  /** @nullable */
+  sentAt: string | null;
+}
+
+export interface ReportGenerationInput {
+  /**
+   * @minLength 1
+   * @maxLength 4000
+   */
+  request: string;
+  /** @minLength 1 */
+  userName: string;
+  userEmail: string;
+  client?: DocumentClient;
+  /** @nullable */
+  currentDateTime?: string | null;
+  /** @nullable */
+  timezone?: string | null;
+}
+
+export type GeneratedReportReportType =
+  (typeof GeneratedReportReportType)[keyof typeof GeneratedReportReportType];
+
+export const GeneratedReportReportType = {
+  completed_visits: "completed_visits",
+  medication_confirmations: "medication_confirmations",
+} as const;
+
+export type GeneratedReportUnderlyingDataItem = { [key: string]: unknown };
+
+export interface GeneratedReport {
+  id: number;
+  request: string;
+  reportType: GeneratedReportReportType;
+  dateFrom: string;
+  dateTo: string;
+  /** @nullable */
+  clientId: string | null;
+  /** @nullable */
+  clientName: string | null;
+  userName: string;
+  userEmail: string;
+  narrative: string;
+  underlyingData: GeneratedReportUnderlyingDataItem[];
+  rowCount: number;
+  createdAt: string;
+}
+
+export type ComplianceFlagTargetKind =
+  (typeof ComplianceFlagTargetKind)[keyof typeof ComplianceFlagTargetKind];
+
+export const ComplianceFlagTargetKind = {
+  carer: "carer",
+  visit: "visit",
+  mar: "mar",
+} as const;
+
+export interface ComplianceFlag {
+  rule: string;
+  reason: string;
+  action: string;
+  targetKind: ComplianceFlagTargetKind;
+  targetId: string;
+  clientId?: string;
+}
+
+export type ComplianceAreaFrameworksItem =
+  (typeof ComplianceAreaFrameworksItem)[keyof typeof ComplianceAreaFrameworksItem];
+
+export const ComplianceAreaFrameworksItem = {
+  CQC: "CQC",
+  Care_Inspectorate: "Care Inspectorate",
+} as const;
+
+export type ComplianceAreaStatus =
+  (typeof ComplianceAreaStatus)[keyof typeof ComplianceAreaStatus];
+
+export const ComplianceAreaStatus = {
+  green: "green",
+  amber: "amber",
+  red: "red",
+  unknown: "unknown",
+} as const;
+
+export interface ComplianceArea {
+  key: string;
+  label: string;
+  /** Evidence reference categories only; not a regulatory judgement. */
+  referenceLabel: string;
+  /**
+   * Evidence reference categories only; no statement IDs or regulatory judgement.
+   * @minItems 2
+   * @maxItems 2
+   */
+  frameworks: ComplianceAreaFrameworksItem[];
+  status: ComplianceAreaStatus;
+  flags: ComplianceFlag[];
+}
+
+export type ComplianceDashboardOverallStatus =
+  (typeof ComplianceDashboardOverallStatus)[keyof typeof ComplianceDashboardOverallStatus];
+
+export const ComplianceDashboardOverallStatus = {
+  green: "green",
+  amber: "amber",
+  red: "red",
+  unknown: "unknown",
+} as const;
+
+export type ComplianceDashboardCounts = {
+  visits: number;
+  medications: number;
+  flags: number;
+};
+
+export interface ComplianceDashboard {
+  generatedAt: string;
+  agency: string;
+  dataFreshness: string;
+  overallStatus: ComplianceDashboardOverallStatus;
+  areas: ComplianceArea[];
+  counts: ComplianceDashboardCounts;
+  flags: ComplianceFlag[];
+  /** Evidence reference categories only; this is not a regulatory judgement. */
+  disclaimer: string;
+}
+
+/**
+ * Request failed
+ */
+export type ErrorResponse = Error;
+
+export type GenerateCarePlan200 = {
+  draft: CarePlanDraft;
+};
+
+export type ListDocumentsParams = {
+  userEmail?: string;
+  clientId?: string;
+};
+
+export type GetFamilyUpdateConsentParams = {
+  clientId: string;
+  familyMemberId: string;
+};
+
+export type ListFamilyUpdatesParams = {
+  clientId: string;
+  familyMemberId: string;
+};
+
+export type ListReportsParams = {
+  userEmail?: string;
+  clientId?: string;
+};

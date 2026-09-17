@@ -196,6 +196,47 @@ export async function loadEncrypted<T>(
   }
 }
 
+/** Strict encrypted read for workflows where corruption must never look empty. */
+export async function loadEncryptedStrict<T>(
+  cryptoKey: CryptoKey,
+  dataKey: string,
+): Promise<T | undefined> {
+  const db = await openDB();
+  const blob = await idbGet<EncryptedBlob>(db, BLOB_STORE, dataKey);
+  if (!blob) return undefined;
+  return decryptBlob<T>(cryptoKey, blob);
+}
+
+/** Delete one encrypted value without affecting any other CAREi data. */
+export async function deleteEncrypted(dataKey: string): Promise<void> {
+  const db = await openDB();
+  await idbDelete(db, BLOB_STORE, dataKey);
+}
+
+/** Encrypt all values first, then commit puts/deletes in one transaction. */
+export async function atomicEncryptedBatch(
+  cryptoKey: CryptoKey,
+  operations: Array<{ type: "put"; key: string; value: unknown } | { type: "delete"; key: string }>,
+): Promise<void> {
+  const prepared = await Promise.all(operations.map(async (operation) => (
+    operation.type === "put"
+      ? { ...operation, blob: await encryptValue(cryptoKey, operation.value) }
+      : operation
+  )));
+  const db = await openDB();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(BLOB_STORE, "readwrite");
+    const store = tx.objectStore(BLOB_STORE);
+    for (const operation of prepared) {
+      if (operation.type === "put") store.put(operation.blob, operation.key);
+      else store.delete(operation.key);
+    }
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error ?? new Error("Encrypted batch transaction aborted"));
+  });
+}
+
 /**
  * Re-encrypt all stored blobs from oldKey to newKey.
  * Call this during PIN change: decrypt with old key, re-encrypt with new key.

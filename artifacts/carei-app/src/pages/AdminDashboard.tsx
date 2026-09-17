@@ -1,4 +1,8 @@
 import { useState } from "react";
+import { Users, ClipboardList, CheckCircle, Bell, FileText, Shield, AlertTriangle, AlertCircle, Download, Clock, ArrowLeft } from "lucide-react";
+
+import DocumentReportStudio from "../components/DocumentReportStudio";
+import ComplianceDashboardScreen from "../components/ComplianceDashboard";
 
 const C = {
   navy: "#1B2A49", dark: "#0F1D34", teal: "#4FD1C5", teal2: "#38B2AC",
@@ -53,7 +57,7 @@ const ALERTS = [
     time: "09:22" },
 ];
 
-type Section = "carers" | "clients" | "cqc" | "alerts";
+type Section = "carers" | "clients" | "cqc" | "alerts" | "docs" | "compliance";
 type AlertFilter = "All" | "Critical" | "AI Flags";
 
 function StatusChip({ s }: { s: string }) {
@@ -185,8 +189,8 @@ function CarerOverview() {
               );
             })}
             {/* Amy Mitchell warning */}
-            <div style={{ position: "absolute", left: "68%", top: "30%", background: "rgba(255,90,95,0.15)", border: `1px solid ${C.red}`, borderRadius: 8, padding: "6px 10px", fontSize: 11, color: C.red, fontWeight: 600, whiteSpace: "nowrap" }}>
-              ⚠ Amy Mitchell, 18 min overdue
+            <div style={{ position: "absolute", left: "68%", top: "30%", background: "rgba(255,90,95,0.15)", border: `1px solid ${C.red}`, borderRadius: 8, padding: "6px 10px", fontSize: 11, color: C.red, fontWeight: 600, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 4 }}>
+              <AlertTriangle size={14} /> Amy Mitchell, 18 min overdue
             </div>
           </div>
         </div>
@@ -217,11 +221,11 @@ function ClientRoster() {
               <td style={{ padding: "12px 16px", color: C.g2, fontSize: 12 }}>{c.dob}</td>
               <td style={{ padding: "12px 16px", color: C.g1, fontSize: 13 }}>{c.carer}</td>
               <td style={{ padding: "12px 16px", color: C.g2, fontSize: 12 }}>{c.last}</td>
-              <td style={{ padding: "12px 16px" }}><span style={{ color: C.green, fontSize: 12 }}>● Active</span></td>
+              <td style={{ padding: "12px 16px" }}><span style={{ color: C.green, fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}><CheckCircle size={12} /> Active</span></td>
               <td style={{ padding: "12px 16px" }}>
                 {c.med
-                  ? <span style={{ color: C.green, fontSize: 12, fontWeight: 600 }}>✓ Confirmed</span>
-                  : <span style={{ color: C.amber, fontSize: 12, fontWeight: 600 }}>⚠ Pending</span>}
+                  ? <span style={{ color: C.green, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}><CheckCircle size={12} /> Confirmed</span>
+                  : <span style={{ color: C.amber, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}><AlertTriangle size={12} /> Pending</span>}
               </td>
               <td style={{ padding: "12px 16px" }}><RiskChip r={c.risk} /></td>
             </tr>
@@ -239,15 +243,17 @@ function AuditTrail() {
       <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 14, overflow: "hidden" }}>
         <div style={{ padding: "14px 18px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>Audit Event Log</div>
-          <button style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid rgba(79,209,197,0.3)`, background: "rgba(79,209,197,0.1)", color: C.teal, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>
-            ↓ Export CSV
+          <button style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 8, border: `1px solid rgba(79,209,197,0.3)`, background: "rgba(79,209,197,0.1)", color: C.teal, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>
+            <Download size={14} /> Export CSV
           </button>
         </div>
         <div style={{ maxHeight: 360, overflowY: "auto" }}>
           {AUDIT.map((a, i) => (
             <div key={i} style={{ display: "flex", gap: 14, padding: "12px 18px", borderTop: i > 0 ? "1px solid rgba(255,255,255,0.04)" : "none", alignItems: "flex-start" }}>
               <div style={{ color: C.g3, fontSize: 12, whiteSpace: "nowrap", paddingTop: 1 }}>{a.time}</div>
-              <div style={{ fontSize: 16 }}>{a.s === "ok" ? "✅" : a.s === "warn" ? "⚠️" : "🔴"}</div>
+              <div style={{ fontSize: 16, display: "flex" }}>
+                {a.s === "ok" ? <CheckCircle size={16} color={C.green} /> : a.s === "warn" ? <AlertTriangle size={16} color={C.amber} /> : <AlertCircle size={16} color={C.red} />}
+              </div>
               <div style={{ flex: 1 }}>
                 <div style={{ color: C.g0, fontSize: 13 }}>{a.event}</div>
                 <div style={{ color: C.g3, fontSize: 11, marginTop: 2 }}>{a.carer}</div>
@@ -331,10 +337,10 @@ function AgencyAlerts() {
               {ack?.done ? (
                 <div style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 8, padding: "10px 14px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-                    <div style={{ color: C.green, fontWeight: 700, fontSize: 12 }}>✓ Acknowledged: {ack.time}</div>
+                    <div style={{ color: C.green, fontWeight: 700, fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}><CheckCircle size={14} /> Acknowledged: {ack.time}</div>
                     {ack.responseTime && (
-                      <span style={{ marginLeft: "auto", background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 99, padding: "2px 8px", color: C.green, fontSize: 11, fontWeight: 600 }}>
-                        ⏱ Responded in {ack.responseTime}
+                      <span style={{ marginLeft: "auto", background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 99, padding: "2px 8px", color: C.green, fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+                        <Clock size={12} /> Responded in {ack.responseTime}
                       </span>
                     )}
                   </div>
@@ -352,8 +358,8 @@ function AgencyAlerts() {
                   />
                   <div style={{ display: "flex", gap: 8 }}>
                     <button onClick={() => setAckState(s => ({ ...s, [a.id]: { ...s[a.id], open: false } }))} style={{ padding: "7px 16px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "transparent", color: C.g2, fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>Cancel</button>
-                    <button onClick={() => submitAck(a.id)} style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: "none", background: ack.text?.trim() ? `linear-gradient(90deg, ${C.teal}, ${C.teal2})` : "rgba(255,255,255,0.1)", color: ack.text?.trim() ? C.dark : C.g3, fontWeight: 700, fontSize: 12, cursor: ack.text?.trim() ? "pointer" : "not-allowed", fontFamily: "DM Sans, sans-serif" }}>
-                      ✓ Submit Acknowledgement
+                    <button onClick={() => submitAck(a.id)} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "7px 0", borderRadius: 8, border: "none", background: ack.text?.trim() ? `linear-gradient(90deg, ${C.teal}, ${C.teal2})` : "rgba(255,255,255,0.1)", color: ack.text?.trim() ? C.dark : C.g3, fontWeight: 700, fontSize: 12, cursor: ack.text?.trim() ? "pointer" : "not-allowed", fontFamily: "DM Sans, sans-serif" }}>
+                      <CheckCircle size={14} /> Submit Acknowledgement
                     </button>
                   </div>
                 </div>
@@ -368,9 +374,9 @@ function AgencyAlerts() {
                     }}>{btn}</button>
                   ))}
                   <button onClick={() => openAck(a.id)} style={{
-                    marginLeft: "auto", padding: "6px 14px", borderRadius: 8, border: `1px solid rgba(79,209,197,0.35)`,
+                    marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 8, border: `1px solid rgba(79,209,197,0.35)`,
                     background: "rgba(79,209,197,0.1)", color: C.teal, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "DM Sans, sans-serif",
-                  }}>✓ Acknowledge</button>
+                  }}><CheckCircle size={14} /> Acknowledge</button>
                 </div>
               )}
             </div>
@@ -381,21 +387,45 @@ function AgencyAlerts() {
   );
 }
 
-export default function AdminDashboard({ onBack, onCarerView, carerAgency }: { onBack: () => void; onCarerView: () => void; carerAgency?: string }) {
+export default function AdminDashboard({
+  onBack,
+  onCarerView,
+  carerAgency,
+  userEmail = "admin@example.com",
+  userName = "Admin",
+  cryptoKey,
+  clients = CLIENTS.map(c => ({ id: c.name, name: c.name })),
+  sessionToken,
+  onNavigateToClientRecord
+}: {
+  onBack: () => void;
+  onCarerView: () => void;
+  carerAgency?: string;
+  userEmail?: string;
+  userName?: string;
+  cryptoKey?: CryptoKey;
+  clients?: {id: string, name: string}[];
+  sessionToken?: string;
+  onNavigateToClientRecord?: (screen: string, clientId?: string) => void;
+}) {
   const [section, setSection] = useState<Section>("carers");
 
-  const navItems: { key: Section; icon: string; label: string }[] = [
-    { key: "carers",  icon: "👥", label: "Carer Overview" },
-    { key: "clients", icon: "📋", label: "Client Roster" },
-    { key: "cqc",    icon: "✅", label: "Audit Trail" },
-    { key: "alerts", icon: "🔔", label: "Agency Alerts" },
+  const navItems: { key: Section; icon: React.ReactNode; label: string }[] = [
+    { key: "compliance", icon: <Shield size={16} />, label: "Compliance Dashboard" },
+    { key: "carers",  icon: <Users size={16} />, label: "Carer Overview" },
+    { key: "clients", icon: <ClipboardList size={16} />, label: "Client Roster" },
+    { key: "cqc",    icon: <CheckCircle size={16} />, label: "Audit Trail" },
+    { key: "alerts", icon: <Bell size={16} />, label: "Agency Alerts" },
+    { key: "docs",    icon: <FileText size={16} />, label: "Documents & Reports" },
   ];
 
   const titles: Record<Section, string> = {
+    compliance: "Compliance Dashboard",
     carers:  "Carer Overview",
     clients: "Client Roster",
     cqc:     "Audit Trail",
     alerts:  "Agency Alerts",
+    docs:    "Documents & Reports",
   };
 
   return (
@@ -422,13 +452,13 @@ export default function AdminDashboard({ onBack, onCarerView, carerAgency }: { o
         </div>
         <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
           <button onClick={onCarerView} style={{
-            width: "100%", padding: "10px 0", borderRadius: 10, border: `1px solid rgba(79,209,197,0.3)`,
+            width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "10px 0", borderRadius: 10, border: `1px solid rgba(79,209,197,0.3)`,
             background: "rgba(79,209,197,0.08)", color: C.teal, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "DM Sans, sans-serif",
-          }}>👤 Switch to Carer View</button>
+          }}><Users size={16} /> Switch to Carer View</button>
           <button onClick={onBack} style={{
-            width: "100%", padding: "10px 0", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)",
+            width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "10px 0", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)",
             background: "transparent", color: C.g2, fontSize: 13, cursor: "pointer", fontFamily: "DM Sans, sans-serif",
-          }}>← Manager Overview</button>
+          }}><ArrowLeft size={16} /> Manager Overview</button>
         </div>
       </div>
 
@@ -442,7 +472,11 @@ export default function AdminDashboard({ onBack, onCarerView, carerAgency }: { o
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             <div style={{ display: "flex", gap: 16 }}>
-              {[["7", "Carers on Shift"], ["2", "Active Alerts"], ["94%", "Compliance Score"]].map(([v, l]) => (
+              {[
+                ["7", "Carers on Shift"],
+                ["2", "Active Alerts"],
+                section === "compliance" ? ["Live", "Evidence Engine"] : ["94%", "Compliance Score"]
+              ].map(([v, l]) => (
                 <div key={l} style={{ textAlign: "center" }}>
                   <div style={{ color: C.teal, fontWeight: 700, fontSize: 20 }}>{v}</div>
                   <div style={{ color: C.g3, fontSize: 10 }}>{l}</div>
@@ -454,10 +488,27 @@ export default function AdminDashboard({ onBack, onCarerView, carerAgency }: { o
 
         {/* Content */}
         <div style={{ flex: 1, overflowY: "auto", padding: "24px 28px" }}>
+          {section === "compliance" && (
+            <ComplianceDashboardScreen
+              sessionToken={sessionToken}
+              cryptoKey={cryptoKey}
+              onNavigateToRecord={(screen, clientId) => onNavigateToClientRecord?.(screen, clientId)}
+            />
+          )}
           {section === "carers"  && <CarerOverview />}
           {section === "clients" && <ClientRoster />}
           {section === "cqc"    && <AuditTrail />}
           {section === "alerts" && <AgencyAlerts />}
+          {section === "docs"   && (
+            <DocumentReportStudio
+              role="manager"
+              userName={userName}
+              userEmail={userEmail}
+              clients={clients}
+              cryptoKey={cryptoKey}
+              onBack={() => setSection("carers")}
+            />
+          )}
         </div>
       </div>
     </div>

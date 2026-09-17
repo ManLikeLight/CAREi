@@ -10,6 +10,7 @@
 import { Router, type IRouter } from "express";
 import Database from "@replit/database";
 import bcrypt from "bcryptjs";
+import { issueAssistantSession } from "../assistant-session";
 
 const db = new Database();
 const router: IRouter = Router();
@@ -21,6 +22,7 @@ type CarerRecord = {
   name: string;
   email: string;
   agency: string;
+  role?: "carer" | "manager";
   /** bcrypt hash of the PIN */
   pinHash?: string;
   /** Legacy plain-text PIN — present only on old records before migration */
@@ -53,8 +55,8 @@ async function dbSet(key: string, value: CarerRecord): Promise<void> {
 // ── Signup ───────────────────────────────────────────────────────────────────
 
 router.post("/auth/signup", async (req, res) => {
-  const { name, email, agency, pin } = req.body as {
-    name?: string; email?: string; agency?: string; pin?: string;
+  const { name, email, agency, pin, role } = req.body as {
+    name?: string; email?: string; agency?: string; pin?: string; role?: "carer" | "manager";
   };
 
   if (!name || !email || !agency || !pin) {
@@ -77,13 +79,19 @@ router.post("/auth/signup", async (req, res) => {
       name: name.trim(),
       email: email.toLowerCase().trim(),
       agency: agency.trim(),
+      role: role === "manager" ? "manager" : "carer",
       pinHash,
       wipeRequested: false,
       deactivated: false,
     };
     await dbSet(key, record);
 
-    res.json({ success: true, name: record.name, email: record.email, agency: record.agency });
+    res.json({
+      success: true, name: record.name, email: record.email, agency: record.agency,
+      role: record.role, assistantSessionToken: issueAssistantSession({
+        name: record.name, email: record.email, agency: record.agency, role: record.role ?? "carer",
+      }),
+    });
   } catch (err) {
     console.error("Signup error:", err);
     res.status(500).json({ error: "Failed to create account. Please try again." });
@@ -146,7 +154,12 @@ router.post("/auth/login", async (req, res) => {
       return;
     }
 
-    res.json({ success: true, name: record.name, email: record.email, agency: record.agency });
+    res.json({
+      success: true, name: record.name, email: record.email, agency: record.agency,
+      role: record.role ?? "carer", assistantSessionToken: issueAssistantSession({
+        name: record.name, email: record.email, agency: record.agency, role: record.role ?? "carer",
+      }),
+    });
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ error: "Login failed. Please try again." });

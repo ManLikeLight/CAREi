@@ -3,3 +3,6 @@
 - [Security layer](security-layer.md) — AES-GCM 256-bit IDB encryption via lib/careStore.ts, PIN lock via App.tsx + AppLockScreen.tsx, bcrypt on API server auth.ts (cost 12), remote wipe via /api/auth/status check on launch.
 - [Pre-existing TS errors](preexisting-ts-errors.md) — four categories of pre-existing errors to ignore in typecheck output.
 - [Messaging architecture](messaging-architecture.md) — carer↔manager messages: server routes/messages.ts (@replit/db), client lib/messaging.ts, components/MessagingScreen.tsx; encrypted in IDB via careStore; offline queue drained on reconnect; 60s server poll in CAREiApp.
+- [Voice documentation safety](voice-documentation-safety.md) — finalized speech must be encrypted before structuring; cleanup and async commits are always bound to exact draft identity.
+- [Care assistant trust boundaries](care-assistant-trust-boundaries.md) — audit identity comes from a signed carer session; care-plan retrieval is limited to authorised CAREi client IDs.
+- [Family update delivery safety](family-update-delivery-safety.md) — consented family updates originate only from authenticated synced visits and render exclusively from approved structured facts.

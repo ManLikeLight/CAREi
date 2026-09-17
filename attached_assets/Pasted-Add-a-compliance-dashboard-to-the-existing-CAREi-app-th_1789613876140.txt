@@ -1,0 +1,25 @@
+Add a compliance dashboard to the existing CAREi app that gives care managers a live view of compliance status across their agency. This must be rule-based and deterministic, do not use AI, machine learning, or prediction for this feature. It simply checks known data against defined rules.
+
+Requirements:
+
+	1.	Add a compliance dashboard view for managers that shows the agency's current compliance status at a glance, with clear indicators (e.g. green/amber/red) for each area.
+	2.	Check and surface these concrete, rule-based items using data already in the app:
+
+	•	Expiring or expired carer credentials (e.g. DBS checks, training, right-to-work) where those dates are recorded.
+	•	Missed or incomplete visits.
+	•	Medication administration records (MAR) that are unsigned or incomplete.
+	•	Visits missing required documentation or notes.
+	•	Any other clearly defined, checkable compliance gaps that the existing data supports.
+
+	3.	Map these checks against CQC quality statements / Care Inspectorate expectations where relevant, so a manager can see which regulatory area each gap relates to. Keep this as a simple, transparent mapping, not an AI judgement.
+	4.	Make every flag actionable: clicking a flagged item should take the manager to the underlying record (the carer, the visit, the MAR entry) so they can fix it.
+	5.	Provide a simple summary/export (PDF) of the current compliance position, so it can be used for inspection preparation.
+	6.	All logic must be transparent and rule-based, the manager should be able to understand exactly why something is flagged. No black-box scoring, no predictions, no ML.
+	7.	Respect offline-first and the existing data model. The dashboard reads from existing PostgreSQL data; ensure it handles missing/not-yet-synced data gracefully (e.g. clearly show "no data" rather than a false pass).
+
+Do not change any existing functionality. Only add this dashboard. Keep the code consistent with the app's existing structure and styling.
+
+Notes on using it:
+
+	•	The one thing to watch: point 7, make sure a missing data field shows as "unknown/no data," not as a false green. In compliance, a false "all clear" is worse than a visible gap, so verify it doesn't mark things compliant just because data is absent.
+	•	This dashboard is genuinely a strong, honest launch feature on its own, it delivers real value with no AI risk, which is why it's in the Build Now set.

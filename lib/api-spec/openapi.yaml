@@ -10,7 +10,37 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: care-plans
+    description: AI-assisted care plan drafting and version history
+  - name: care-assistant
+    description: Grounded care guidance for carers
+  - name: documents
+    description: AI-assisted CAREi document drafting and confirmation
+  - name: care-records
+    description: Idempotent care record ingestion
+  - name: reports
+    description: Grounded manager report generation
+  - name: family-updates
+    description: Consent and in-app family visit updates
+  - name: compliance
+    description: Deterministic compliance evidence dashboard
 paths:
+  /compliance/dashboard:
+    get:
+      operationId: getComplianceDashboard
+      tags: [compliance]
+      summary: Get deterministic manager compliance dashboard
+      responses:
+        "200":
+          description: Agency-scoped compliance evidence
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComplianceDashboard"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
   /healthz:
     get:
       operationId: healthCheck
@@ -24,7 +54,307 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /care-plans/generate:
+    post:
+      operationId: generateCarePlan
+      tags: [care-plans]
+      summary: Generate a structured draft care plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateCarePlanRequest"
+      responses:
+        "200":
+          description: Generated draft
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  draft:
+                    $ref: "#/components/schemas/CarePlanDraft"
+                required: [draft]
+        "400":
+          $ref: "#/components/responses/Error"
+        "502":
+          $ref: "#/components/responses/Error"
+  /care-plans/{clientId}/versions:
+    parameters:
+      - in: path
+        name: clientId
+        required: true
+        schema:
+          type: string
+          minLength: 1
+    get:
+      operationId: getCarePlanVersions
+      tags: [care-plans]
+      summary: List prior confirmed care plan versions
+      responses:
+        "200":
+          description: Version history, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CarePlanVersion"
+        "400":
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: confirmCarePlan
+      tags: [care-plans]
+      summary: Confirm and save a new care plan version
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmCarePlanRequest"
+      responses:
+        "201":
+          description: Saved version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CarePlanVersion"
+        "400":
+          $ref: "#/components/responses/Error"
+  /care-assistant/chat:
+    post:
+      operationId: chatWithCareAssistant
+      tags: [care-assistant]
+      summary: Ask the grounded CAREi guidance assistant
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CareAssistantRequest"
+      responses:
+        "200":
+          description: Guidance response and audit reference
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CareAssistantResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "502":
+          $ref: "#/components/responses/Error"
+  /documents/generate:
+    post:
+      operationId: generateDocument
+      tags: [documents]
+      summary: Generate an unsaved editable document draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentGenerationInput"
+      responses:
+        "200":
+          description: Unsaved document draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentDraft"
+        "400":
+          $ref: "#/components/responses/Error"
+        "502":
+          $ref: "#/components/responses/Error"
+  /documents/confirm:
+    post:
+      operationId: confirmDocument
+      tags: [documents]
+      summary: Save a reviewed document as confirmed
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentConfirmationInput"
+      responses:
+        "201":
+          description: Confirmed document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeneratedDocument"
+        "400":
+          $ref: "#/components/responses/Error"
+  /documents:
+    get:
+      operationId: listDocuments
+      tags: [documents]
+      summary: List generated documents
+      parameters:
+        - in: query
+          name: userEmail
+          schema:
+            type: string
+            format: email
+        - in: query
+          name: clientId
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Generated documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GeneratedDocument"
+        "400":
+          $ref: "#/components/responses/Error"
+  /care-records/visits:
+    post:
+      operationId: ingestVisitRecord
+      tags: [care-records]
+      summary: Idempotently ingest a completed visit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VisitRecordInput"
+      responses:
+        "200":
+          description: Existing or newly ingested visit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisitRecord"
+        "400":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+  /care-records/medications:
+    post:
+      operationId: ingestMedicationConfirmation
+      tags: [care-records]
+      summary: Idempotently ingest a medication confirmation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MedicationConfirmationInput"
+      responses:
+        "200":
+          description: Existing or newly ingested confirmation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MedicationConfirmationRecord"
+        "400":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+  /family-updates/consent:
+    get:
+      operationId: getFamilyUpdateConsent
+      tags: [family-updates]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: clientId, required: true, schema: { type: string } }
+        - { in: query, name: familyMemberId, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Consent, content: { application/json: { schema: { $ref: "#/components/schemas/FamilyUpdateConsentStatus" } } } }
+        "401": { $ref: "#/components/responses/Error" }
+    put:
+      operationId: updateFamilyUpdateConsent
+      tags: [family-updates]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/FamilyUpdateConsentInput" } } }
+      responses:
+        "200": { description: Updated consent, content: { application/json: { schema: { $ref: "#/components/schemas/FamilyUpdateConsent" } } } }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+  /family-updates:
+    get:
+      operationId: listFamilyUpdates
+      tags: [family-updates]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: clientId, required: true, schema: { type: string } }
+        - { in: query, name: familyMemberId, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Sent updates, newest first
+          content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/FamilyUpdateDelivery" } } } }
+  /reports/generate:
+    post:
+      operationId: generateReport
+      tags: [reports]
+      summary: Generate and persist a grounded manager report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportGenerationInput"
+      responses:
+        "200":
+          description: Persisted report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeneratedReport"
+        "400":
+          $ref: "#/components/responses/Error"
+        "502":
+          $ref: "#/components/responses/Error"
+  /reports:
+    get:
+      operationId: listReports
+      tags: [reports]
+      summary: List generated reports
+      parameters:
+        - in: query
+          name: userEmail
+          schema:
+            type: string
+            format: email
+        - in: query
+          name: clientId
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Generated reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GeneratedReport"
+        "400":
+          $ref: "#/components/responses/Error"
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: CAREiAssistantSession
+  responses:
+    Error:
+      description: Request failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +363,570 @@ components:
           type: string
       required:
         - status
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+    CarePlanSuggestion:
+      type: object
+      additionalProperties: false
+      properties:
+        suggestion:
+          type: string
+        source:
+          type: [string, "null"]
+      required: [suggestion, source]
+    CarePlanDraft:
+      type: object
+      additionalProperties: false
+      properties:
+        personalDetailsAndPreferences:
+          type: object
+          additionalProperties: false
+          properties:
+            summary:
+              $ref: "#/components/schemas/CarePlanSuggestion"
+          required: [summary]
+        needs:
+          type: object
+          additionalProperties: false
+          properties:
+            personalCare:
+              $ref: "#/components/schemas/CarePlanSuggestion"
+            mobility:
+              $ref: "#/components/schemas/CarePlanSuggestion"
+            nutrition:
+              $ref: "#/components/schemas/CarePlanSuggestion"
+            medication:
+              $ref: "#/components/schemas/CarePlanSuggestion"
+            social:
+              $ref: "#/components/schemas/CarePlanSuggestion"
+          required: [personalCare, mobility, nutrition, medication, social]
+        identifiedRisks:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/CarePlanSuggestion"
+        goalsAndDesiredOutcomes:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/CarePlanSuggestion"
+        dailyRoutine:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/CarePlanSuggestion"
+        notes:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/CarePlanSuggestion"
+      required:
+        - personalDetailsAndPreferences
+        - needs
+        - identifiedRisks
+        - goalsAndDesiredOutcomes
+        - dailyRoutine
+        - notes
+    CarePlanClient:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+        age:
+          type: integer
+          minimum: 0
+        address:
+          type: string
+      required: [name, age, address]
+    GenerateCarePlanRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        client:
+          $ref: "#/components/schemas/CarePlanClient"
+        assessmentInput:
+          type: string
+          minLength: 1
+          maxLength: 20000
+      required: [client, assessmentInput]
+    ConfirmCarePlanRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        assessmentInput:
+          type: string
+          minLength: 1
+          maxLength: 20000
+        plan:
+          $ref: "#/components/schemas/CarePlanDraft"
+        confirmedBy:
+          type: string
+          minLength: 1
+      required: [assessmentInput, plan, confirmedBy]
+    CarePlanVersion:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: integer
+        clientId:
+          type: string
+        version:
+          type: integer
+        assessmentInput:
+          type: string
+        plan:
+          $ref: "#/components/schemas/CarePlanDraft"
+        confirmedBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - clientId
+        - version
+        - assessmentInput
+        - plan
+        - confirmedBy
+        - createdAt
+    CareAssistantClient:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          enum: [mary, tom, aisha]
+        name:
+          type: string
+          minLength: 1
+        carePlanContext:
+          type: string
+          minLength: 1
+          maxLength: 20000
+      required: [id, name, carePlanContext]
+    CareAssistantRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        question:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        client:
+          $ref: "#/components/schemas/CareAssistantClient"
+      required: [question]
+    CareAssistantResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        answer:
+          type: string
+        emergencyEscalation:
+          type: boolean
+        auditId:
+          type: integer
+      required: [answer, emergencyEscalation, auditId]
+    DocumentSection:
+      type: object
+      additionalProperties: false
+      properties:
+        heading:
+          type: string
+        content:
+          type: string
+      required: [heading, content]
+    DocumentClient:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          minLength: 1
+        name:
+          type: string
+          minLength: 1
+      required: [id, name]
+    DocumentIdentity:
+      type: object
+      additionalProperties: false
+      properties:
+        userName:
+          type: string
+          minLength: 1
+        userEmail:
+          type: string
+          format: email
+        userRole:
+          type: string
+          enum: [carer, manager]
+      required: [userName, userEmail, userRole]
+    DocumentGenerationInput:
+      type: object
+      additionalProperties: false
+      properties:
+        templateType:
+          type: string
+          enum: [incident_report, care_assessment_summary, general_letter]
+        freeText:
+          type: string
+          maxLength: 20000
+        structuredDetails:
+          type: object
+          additionalProperties:
+            type: string
+        identity:
+          $ref: "#/components/schemas/DocumentIdentity"
+        client:
+          $ref: "#/components/schemas/DocumentClient"
+      required: [templateType, freeText, structuredDetails, identity]
+    DocumentDraft:
+      type: object
+      additionalProperties: false
+      properties:
+        documentType:
+          type: string
+          enum: [incident_report, care_assessment_summary, general_letter]
+        title:
+          type: string
+        sections:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentSection"
+      required: [documentType, title, sections]
+    DocumentConfirmationInput:
+      type: object
+      additionalProperties: false
+      properties:
+        documentType:
+          type: string
+          enum: [incident_report, care_assessment_summary, general_letter]
+        title:
+          type: string
+          minLength: 1
+        sections:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/DocumentSection"
+        sourceDetails:
+          type: object
+          additionalProperties:
+            type: string
+        identity:
+          $ref: "#/components/schemas/DocumentIdentity"
+        client:
+          $ref: "#/components/schemas/DocumentClient"
+      required: [documentType, title, sections, sourceDetails, identity]
+    GeneratedDocument:
+      allOf:
+        - $ref: "#/components/schemas/DocumentDraft"
+        - type: object
+          additionalProperties: false
+          properties:
+            id:
+              type: integer
+            status:
+              type: string
+              enum: [draft, confirmed]
+            userName:
+              type: string
+            userEmail:
+              type: string
+            userRole:
+              type: string
+              enum: [carer, manager]
+            clientId:
+              type: [string, "null"]
+            clientName:
+              type: [string, "null"]
+            sourceDetails:
+              type: object
+              additionalProperties:
+                type: string
+            confirmedAt:
+              type: [string, "null"]
+              format: date-time
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+          required: [id, status, userName, userEmail, userRole, clientId, clientName, sourceDetails, confirmedAt, createdAt, updatedAt]
+    VisitRecordInput:
+      type: object
+      additionalProperties: false
+      properties:
+        visitKey:
+          type: string
+          minLength: 1
+        clientId:
+          type: string
+          minLength: 1
+        clientName:
+          type: string
+          minLength: 1
+        carerName:
+          type: string
+          minLength: 1
+        carerEmail:
+          type: string
+          format: email
+        agency:
+          type: string
+          minLength: 1
+        scheduledAt:
+          type: [string, "null"]
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [completed]
+        notes:
+          type: [string, "null"]
+        mood:
+          type: [string, "null"]
+          enum: [Good, Neutral, Low, Anxious, Tired, null]
+        mealStatus:
+          type: [string, "null"]
+          enum: [Full, Half, Refused, null]
+        fluidGlasses:
+          type: [integer, "null"]
+          minimum: 0
+          maximum: 50
+        completedActivities:
+          type: array
+          maxItems: 3
+          items: { type: string, enum: ["Prepare breakfast", "Assist with mobility", "Record mood"] }
+          default: []
+      required: [visitKey, clientId, clientName, carerName, carerEmail, agency, completedAt, status]
+    VisitRecord:
+      allOf:
+        - $ref: "#/components/schemas/VisitRecordInput"
+        - type: object
+          properties:
+            createdAt:
+              type: string
+              format: date-time
+          required: [createdAt]
+    MedicationConfirmationInput:
+      type: object
+      additionalProperties: false
+      properties:
+        confirmationKey:
+          type: string
+          minLength: 1
+        visitKey:
+          type: [string, "null"]
+        clientId:
+          type: string
+          minLength: 1
+        clientName:
+          type: string
+          minLength: 1
+        medicationName:
+          type: string
+          minLength: 1
+        dose:
+          type: [string, "null"]
+        dueAt:
+          type: [string, "null"]
+          format: date-time
+        recordedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [given, refused, not_given, other]
+        carerName:
+          type: string
+          minLength: 1
+        carerEmail:
+          type: string
+          format: email
+        agency:
+          type: string
+          minLength: 1
+        reason:
+          type: [string, "null"]
+      required: [confirmationKey, clientId, clientName, medicationName, recordedAt, status, carerName, carerEmail, agency]
+    MedicationConfirmationRecord:
+      allOf:
+        - $ref: "#/components/schemas/MedicationConfirmationInput"
+        - type: object
+          properties:
+            createdAt:
+              type: string
+              format: date-time
+          required: [createdAt]
+    FamilyUpdateConsentInput:
+      type: object
+      additionalProperties: false
+      properties:
+        clientId: { type: string, minLength: 1 }
+        familyMemberId: { type: string, minLength: 1 }
+        familyMemberName: { type: string, minLength: 1 }
+        optedIn: { type: boolean }
+      required: [clientId, familyMemberId, familyMemberName, optedIn]
+    FamilyUpdateConsent:
+      allOf:
+        - $ref: "#/components/schemas/FamilyUpdateConsentInput"
+        - type: object
+          properties:
+            id: { type: integer }
+            consentedAt: { type: [string, "null"], format: date-time }
+            withdrawnAt: { type: [string, "null"], format: date-time }
+            recordedByName: { type: string }
+            recordedByEmail: { type: string, format: email }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+          required: [id, consentedAt, withdrawnAt, recordedByName, recordedByEmail, createdAt, updatedAt]
+    FamilyUpdateConsentStatus:
+      type: object
+      properties:
+        clientId: { type: string }
+        familyMemberId: { type: string }
+        familyMemberName: { type: string }
+        optedIn: { type: boolean }
+        consentedAt: { type: [string, "null"], format: date-time }
+        withdrawnAt: { type: [string, "null"], format: date-time }
+      required: [clientId, familyMemberId, familyMemberName, optedIn, consentedAt, withdrawnAt]
+    FamilyUpdateDelivery:
+      type: object
+      properties:
+        id: { type: integer }
+        visitKey: { type: string }
+        clientId: { type: string }
+        familyMemberId: { type: string }
+        familyMemberName: { type: string }
+        channel: { type: string, enum: [in_app] }
+        status: { type: string, enum: [pending, processing, sent, failed, cancelled] }
+        summary: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+        sentAt: { type: [string, "null"], format: date-time }
+      required: [id, visitKey, clientId, familyMemberId, familyMemberName, channel, status, createdAt, sentAt]
+    ReportGenerationInput:
+      type: object
+      additionalProperties: false
+      properties:
+        request:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        userName:
+          type: string
+          minLength: 1
+        userEmail:
+          type: string
+          format: email
+        client:
+          $ref: "#/components/schemas/DocumentClient"
+        currentDateTime:
+          type: [string, "null"]
+          format: date-time
+        timezone:
+          type: [string, "null"]
+      required: [request, userName, userEmail]
+    GeneratedReport:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: integer
+        request:
+          type: string
+        reportType:
+          type: string
+          enum: [completed_visits, medication_confirmations]
+        dateFrom:
+          type: string
+          format: date-time
+        dateTo:
+          type: string
+          format: date-time
+        clientId:
+          type: [string, "null"]
+        clientName:
+          type: [string, "null"]
+        userName:
+          type: string
+        userEmail:
+          type: string
+          format: email
+        narrative:
+          type: string
+        underlyingData:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        rowCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, request, reportType, dateFrom, dateTo, clientId, clientName, userName, userEmail, narrative, underlyingData, rowCount, createdAt]
+    ComplianceFlag:
+      type: object
+      additionalProperties: false
+      properties:
+        rule: { type: string }
+        reason: { type: string }
+        action: { type: string }
+        targetKind: { type: string, enum: [carer, visit, mar] }
+        targetId: { type: string }
+        clientId: { type: string }
+      required: [rule, reason, action, targetKind, targetId]
+    ComplianceArea:
+      type: object
+      additionalProperties: false
+      properties:
+        key: { type: string }
+        label: { type: string }
+        referenceLabel: { type: string, description: Evidence reference categories only; not a regulatory judgement. }
+        frameworks:
+          type: array
+          description: Evidence reference categories only; no statement IDs or regulatory judgement.
+          items: { type: string, enum: [CQC, Care Inspectorate] }
+          minItems: 2
+          maxItems: 2
+        status: { type: string, enum: [green, amber, red, unknown] }
+        flags:
+          type: array
+          items: { $ref: "#/components/schemas/ComplianceFlag" }
+      required: [key, label, referenceLabel, frameworks, status, flags]
+    ComplianceDashboard:
+      type: object
+      additionalProperties: false
+      properties:
+        generatedAt: { type: string, format: date-time }
+        agency: { type: string }
+        dataFreshness: { type: string }
+        overallStatus: { type: string, enum: [green, amber, red, unknown] }
+        areas:
+          type: array
+          items: { $ref: "#/components/schemas/ComplianceArea" }
+        counts:
+          type: object
+          properties:
+            visits: { type: integer }
+            medications: { type: integer }
+            flags: { type: integer }
+          required: [visits, medications, flags]
+        flags:
+          type: array
+          items: { $ref: "#/components/schemas/ComplianceFlag" }
+        disclaimer:
+          type: string
+          description: Evidence reference categories only; this is not a regulatory judgement.
+      required: [generatedAt, agency, dataFreshness, overallStatus, areas, counts, flags, disclaimer]
 

@@ -8,9 +8,728 @@
 import * as zod from "zod";
 
 /**
+ * @summary Get deterministic manager compliance dashboard
+ */
+export const getComplianceDashboardResponseAreasItemFrameworksMin = 2;
+export const getComplianceDashboardResponseAreasItemFrameworksMax = 2;
+
+export const GetComplianceDashboardResponse = zod.object({
+  generatedAt: zod.date(),
+  agency: zod.string(),
+  dataFreshness: zod.string(),
+  overallStatus: zod.enum(["green", "amber", "red", "unknown"]),
+  areas: zod.array(
+    zod.object({
+      key: zod.string(),
+      label: zod.string(),
+      referenceLabel: zod
+        .string()
+        .describe(
+          "Evidence reference categories only; not a regulatory judgement.",
+        ),
+      frameworks: zod
+        .array(zod.enum(["CQC", "Care Inspectorate"]))
+        .min(getComplianceDashboardResponseAreasItemFrameworksMin)
+        .max(getComplianceDashboardResponseAreasItemFrameworksMax)
+        .describe(
+          "Evidence reference categories only; no statement IDs or regulatory judgement.",
+        ),
+      status: zod.enum(["green", "amber", "red", "unknown"]),
+      flags: zod.array(
+        zod.object({
+          rule: zod.string(),
+          reason: zod.string(),
+          action: zod.string(),
+          targetKind: zod.enum(["carer", "visit", "mar"]),
+          targetId: zod.string(),
+          clientId: zod.string().optional(),
+        }),
+      ),
+    }),
+  ),
+  counts: zod.object({
+    visits: zod.number(),
+    medications: zod.number(),
+    flags: zod.number(),
+  }),
+  flags: zod.array(
+    zod.object({
+      rule: zod.string(),
+      reason: zod.string(),
+      action: zod.string(),
+      targetKind: zod.enum(["carer", "visit", "mar"]),
+      targetId: zod.string(),
+      clientId: zod.string().optional(),
+    }),
+  ),
+  disclaimer: zod
+    .string()
+    .describe(
+      "Evidence reference categories only; this is not a regulatory judgement.",
+    ),
+});
+
+/**
  * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * @summary Generate a structured draft care plan
+ */
+
+export const generateCarePlanBodyClientAgeMin = 0;
+
+export const generateCarePlanBodyAssessmentInputMax = 20000;
+
+export const GenerateCarePlanBody = zod.object({
+  client: zod.object({
+    name: zod.string().min(1),
+    age: zod.number().min(generateCarePlanBodyClientAgeMin),
+    address: zod.string(),
+  }),
+  assessmentInput: zod
+    .string()
+    .min(1)
+    .max(generateCarePlanBodyAssessmentInputMax),
+});
+
+export const GenerateCarePlanResponse = zod.object({
+  draft: zod.object({
+    personalDetailsAndPreferences: zod.object({
+      summary: zod.object({
+        suggestion: zod.string(),
+        source: zod.string().nullable(),
+      }),
+    }),
+    needs: zod.object({
+      personalCare: zod.object({
+        suggestion: zod.string(),
+        source: zod.string().nullable(),
+      }),
+      mobility: zod.object({
+        suggestion: zod.string(),
+        source: zod.string().nullable(),
+      }),
+      nutrition: zod.object({
+        suggestion: zod.string(),
+        source: zod.string().nullable(),
+      }),
+      medication: zod.object({
+        suggestion: zod.string(),
+        source: zod.string().nullable(),
+      }),
+      social: zod.object({
+        suggestion: zod.string(),
+        source: zod.string().nullable(),
+      }),
+    }),
+    identifiedRisks: zod
+      .array(
+        zod.object({
+          suggestion: zod.string(),
+          source: zod.string().nullable(),
+        }),
+      )
+      .min(1),
+    goalsAndDesiredOutcomes: zod
+      .array(
+        zod.object({
+          suggestion: zod.string(),
+          source: zod.string().nullable(),
+        }),
+      )
+      .min(1),
+    dailyRoutine: zod
+      .array(
+        zod.object({
+          suggestion: zod.string(),
+          source: zod.string().nullable(),
+        }),
+      )
+      .min(1),
+    notes: zod
+      .array(
+        zod.object({
+          suggestion: zod.string(),
+          source: zod.string().nullable(),
+        }),
+      )
+      .min(1),
+  }),
+});
+
+/**
+ * @summary List prior confirmed care plan versions
+ */
+
+export const GetCarePlanVersionsParams = zod.object({
+  clientId: zod.coerce.string().min(1),
+});
+
+export const GetCarePlanVersionsResponseItem = zod.object({
+  id: zod.number(),
+  clientId: zod.string(),
+  version: zod.number(),
+  assessmentInput: zod.string(),
+  plan: zod.object({
+    personalDetailsAndPreferences: zod.object({
+      summary: zod.object({
+        suggestion: zod.string(),
+        source: zod.string().nullable(),
+      }),
+    }),
+    needs: zod.object({
+      personalCare: zod.object({
+        suggestion: zod.string(),
+        source: zod.string().nullable(),
+      }),
+      mobility: zod.object({
+        suggestion: zod.string(),
+        source: zod.string().nullable(),
+      }),
+      nutrition: zod.object({
+        suggestion: zod.string(),
+        source: zod.string().nullable(),
+      }),
+      medication: zod.object({
+        suggestion: zod.string(),
+        source: zod.string().nullable(),
+      }),
+      social: zod.object({
+        suggestion: zod.string(),
+        source: zod.string().nullable(),
+      }),
+    }),
+    identifiedRisks: zod
+      .array(
+        zod.object({
+          suggestion: zod.string(),
+          source: zod.string().nullable(),
+        }),
+      )
+      .min(1),
+    goalsAndDesiredOutcomes: zod
+      .array(
+        zod.object({
+          suggestion: zod.string(),
+          source: zod.string().nullable(),
+        }),
+      )
+      .min(1),
+    dailyRoutine: zod
+      .array(
+        zod.object({
+          suggestion: zod.string(),
+          source: zod.string().nullable(),
+        }),
+      )
+      .min(1),
+    notes: zod
+      .array(
+        zod.object({
+          suggestion: zod.string(),
+          source: zod.string().nullable(),
+        }),
+      )
+      .min(1),
+  }),
+  confirmedBy: zod.string(),
+  createdAt: zod.date(),
+});
+export const GetCarePlanVersionsResponse = zod.array(
+  GetCarePlanVersionsResponseItem,
+);
+
+/**
+ * @summary Confirm and save a new care plan version
+ */
+
+export const ConfirmCarePlanParams = zod.object({
+  clientId: zod.coerce.string().min(1),
+});
+
+export const confirmCarePlanBodyAssessmentInputMax = 20000;
+
+export const ConfirmCarePlanBody = zod.object({
+  assessmentInput: zod
+    .string()
+    .min(1)
+    .max(confirmCarePlanBodyAssessmentInputMax),
+  plan: zod.object({
+    personalDetailsAndPreferences: zod.object({
+      summary: zod.object({
+        suggestion: zod.string(),
+        source: zod.string().nullable(),
+      }),
+    }),
+    needs: zod.object({
+      personalCare: zod.object({
+        suggestion: zod.string(),
+        source: zod.string().nullable(),
+      }),
+      mobility: zod.object({
+        suggestion: zod.string(),
+        source: zod.string().nullable(),
+      }),
+      nutrition: zod.object({
+        suggestion: zod.string(),
+        source: zod.string().nullable(),
+      }),
+      medication: zod.object({
+        suggestion: zod.string(),
+        source: zod.string().nullable(),
+      }),
+      social: zod.object({
+        suggestion: zod.string(),
+        source: zod.string().nullable(),
+      }),
+    }),
+    identifiedRisks: zod
+      .array(
+        zod.object({
+          suggestion: zod.string(),
+          source: zod.string().nullable(),
+        }),
+      )
+      .min(1),
+    goalsAndDesiredOutcomes: zod
+      .array(
+        zod.object({
+          suggestion: zod.string(),
+          source: zod.string().nullable(),
+        }),
+      )
+      .min(1),
+    dailyRoutine: zod
+      .array(
+        zod.object({
+          suggestion: zod.string(),
+          source: zod.string().nullable(),
+        }),
+      )
+      .min(1),
+    notes: zod
+      .array(
+        zod.object({
+          suggestion: zod.string(),
+          source: zod.string().nullable(),
+        }),
+      )
+      .min(1),
+  }),
+  confirmedBy: zod.string().min(1),
+});
+
+/**
+ * @summary Ask the grounded CAREi guidance assistant
+ */
+export const chatWithCareAssistantBodyQuestionMax = 2000;
+
+export const chatWithCareAssistantBodyClientCarePlanContextMax = 20000;
+
+export const ChatWithCareAssistantBody = zod.object({
+  question: zod.string().min(1).max(chatWithCareAssistantBodyQuestionMax),
+  client: zod
+    .object({
+      id: zod.enum(["mary", "tom", "aisha"]),
+      name: zod.string().min(1),
+      carePlanContext: zod
+        .string()
+        .min(1)
+        .max(chatWithCareAssistantBodyClientCarePlanContextMax),
+    })
+    .optional(),
+});
+
+export const ChatWithCareAssistantResponse = zod.object({
+  answer: zod.string(),
+  emergencyEscalation: zod.boolean(),
+  auditId: zod.number(),
+});
+
+/**
+ * @summary Generate an unsaved editable document draft
+ */
+export const generateDocumentBodyFreeTextMax = 20000;
+
+export const GenerateDocumentBody = zod.object({
+  templateType: zod.enum([
+    "incident_report",
+    "care_assessment_summary",
+    "general_letter",
+  ]),
+  freeText: zod.string().max(generateDocumentBodyFreeTextMax),
+  structuredDetails: zod.record(zod.string(), zod.string()),
+  identity: zod.object({
+    userName: zod.string().min(1),
+    userEmail: zod.string().email(),
+    userRole: zod.enum(["carer", "manager"]),
+  }),
+  client: zod
+    .object({
+      id: zod.string().min(1),
+      name: zod.string().min(1),
+    })
+    .optional(),
+});
+
+export const GenerateDocumentResponse = zod.object({
+  documentType: zod.enum([
+    "incident_report",
+    "care_assessment_summary",
+    "general_letter",
+  ]),
+  title: zod.string(),
+  sections: zod.array(
+    zod.object({
+      heading: zod.string(),
+      content: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Save a reviewed document as confirmed
+ */
+
+export const ConfirmDocumentBody = zod.object({
+  documentType: zod.enum([
+    "incident_report",
+    "care_assessment_summary",
+    "general_letter",
+  ]),
+  title: zod.string().min(1),
+  sections: zod
+    .array(
+      zod.object({
+        heading: zod.string(),
+        content: zod.string(),
+      }),
+    )
+    .min(1),
+  sourceDetails: zod.record(zod.string(), zod.string()),
+  identity: zod.object({
+    userName: zod.string().min(1),
+    userEmail: zod.string().email(),
+    userRole: zod.enum(["carer", "manager"]),
+  }),
+  client: zod
+    .object({
+      id: zod.string().min(1),
+      name: zod.string().min(1),
+    })
+    .optional(),
+});
+
+/**
+ * @summary List generated documents
+ */
+export const ListDocumentsQueryParams = zod.object({
+  userEmail: zod.coerce.string().email().optional(),
+  clientId: zod.coerce.string().optional(),
+});
+
+export const ListDocumentsResponseItem = zod
+  .object({
+    documentType: zod.enum([
+      "incident_report",
+      "care_assessment_summary",
+      "general_letter",
+    ]),
+    title: zod.string(),
+    sections: zod.array(
+      zod.object({
+        heading: zod.string(),
+        content: zod.string(),
+      }),
+    ),
+  })
+  .and(
+    zod.object({
+      id: zod.number(),
+      status: zod.enum(["draft", "confirmed"]),
+      userName: zod.string(),
+      userEmail: zod.string(),
+      userRole: zod.enum(["carer", "manager"]),
+      clientId: zod.string().nullable(),
+      clientName: zod.string().nullable(),
+      sourceDetails: zod.record(zod.string(), zod.string()),
+      confirmedAt: zod.date().nullable(),
+      createdAt: zod.date(),
+      updatedAt: zod.date(),
+    }),
+  );
+export const ListDocumentsResponse = zod.array(ListDocumentsResponseItem);
+
+/**
+ * @summary Idempotently ingest a completed visit
+ */
+
+export const ingestVisitRecordBodyFluidGlassesMin = 0;
+export const ingestVisitRecordBodyFluidGlassesMax = 50;
+
+export const ingestVisitRecordBodyCompletedActivitiesDefault = [];
+export const ingestVisitRecordBodyCompletedActivitiesMax = 3;
+
+export const IngestVisitRecordBody = zod.object({
+  visitKey: zod.string().min(1),
+  clientId: zod.string().min(1),
+  clientName: zod.string().min(1),
+  carerName: zod.string().min(1),
+  carerEmail: zod.string().email(),
+  agency: zod.string().min(1),
+  scheduledAt: zod.date().nullish(),
+  completedAt: zod.date(),
+  status: zod.enum(["completed"]),
+  notes: zod.string().nullish(),
+  mood: zod
+    .union([
+      zod.literal("Good"),
+      zod.literal("Neutral"),
+      zod.literal("Low"),
+      zod.literal("Anxious"),
+      zod.literal("Tired"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  mealStatus: zod
+    .union([
+      zod.literal("Full"),
+      zod.literal("Half"),
+      zod.literal("Refused"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  fluidGlasses: zod
+    .number()
+    .min(ingestVisitRecordBodyFluidGlassesMin)
+    .max(ingestVisitRecordBodyFluidGlassesMax)
+    .nullish(),
+  completedActivities: zod
+    .array(
+      zod.enum(["Prepare breakfast", "Assist with mobility", "Record mood"]),
+    )
+    .max(ingestVisitRecordBodyCompletedActivitiesMax)
+    .default(ingestVisitRecordBodyCompletedActivitiesDefault),
+});
+
+export const ingestVisitRecordResponseOneFluidGlassesMin = 0;
+export const ingestVisitRecordResponseOneFluidGlassesMax = 50;
+
+export const ingestVisitRecordResponseOneCompletedActivitiesDefault = [];
+export const ingestVisitRecordResponseOneCompletedActivitiesMax = 3;
+
+export const IngestVisitRecordResponse = zod
+  .object({
+    visitKey: zod.string().min(1),
+    clientId: zod.string().min(1),
+    clientName: zod.string().min(1),
+    carerName: zod.string().min(1),
+    carerEmail: zod.string().email(),
+    agency: zod.string().min(1),
+    scheduledAt: zod.date().nullish(),
+    completedAt: zod.date(),
+    status: zod.enum(["completed"]),
+    notes: zod.string().nullish(),
+    mood: zod
+      .union([
+        zod.literal("Good"),
+        zod.literal("Neutral"),
+        zod.literal("Low"),
+        zod.literal("Anxious"),
+        zod.literal("Tired"),
+        zod.literal(null),
+      ])
+      .nullish(),
+    mealStatus: zod
+      .union([
+        zod.literal("Full"),
+        zod.literal("Half"),
+        zod.literal("Refused"),
+        zod.literal(null),
+      ])
+      .nullish(),
+    fluidGlasses: zod
+      .number()
+      .min(ingestVisitRecordResponseOneFluidGlassesMin)
+      .max(ingestVisitRecordResponseOneFluidGlassesMax)
+      .nullish(),
+    completedActivities: zod
+      .array(
+        zod.enum(["Prepare breakfast", "Assist with mobility", "Record mood"]),
+      )
+      .max(ingestVisitRecordResponseOneCompletedActivitiesMax)
+      .default(ingestVisitRecordResponseOneCompletedActivitiesDefault),
+  })
+  .and(
+    zod.object({
+      createdAt: zod.date(),
+    }),
+  );
+
+/**
+ * @summary Idempotently ingest a medication confirmation
+ */
+
+export const IngestMedicationConfirmationBody = zod.object({
+  confirmationKey: zod.string().min(1),
+  visitKey: zod.string().nullish(),
+  clientId: zod.string().min(1),
+  clientName: zod.string().min(1),
+  medicationName: zod.string().min(1),
+  dose: zod.string().nullish(),
+  dueAt: zod.date().nullish(),
+  recordedAt: zod.date(),
+  status: zod.enum(["given", "refused", "not_given", "other"]),
+  carerName: zod.string().min(1),
+  carerEmail: zod.string().email(),
+  agency: zod.string().min(1),
+  reason: zod.string().nullish(),
+});
+
+export const IngestMedicationConfirmationResponse = zod
+  .object({
+    confirmationKey: zod.string().min(1),
+    visitKey: zod.string().nullish(),
+    clientId: zod.string().min(1),
+    clientName: zod.string().min(1),
+    medicationName: zod.string().min(1),
+    dose: zod.string().nullish(),
+    dueAt: zod.date().nullish(),
+    recordedAt: zod.date(),
+    status: zod.enum(["given", "refused", "not_given", "other"]),
+    carerName: zod.string().min(1),
+    carerEmail: zod.string().email(),
+    agency: zod.string().min(1),
+    reason: zod.string().nullish(),
+  })
+  .and(
+    zod.object({
+      createdAt: zod.date(),
+    }),
+  );
+
+export const GetFamilyUpdateConsentQueryParams = zod.object({
+  clientId: zod.coerce.string(),
+  familyMemberId: zod.coerce.string(),
+});
+
+export const GetFamilyUpdateConsentResponse = zod.object({
+  clientId: zod.string(),
+  familyMemberId: zod.string(),
+  familyMemberName: zod.string(),
+  optedIn: zod.boolean(),
+  consentedAt: zod.date().nullable(),
+  withdrawnAt: zod.date().nullable(),
+});
+
+export const UpdateFamilyUpdateConsentBody = zod.object({
+  clientId: zod.string().min(1),
+  familyMemberId: zod.string().min(1),
+  familyMemberName: zod.string().min(1),
+  optedIn: zod.boolean(),
+});
+
+export const UpdateFamilyUpdateConsentResponse = zod
+  .object({
+    clientId: zod.string().min(1),
+    familyMemberId: zod.string().min(1),
+    familyMemberName: zod.string().min(1),
+    optedIn: zod.boolean(),
+  })
+  .and(
+    zod.object({
+      id: zod.number(),
+      consentedAt: zod.date().nullable(),
+      withdrawnAt: zod.date().nullable(),
+      recordedByName: zod.string(),
+      recordedByEmail: zod.string().email(),
+      createdAt: zod.date(),
+      updatedAt: zod.date(),
+    }),
+  );
+
+export const ListFamilyUpdatesQueryParams = zod.object({
+  clientId: zod.coerce.string(),
+  familyMemberId: zod.coerce.string(),
+});
+
+export const ListFamilyUpdatesResponseItem = zod.object({
+  id: zod.number(),
+  visitKey: zod.string(),
+  clientId: zod.string(),
+  familyMemberId: zod.string(),
+  familyMemberName: zod.string(),
+  channel: zod.enum(["in_app"]),
+  status: zod.enum(["pending", "processing", "sent", "failed", "cancelled"]),
+  summary: zod.string().nullish(),
+  createdAt: zod.date(),
+  sentAt: zod.date().nullable(),
+});
+export const ListFamilyUpdatesResponse = zod.array(
+  ListFamilyUpdatesResponseItem,
+);
+
+/**
+ * @summary Generate and persist a grounded manager report
+ */
+export const generateReportBodyRequestMax = 4000;
+
+export const GenerateReportBody = zod.object({
+  request: zod.string().min(1).max(generateReportBodyRequestMax),
+  userName: zod.string().min(1),
+  userEmail: zod.string().email(),
+  client: zod
+    .object({
+      id: zod.string().min(1),
+      name: zod.string().min(1),
+    })
+    .optional(),
+  currentDateTime: zod.date().nullish(),
+  timezone: zod.string().nullish(),
+});
+
+export const GenerateReportResponse = zod.object({
+  id: zod.number(),
+  request: zod.string(),
+  reportType: zod.enum(["completed_visits", "medication_confirmations"]),
+  dateFrom: zod.date(),
+  dateTo: zod.date(),
+  clientId: zod.string().nullable(),
+  clientName: zod.string().nullable(),
+  userName: zod.string(),
+  userEmail: zod.string().email(),
+  narrative: zod.string(),
+  underlyingData: zod.array(zod.record(zod.string(), zod.unknown())),
+  rowCount: zod.number(),
+  createdAt: zod.date(),
+});
+
+/**
+ * @summary List generated reports
+ */
+export const ListReportsQueryParams = zod.object({
+  userEmail: zod.coerce.string().email().optional(),
+  clientId: zod.coerce.string().optional(),
+});
+
+export const ListReportsResponseItem = zod.object({
+  id: zod.number(),
+  request: zod.string(),
+  reportType: zod.enum(["completed_visits", "medication_confirmations"]),
+  dateFrom: zod.date(),
+  dateTo: zod.date(),
+  clientId: zod.string().nullable(),
+  clientName: zod.string().nullable(),
+  userName: zod.string(),
+  userEmail: zod.string().email(),
+  narrative: zod.string(),
+  underlyingData: zod.array(zod.record(zod.string(), zod.unknown())),
+  rowCount: zod.number(),
+  createdAt: zod.date(),
+});
+export const ListReportsResponse = zod.array(ListReportsResponseItem);

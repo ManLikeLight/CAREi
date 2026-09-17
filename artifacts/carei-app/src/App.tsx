@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import CAREiApp from "./pages/CAREiApp";
 import AppLockScreen from "./components/AppLockScreen";
 import { wipeAllData } from "./lib/careStore";
@@ -20,6 +21,15 @@ import {
   setMemoryEmail,
   clearMemory,
 } from "./lib/keyStore";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function hasAccount(): boolean {
   try {
@@ -64,6 +74,8 @@ async function performRemoteWipeCheck(): Promise<boolean> {
 }
 
 export default function App() {
+  const [memoryKey, setKeyState] = useState<CryptoKey | null>(() => getMemoryKey());
+  const [memoryEmail, setEmailState] = useState<string>(() => getMemoryEmail());
   // locked=true → show AppLockScreen before any care data
   const [locked, setLocked] = useState<boolean>(() => {
     // If there's a saved account and no in-memory key, require PIN
@@ -130,6 +142,7 @@ export default function App() {
         onUnlock={(key, email) => {
           setMemoryKey(key);
           setMemoryEmail(email);
+          setKeyState(key); setEmailState(email);
           setLocked(false);
         }}
         onSignOut={() => {
@@ -142,10 +155,13 @@ export default function App() {
   }
 
   return (
-    <CAREiApp
-      cryptoKey={getMemoryKey()}
-      carerEmailForStore={getMemoryEmail()}
-      onLock={() => setLocked(true)}
-    />
+    <QueryClientProvider client={queryClient}>
+      <CAREiApp
+        cryptoKey={memoryKey}
+        carerEmailForStore={memoryEmail}
+        onSessionKey={(key, email) => { setMemoryKey(key); setMemoryEmail(email); setKeyState(key); setEmailState(email); }}
+        onLock={() => setLocked(true)}
+      />
+    </QueryClientProvider>
   );
 }

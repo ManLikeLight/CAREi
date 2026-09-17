@@ -12,6 +12,7 @@ import {
   getOrCreateSalt,
   loadEncrypted,
   saveEncrypted,
+  wipeAllData,
 } from "../lib/careStore";
 import {
   isPlatformAuthenticatorAvailable,
@@ -159,8 +160,9 @@ export default function AppLockScreen({ onUnlock, onSignOut }: Props) {
     }
   }
 
-  function handleSignOut() {
+  async function handleSignOut() {
     clearBiometricRegistration();
+    await wipeAllData(email).catch(() => {});
     sessionStorage.removeItem("carei_account");
     sessionStorage.removeItem("carei_screen");
     onSignOut();

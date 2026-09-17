@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 export type AssistantSession = {
   email: string;
   name: string;
-  role: "carer" | "manager";
+  role: "carer" | "manager" | "admin";
   agency: string;
   exp: number;
 };
@@ -40,7 +40,8 @@ export function verifyAssistantSession(token: string): AssistantSession | null {
     const value = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Partial<AssistantSession>;
     if (
       typeof value.email !== "string" || typeof value.name !== "string" ||
-      typeof value.agency !== "string" || (value.role !== "carer" && value.role !== "manager") ||
+      typeof value.agency !== "string" ||
+      (value.role !== "carer" && value.role !== "manager" && value.role !== "admin") ||
       typeof value.exp !== "number" || !Number.isFinite(value.exp) || value.exp <= Math.floor(Date.now() / 1000)
     ) return null;
     return value as AssistantSession;

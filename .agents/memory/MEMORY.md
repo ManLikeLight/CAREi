@@ -6,3 +6,4 @@
 - [Voice documentation safety](voice-documentation-safety.md) — finalized speech must be encrypted before structuring; cleanup and async commits are always bound to exact draft identity.
 - [Care assistant trust boundaries](care-assistant-trust-boundaries.md) — audit identity comes from a signed carer session; care-plan retrieval is limited to authorised CAREi client IDs.
 - [Family update delivery safety](family-update-delivery-safety.md) — consented family updates originate only from authenticated synced visits and render exclusively from approved structured facts.
+- [CAREi security workstream](security-workstream.md) — startup PIN migration must fail closed; signed sessions, device-scoped wipe, and separate audit storage define the security boundary.

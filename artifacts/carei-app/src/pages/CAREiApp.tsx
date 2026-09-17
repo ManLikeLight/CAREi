@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, Component, type ReactNode } from "react";
 import AdminDashboard from "./AdminDashboard";
 import FamilyView from "./FamilyView";
-import { saveEncrypted, loadEncrypted, loadEncryptedStrict, deleteEncrypted, reencryptAll, getOrCreateSalt, deriveKey } from "../lib/careStore";
+import { saveEncrypted, loadEncrypted, loadEncryptedStrict, deleteEncrypted, reencryptAll, getOrCreateSalt, deriveKey, wipeAllData } from "../lib/careStore";
 import EVVClockIn from "../components/EVVClockIn";
 import { type EVVRecord, CLIENT_COORDS } from "../lib/evv";
 import RotaScreenComponent from "../components/RotaScreen";
@@ -14,6 +14,8 @@ import DocumentReportStudio from "../components/DocumentReportStudio";
 import { chatWithCareAssistant } from "../lib/careAssistant";
 import { drainCareRecordQueue, recordCompletedVisit } from "../lib/careRecords";
 import { discardVoiceDraftIfMatches, processVoiceQueue, readVoiceState, savePendingVoice, saveVoiceDraft, structureAndCommitVoice, voiceDraftKey, type VoiceContext, type VoiceQueueItem, type VoiceStructuredDraft } from "../lib/voiceDocumentation";
+import { getLockTimeoutMinutes, LOCK_TIMEOUT_OPTIONS, setLockTimeoutMinutes } from "../lib/appSecurity";
+import { getDeviceId } from "../lib/deviceIdentity";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Screen =
@@ -1036,7 +1038,7 @@ function SignUpScreen({ onNext, onLogin, onSessionKey }: { onNext: (name: string
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: fullName.trim(), email: email.trim(), agency: agency.trim(), pin: p, role: selectedRole ?? "manager" }),
+        body: JSON.stringify({ name: fullName.trim(), email: email.trim(), agency: agency.trim(), pin: p, role: selectedRole ?? "manager", deviceId: getDeviceId() }),
       });
       const data = await res.json();
       if (!res.ok) { setPinError(data.error ?? "Signup failed. Please try again."); setLoading(false); return; }
@@ -1236,7 +1238,7 @@ function LoginScreen({ onNext, onSignUp, onSessionKey }: { onNext: (name: string
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), pin: p }),
+        body: JSON.stringify({ email: email.trim(), pin: p, deviceId: getDeviceId() }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -3080,7 +3082,7 @@ Next visit: Continue monitoring as per care plan. Follow any medication timing i
 function ProfileScreen({
   onSignOut, onSettings, onSwitchRole,
   carerName, carerEmail, carerAgency, userRole,
-  onChangePIN,
+  onChangePIN, onLockTimeoutChange,
 }: {
   onSignOut: () => void;
   onSettings?: () => void;
@@ -3090,6 +3092,7 @@ function ProfileScreen({
   carerAgency: string;
   userRole: "manager" | "carer" | null;
   onChangePIN?: (oldPin: string, newPin: string) => Promise<{ ok: boolean; error?: string }>;
+  onLockTimeoutChange?: (minutes: number) => void;
 }) {
   const [showChangePIN, setShowChangePIN] = useState(false);
   const [cpStep, setCpStep] = useState<"old" | "new" | "confirm">("old");
@@ -3099,6 +3102,7 @@ function ProfileScreen({
   const [cpError, setCpError] = useState("");
   const [cpLoading, setCpLoading] = useState(false);
   const [cpDone, setCpDone] = useState(false);
+  const [lockTimeout, setLockTimeout] = useState(getLockTimeoutMinutes);
   const cpRefs0 = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
   const cpRefs1 = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
   const cpRefs2 = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
@@ -3169,6 +3173,29 @@ function ProfileScreen({
         overflow: "hidden",
       }}
     >
+      <div style={{ background: "rgba(79,209,197,0.06)", border: "1px solid rgba(79,209,197,0.16)", borderRadius: 14, padding: "14px 16px" }}>
+        <div style={{ color: "#fff", fontWeight: 700, fontSize: 13 }}>App lock</div>
+        <div style={{ color: COLORS.g2, fontSize: 11, lineHeight: 1.45, marginTop: 4 }}>
+          CAREi locks after inactivity. PIN is required after a fresh app launch; biometric unlock remains available when registered.
+        </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 10 }}>
+          <label htmlFor="carei-lock-timeout" style={{ color: COLORS.g1, fontSize: 12 }}>Lock after</label>
+          <select
+            id="carei-lock-timeout"
+            value={lockTimeout}
+            onChange={(event) => {
+              const minutes = Number(event.target.value);
+              setLockTimeout(minutes);
+              setLockTimeoutMinutes(minutes);
+              onLockTimeoutChange?.(minutes);
+            }}
+            style={{ padding: "8px 10px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.15)", background: COLORS.navy, color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 12 }}
+          >
+            {LOCK_TIMEOUT_OPTIONS.map((minutes) => <option key={minutes} value={minutes}>{minutes} minutes</option>)}
+          </select>
+        </div>
+      </div>
+
       {/* Change PIN modal */}
       {showChangePIN && (
         <div style={{ position: "absolute" as const, inset: 0, background: "rgba(0,0,0,0.65)", display: "flex", flexDirection: "column" as const, justifyContent: "flex-end", zIndex: 50 }}>
@@ -8304,7 +8331,7 @@ export default function CAREiApp({
           onDashboard={() => nav("admin-dashboard")}
           onSettings={() => nav("agency-settings")}
           onMessages={() => nav("messages")}
-           onSignOut={() => { sessionStorage.removeItem("carei_account"); sessionStorage.removeItem("carei_screen"); setUserRole(null); nav("splash"); }}
+           onSignOut={() => { void wipeAllData(carerEmailForStore); sessionStorage.removeItem("carei_account"); sessionStorage.removeItem("carei_screen"); setUserRole(null); nav("splash"); }}
         />;
       case "team-management":
         return <TeamManagementScreen
@@ -8378,7 +8405,7 @@ export default function CAREiApp({
       }
       case "profile":
         return <ProfileScreen
-          onSignOut={() => { sessionStorage.removeItem("carei_account"); sessionStorage.removeItem("carei_screen"); nav("splash"); }}
+          onSignOut={() => { void wipeAllData(carerEmailForStore); sessionStorage.removeItem("carei_account"); sessionStorage.removeItem("carei_screen"); nav("splash"); }}
           onSettings={userRole === "manager" ? () => nav("agency-settings") : undefined}
           onSwitchRole={() => { setUserRole(r => r === "carer" ? "manager" : "carer"); nav(userRole === "carer" ? "manager-portal" : "today"); }}
           carerName={carerName}
@@ -8390,8 +8417,11 @@ export default function CAREiApp({
               // 1. Verify old PIN and update hash on server
               const res = await fetch("/api/auth/change-pin", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: carerEmailForStore, oldPin, newPin }),
+                headers: {
+                  "Content-Type": "application/json",
+                  ...(readSessionToken() ? { Authorization: `Bearer ${readSessionToken()}` } : {}),
+                },
+                body: JSON.stringify({ oldPin, newPin }),
               });
               const data = await res.json();
               if (!res.ok) return { ok: false, error: data.error ?? "PIN change failed." };

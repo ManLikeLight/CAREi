@@ -12,8 +12,10 @@ import { useState, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import CAREiApp from "./pages/CAREiApp";
 import AppLockScreen from "./components/AppLockScreen";
-import { wipeAllData } from "./lib/careStore";
+import { purgeExpiredData, wipeAllData } from "./lib/careStore";
 import { clearBiometricRegistration } from "./lib/webAuthn";
+import { getDeviceId } from "./lib/deviceIdentity";
+import { getLockTimeoutMinutes } from "./lib/appSecurity";
 import {
   getMemoryKey,
   setMemoryKey,
@@ -43,11 +45,30 @@ async function performRemoteWipeCheck(): Promise<boolean> {
   try {
     const raw = sessionStorage.getItem("carei_account");
     if (!raw) return false;
-    const { email } = JSON.parse(raw) as { email?: string };
-    if (!email) return false;
+    const { email, sessionToken } = JSON.parse(raw) as {
+      email?: string;
+      sessionToken?: string;
+    };
+    if (!email || !sessionToken) return false;
+    const deviceId = getDeviceId();
 
-    const res = await fetch(`/api/auth/status?email=${encodeURIComponent(email)}`);
-    if (!res.ok) return false;
+    const res = await fetch(`/api/auth/status?deviceId=${encodeURIComponent(deviceId)}`, {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+    });
+    if (!res.ok) {
+      // A signed token that is rejected while online means the cached
+      // session is no longer trusted. API outages and offline mode remain
+      // fail-open so carers can continue their offline workflow.
+      if (navigator.onLine && [401, 403, 404].includes(res.status)) {
+        await wipeAllData(email);
+        clearMemory();
+        clearBiometricRegistration();
+        sessionStorage.removeItem("carei_account");
+        sessionStorage.removeItem("carei_screen");
+        return true;
+      }
+      return false;
+    }
     const data = (await res.json()) as { wipeRequested?: boolean; deactivated?: boolean };
 
     if (data.wipeRequested || data.deactivated) {
@@ -60,8 +81,11 @@ async function performRemoteWipeCheck(): Promise<boolean> {
       // Acknowledge the wipe so the server clears the flag
       await fetch("/api/auth/wipe-ack", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionToken}`,
+        },
+        body: JSON.stringify({ deviceId }),
       }).catch(() => {});
 
       return true; // wipe was performed
@@ -98,6 +122,23 @@ export default function App() {
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
+  // Lock after configurable inactivity, while still allowing offline use.
+  useEffect(() => {
+    if (locked || !hasAccount()) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const reset = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => setLocked(true), getLockTimeoutMinutes() * 60_000);
+    };
+    const events = ["pointerdown", "keydown", "touchstart"] as const;
+    events.forEach((event) => window.addEventListener(event, reset, { passive: true }));
+    reset();
+    return () => {
+      clearTimeout(timer);
+      events.forEach((event) => window.removeEventListener(event, reset));
+    };
+  }, [locked]);
+
   // Remote wipe check on launch and on reconnect
   useEffect(() => {
     async function check() {
@@ -109,6 +150,7 @@ export default function App() {
       }
     }
 
+    void purgeExpiredData().catch(() => {});
     check();
     window.addEventListener("online", check);
     return () => window.removeEventListener("online", check);

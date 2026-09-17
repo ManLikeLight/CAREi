@@ -11,6 +11,7 @@ const DB_NAME = "carei_secure";
 const DB_VERSION = 1;
 const BLOB_STORE = "blobs";
 const META_STORE = "meta";
+export const DEFAULT_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 // ── IndexedDB helpers ────────────────────────────────────────────────────────
 
@@ -138,6 +139,8 @@ export async function deriveKey(pin: string, saltB64: string): Promise<CryptoKey
 interface EncryptedBlob {
   iv: string;  // base64-encoded 96-bit IV
   ct: string;  // base64-encoded ciphertext + GCM auth tag
+  savedAt?: number;
+  expiresAt?: number;
 }
 
 async function encryptValue(key: CryptoKey, data: unknown): Promise<EncryptedBlob> {
@@ -148,7 +151,24 @@ async function encryptValue(key: CryptoKey, data: unknown): Promise<EncryptedBlo
     key,
     enc.encode(JSON.stringify(data)),
   );
-  return { iv: b64Encode(iv), ct: b64Encode(new Uint8Array(ct)) };
+  const savedAt = Date.now();
+  return {
+    iv: b64Encode(iv),
+    ct: b64Encode(new Uint8Array(ct)),
+    savedAt,
+    // System records such as the unlock sentinel must survive cache expiry.
+    expiresAt: undefined,
+  };
+}
+
+function withExpiry(dataKey: string, blob: EncryptedBlob): EncryptedBlob {
+  if (dataKey.startsWith("__carei_")) return blob;
+  const savedAt = blob.savedAt ?? Date.now();
+  return {
+    ...blob,
+    savedAt,
+    expiresAt: blob.expiresAt ?? savedAt + DEFAULT_CACHE_TTL_MS,
+  };
 }
 
 async function decryptBlob<T>(key: CryptoKey, blob: EncryptedBlob): Promise<T> {
@@ -172,7 +192,7 @@ export async function saveEncrypted(
   value: unknown,
 ): Promise<void> {
   const db = await openDB();
-  const blob = await encryptValue(cryptoKey, value);
+  const blob = withExpiry(dataKey, await encryptValue(cryptoKey, value));
   await idbPut(db, BLOB_STORE, dataKey, blob);
 }
 
@@ -188,8 +208,16 @@ export async function loadEncrypted<T>(
   const db = await openDB();
   const blob = await idbGet<EncryptedBlob>(db, BLOB_STORE, dataKey);
   if (!blob) return undefined;
+  if (blob.expiresAt !== undefined && blob.expiresAt <= Date.now()) {
+    await idbDelete(db, BLOB_STORE, dataKey);
+    return undefined;
+  }
   try {
-    return await decryptBlob<T>(cryptoKey, blob);
+    const value = await decryptBlob<T>(cryptoKey, blob);
+    if (blob.expiresAt === undefined && !dataKey.startsWith("__carei_")) {
+      await idbPut(db, BLOB_STORE, dataKey, withExpiry(dataKey, blob));
+    }
+    return value;
   } catch {
     // Wrong key or corrupted ciphertext — return undefined safely
     return undefined;
@@ -204,7 +232,30 @@ export async function loadEncryptedStrict<T>(
   const db = await openDB();
   const blob = await idbGet<EncryptedBlob>(db, BLOB_STORE, dataKey);
   if (!blob) return undefined;
-  return decryptBlob<T>(cryptoKey, blob);
+  if (blob.expiresAt !== undefined && blob.expiresAt <= Date.now()) {
+    await idbDelete(db, BLOB_STORE, dataKey);
+    return undefined;
+  }
+  const value = await decryptBlob<T>(cryptoKey, blob);
+  if (blob.expiresAt === undefined && !dataKey.startsWith("__carei_")) {
+    await idbPut(db, BLOB_STORE, dataKey, withExpiry(dataKey, blob));
+  }
+  return value;
+}
+
+/** Remove expired encrypted blobs without decrypting them. */
+export async function purgeExpiredData(): Promise<number> {
+  const db = await openDB();
+  const keys = await idbGetAllKeys(db, BLOB_STORE);
+  let removed = 0;
+  for (const key of keys) {
+    const blob = await idbGet<EncryptedBlob>(db, BLOB_STORE, key);
+    if (blob?.expiresAt !== undefined && blob.expiresAt <= Date.now()) {
+      await idbDelete(db, BLOB_STORE, key);
+      removed += 1;
+    }
+  }
+  return removed;
 }
 
 /** Delete one encrypted value without affecting any other CAREi data. */
@@ -220,7 +271,7 @@ export async function atomicEncryptedBatch(
 ): Promise<void> {
   const prepared = await Promise.all(operations.map(async (operation) => (
     operation.type === "put"
-      ? { ...operation, blob: await encryptValue(cryptoKey, operation.value) }
+        ? { ...operation, blob: withExpiry(operation.key, await encryptValue(cryptoKey, operation.value)) }
       : operation
   )));
   const db = await openDB();
@@ -253,7 +304,11 @@ export async function reencryptAll(
     const blob = await idbGet<EncryptedBlob>(db, BLOB_STORE, k);
     if (!blob) continue;
     const plaintext = await decryptBlob<unknown>(oldKey, blob);
-    const newBlob = await encryptValue(newKey, plaintext);
+    const newBlob = withExpiry(k, {
+      ...await encryptValue(newKey, plaintext),
+      savedAt: blob.savedAt,
+      expiresAt: blob.expiresAt,
+    });
     await idbPut(db, BLOB_STORE, k, newBlob);
   }
 }
@@ -271,5 +326,14 @@ export async function wipeAllData(email?: string): Promise<void> {
     await idbDelete(db, META_STORE, `salt:${email.toLowerCase().trim()}`);
   } else {
     await idbClear(db, META_STORE);
+  }
+
+  // Remove only CAREi-owned browser storage. Never call clear() on either
+  // storage area because other applications may share the origin.
+  for (const storage of [localStorage, sessionStorage]) {
+    for (let i = storage.length - 1; i >= 0; i -= 1) {
+      const key = storage.key(i);
+      if (key?.startsWith("carei_")) storage.removeItem(key);
+    }
   }
 }

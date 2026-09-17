@@ -23,3 +23,4 @@ export * from "./generated-documents";
 export * from "./generated-reports";
 export * from "./care-records";
 export * from "./family-updates";
+export * from "./security-events";

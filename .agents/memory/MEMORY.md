@@ -10,3 +10,4 @@
 - [Preview cookie security](preview-cookie-security.md) — external development preview rewrites Strict cookies to None; recipient CSRF protection must not rely on SameSite alone.
 - [Close to Home launch boundary](close-to-home-scope.md) — only the foundation and four specified experiences; no real data until every pilot approval and hosting gate is met.
 - [OpenAPI path references](openapi-generator-refs.md) — current Orval 8 failed external path-item resolution; keep paths inline unless codegen verifies a split.
+- [GitHub sync](github-sync.md) — terminal credentials and tracking refs may fail while the connected proxy works; preserve remote history and verify the exact uploaded tree.

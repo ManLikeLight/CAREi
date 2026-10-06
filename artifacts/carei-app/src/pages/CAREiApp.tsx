@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, Component, type ReactNode } from "react";
 import AdminDashboard from "./AdminDashboard";
-import FamilyView from "./FamilyView";
 import CloseToHomeManager from "../components/CloseToHomeManager";
 import { saveEncrypted, loadEncrypted, loadEncryptedStrict, deleteEncrypted, reencryptAll, getOrCreateSalt, deriveKey, wipeAllData } from "../lib/careStore";
 import EVVClockIn from "../components/EVVClockIn";
@@ -541,7 +540,7 @@ function NavPills({
     { key: "rota", label: "My Rota" },
     { key: "operations", label: "Operations" },
     { key: "schedule", label: "Schedule" },
-    { key: "family", label: "Family Portal" },
+    { key: "family", label: "Close to Home" },
     { key: "family-summary", label: "Family Summary" },
     { key: "manager-approvals", label: "Manager Approvals" },
     { key: "copilot", label: "AI Copilot" },
@@ -1507,7 +1506,7 @@ function DashboardScreen({
       {/* Quick-action strip */}
       <div style={{ padding: "0 16px 12px", display: "flex", gap: 8 }}>
         <button onClick={onFamily} style={{ flex: 1, padding: "10px 6px", borderRadius: 12, border: "1px solid rgba(79,209,197,0.25)", background: "rgba(79,209,197,0.08)", color: COLORS.teal, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "DM Sans, sans-serif", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
-          <span style={{ fontSize: 18 }}>👨‍👩‍👧</span>Family Portal
+          <span style={{ fontSize: 18 }}>🏡</span>Close to Home
         </button>
         <button onClick={onHistory} style={{ flex: 1, padding: "10px 6px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.05)", color: COLORS.g1, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "DM Sans, sans-serif", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
           <span style={{ fontSize: 18 }}>📂</span>Visit History
@@ -3788,7 +3787,7 @@ function FamilyPortalScreen({ onBack, onSummary, carerName, carerAgency, client 
       <div style={{ padding: "20px 18px 14px", flexShrink: 0 }}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.g2, fontSize: 22, cursor: "pointer", padding: 0, marginBottom: 12 }}>‹</button>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>Family Portal</div>
+          <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 22, color: "#fff" }}>Close to Home</div>
           <Badge color={COLORS.green} bg="rgba(34,197,94,0.12)">Live</Badge>
         </div>
         <div style={{ color: COLORS.g2, fontSize: 13, marginTop: 4 }}>{client.name} · Today's Visit</div>
@@ -4709,7 +4708,7 @@ function ManagerApprovalsScreen({
         {isApproved && (
           <div style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 14, padding: "14px 18px", textAlign: "center" }}>
             <div style={{ color: COLORS.green, fontWeight: 700, fontSize: 14 }}>Released ✓</div>
-            <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 4 }}>{clientFirstName}'s family can now view today's summary in the Family Portal</div>
+            <div style={{ color: COLORS.g2, fontSize: 12, marginTop: 4 }}>Summary approved. Authorised trusted-person access is managed in Close to Home.</div>
           </div>
         )}
       </div>
@@ -7764,7 +7763,7 @@ function AgencySettingsScreen({ onBack, managerName, agencyName, carerCount }: {
                 </div>
                 <span style={{ color: COLORS.g3, fontSize: 11 }}>Scales with team</span>
               </div>
-              {["Unlimited visit recording", "AI Copilot for all carers", "Family Portal", "Compliance Dashboard", "Manager Approvals workflow", "Full audit trail export"].map(f => (
+              {["Unlimited visit recording", "AI Copilot for all carers", "Close to Home", "Compliance Dashboard", "Manager Approvals workflow", "Full audit trail export"].map(f => (
                 <div key={f} style={{ display: "flex", gap: 9, alignItems: "center", marginBottom: 6 }}>
                   <span style={{ color: COLORS.green, fontSize: 13 }}>✓</span>
                   <span style={{ color: COLORS.g1, fontSize: 13 }}>{f}</span>
@@ -7822,7 +7821,7 @@ function AgencySettingsScreen({ onBack, managerName, agencyName, carerCount }: {
                 { key: "incident", label: "Incident raised", sub: "When a carer flags an incident during a visit", urgent: true },
                 { key: "pendingApproval", label: "Shift summary ready", sub: "When a ContinuCare+ summary awaits approval", urgent: false },
                 { key: "shiftStart", label: "Carer clocked in", sub: "When a carer starts a visit", urgent: false },
-                { key: "familyMessage", label: "Family message received", sub: "When a family member sends a message via portal", urgent: false },
+                { key: "familyMessage", label: "Trusted-person message received", sub: "When an authorised person contacts the agency through Close to Home", urgent: false },
               ] as { key: string; label: string; sub: string; urgent: boolean }[]).map((n, i, arr) => (
                 <div key={n.key} style={{ display: "flex", alignItems: "flex-start", gap: 12, paddingBottom: i < arr.length - 1 ? 14 : 0, marginBottom: i < arr.length - 1 ? 14 : 0, borderBottom: i < arr.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
                   <div style={{ flex: 1 }}>
@@ -8094,6 +8093,7 @@ export default function CAREiApp({
       const saved = sessionStorage.getItem("carei_screen") as Screen;
       const account = sessionStorage.getItem("carei_account");
       const valid: Screen[] = ["today","client-overview","active-visit","medication","handover","continucare-summary","care-plan","bodymap","emergency","visit-history","incident-report","rota","messages","operations","schedule","family","family-summary","manager-approvals","copilot","profile","admin","admin-dashboard","documents-reports","role-select","manager-portal","team-management","invite-carer","client-management","manager-care-plan-edit","manager-care-plan-generate","agency-settings"];
+      if (account && (saved === "family" || saved === "family-summary")) return "today";
       return (account && valid.includes(saved)) ? saved : "splash";
     } catch {
       return "splash";
@@ -8302,6 +8302,10 @@ export default function CAREiApp({
   }, [isOffline, queuedCount]);
 
   function nav(s: Screen) {
+    if (s === "family" || s === "family-summary") {
+      window.location.assign(`${import.meta.env.BASE_URL.replace(/\/$/, "")}/close-to-home`);
+      return;
+    }
     setScreen(s);
     setShowSOS(false);
     setShowAssistant(false);
@@ -8448,24 +8452,8 @@ export default function CAREiApp({
           } : undefined}
         />;
       case "family":
-        return (
-          <FamilyView
-            onBack={() => nav("today")}
-          />
-        );
-      case "family-summary": {
-        const familyClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
-        return (
-          <FamilySummaryScreen
-            onBack={() => nav("family")}
-            approvalStatus={summaryApproval}
-            onRead={() => { if (!summaryReadAt) setSummaryReadAt(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })); }}
-            carerName={carerName}
-            carerAgency={carerAgency}
-            client={familyClient}
-          />
-        );
-      }
+      case "family-summary":
+        return null; // Legacy destinations are routed to the separate Close to Home portal by nav().
       case "manager-approvals": {
         const approvalClient = SCHEDULE_CLIENTS.find((c) => c.id === activeClientId) || SCHEDULE_CLIENTS[0];
         return (

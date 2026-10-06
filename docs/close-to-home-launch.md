@@ -1,5 +1,7 @@
 # Close to Home: sample MVP and pilot checklist
 
+Close to Home replaces the Family Portal. Former `/family` links open `/close-to-home`, outside the staff PIN/offline wrapper. Recipients may be authorised friends or other trusted people, not only relatives. Legacy family records and endpoints are retained without being exposed through the new portal; old access grants and invitation tokens do not automatically grant Close to Home access. Issue a Close to Home invitation through its manager controls.
+
 ## What this build does
 
 - Trusted-person portal at `/close-to-home`, separate from CAREi staff login and offline storage.

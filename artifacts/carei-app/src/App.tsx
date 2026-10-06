@@ -11,7 +11,7 @@
 import { useState, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import CAREiApp from "./pages/CAREiApp";
-import FamilyView from "./pages/FamilyView";
+import CloseToHomePortal from "./components/CloseToHomePortal";
 import AppLockScreen from "./components/AppLockScreen";
 import { purgeExpiredData, wipeAllData } from "./lib/careStore";
 import { clearBiometricRegistration } from "./lib/webAuthn";
@@ -100,8 +100,9 @@ async function performRemoteWipeCheck(): Promise<boolean> {
 
 export default function App() {
   const familyPath = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/family`;
-  // Family recipients must never mount the staff lock, device wipe, or offline care store.
-  if (window.location.pathname.replace(/\/$/, "") === familyPath) return <FamilyView />;
+  // Trusted people must never mount the staff lock, device wipe, or offline care store.
+  const portalPath = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/close-to-home`;
+  if ([familyPath, portalPath].includes(window.location.pathname.replace(/\/$/, ""))) return <CloseToHomePortal />;
   return <StaffApp />;
 }
 

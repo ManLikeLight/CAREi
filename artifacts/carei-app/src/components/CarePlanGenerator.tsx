@@ -285,7 +285,6 @@ export default function CarePlanGenerator({
         client.id,
         assessmentInput,
         draft,
-        reviewerName || "Care manager",
       );
       setSavedVersion(version);
       setHistory((current) => [

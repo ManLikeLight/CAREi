@@ -16,6 +16,7 @@ import {
   type AssistantSession,
 } from "../assistant-session";
 import { recordSecurityEvent } from "../security-events";
+import { clearSession, establishSession } from "../auth-session";
 
 const db = new Database();
 const router: IRouter = Router();
@@ -182,6 +183,7 @@ router.post("/auth/signup", async (req, res) => {
       metadata: { role: record.role },
     });
 
+    establishSession(res, { name: record.name, email: record.email, agency: record.agency, role: record.role ?? "carer" });
     res.json({
       success: true, name: record.name, email: record.email, agency: record.agency,
       role: record.role, assistantSessionToken: issueAssistantSession({
@@ -253,6 +255,7 @@ router.post("/auth/login", async (req, res) => {
     }
 
     await audit({ eventType: "auth.login.success", actorEmail: record.email, subjectEmail: record.email });
+    establishSession(res, { name: record.name, email: record.email, agency: record.agency, role: record.role ?? "carer" });
     res.json({
       success: true, name: record.name, email: record.email, agency: record.agency,
       role: record.role ?? "carer", assistantSessionToken: issueAssistantSession({
@@ -264,6 +267,11 @@ router.post("/auth/login", async (req, res) => {
     await audit({ eventType: "auth.login.failure", subjectEmail: email, metadata: { reason: "server_error" } });
     res.status(500).json({ error: "Login failed. Please try again." });
   }
+});
+
+router.post("/auth/logout", (_req, res) => {
+  clearSession(res);
+  res.json({ success: true });
 });
 
 // ── Change PIN ────────────────────────────────────────────────────────────────

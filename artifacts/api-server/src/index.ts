@@ -1,6 +1,7 @@
 import app from "./app";
 import { drainFamilyUpdates } from "./family-update-processor";
 import { migrateLegacyPins } from "./routes/auth";
+import { processStoryJobs, escalateConcerns, missedVisitNotifications } from "./ctp/jobs";
 
 const rawPort = process.env["PORT"];
 
@@ -27,6 +28,11 @@ async function start(): Promise<void> {
     const timer = setInterval(() => void drainFamilyUpdates(), 15_000);
     timer.unref();
     void drainFamilyUpdates();
+    const ctpTimer = setInterval(() => {
+      void (async () => { await processStoryJobs(); await escalateConcerns(); await missedVisitNotifications(); })()
+        .catch(error => console.error("CTP sample worker failed", { name: error?.name, code: error?.code }));
+    }, 5 * 60_000);
+    ctpTimer.unref();
   });
 }
 

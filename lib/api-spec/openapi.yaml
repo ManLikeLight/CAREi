@@ -25,6 +25,147 @@ tags:
   - name: compliance
     description: Deterministic compliance evidence dashboard
 paths:
+  /ctp/jobs/escalate:
+    post:
+      operationId: escalateCtpConcerns
+      summary: Dedicated scheduler credential only, never a staff or trusted-person session
+      responses:
+        "200": { description: Sample concern escalation sweep }
+        "403": { description: Missing or invalid scheduler credential }
+  /ctp/auth/session:
+    get:
+      operationId: getCtpSession
+      responses:
+        "200": { description: Sample session }
+  /ctp/auth/activate:
+    post:
+      operationId: activateCtpInvite
+      responses:
+        "200": { description: Invitation redeemed and cookie set }
+  /ctp/auth/login:
+    post:
+      operationId: loginCtp
+      responses:
+        "200": { description: Short-lived cookie set }
+  /ctp/auth/logout:
+    post:
+      operationId: logoutCtp
+      responses:
+        "200": { description: Session revoked }
+  /ctp/me/clients:
+    get:
+      operationId: getCtpClients
+      responses:
+        "200": { description: Active linked sample clients }
+  /ctp/me/clients/{clientId}/today:
+    parameters:
+      - { name: clientId, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getCtpToday
+      responses:
+        "200": { description: No-store authorised categories only }
+  /ctp/me/clients/{clientId}/concerns:
+    parameters:
+      - { name: clientId, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: createCtpConcern
+      responses:
+        "201": { description: Concern received }
+  /ctp/me/concerns:
+    get:
+      operationId: getCtpConcerns
+      responses:
+        "200": { description: Own concern status and timestamps only }
+  /ctp/manager:
+    get:
+      operationId: getCtpManager
+      responses:
+        "200": { description: Agency-scoped sample manager console }
+  /ctp/sample/setup:
+    post:
+      operationId: setupCtpSample
+      responses:
+        "200": { description: Fictional fixture created }
+  /ctp/clients/{clientId}/trusted-people:
+    parameters:
+      - { name: clientId, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: inviteCtpPerson
+      responses:
+        "201": { description: Sample invitation link; no email sent }
+  /ctp/links/{linkId}/permissions:
+    parameters:
+      - { name: linkId, in: path, required: true, schema: { type: string } }
+    patch:
+      operationId: updateCtpPermissions
+      responses:
+        "200": { description: Audited flags; sessions revoked }
+  /ctp/links/{linkId}/preset:
+    parameters:
+      - { name: linkId, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: applyCtpPreset
+      responses:
+        "200": { description: Client restrictions preserved }
+  /ctp/links/{linkId}/status:
+    parameters:
+      - { name: linkId, in: path, required: true, schema: { type: string } }
+    patch:
+      operationId: updateCtpStatus
+      responses:
+        "200": { description: Access changed; old sessions revoked }
+  /ctp/links/{linkId}/audit:
+    parameters:
+      - { name: linkId, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getCtpAudit
+      responses:
+        "200": { description: Agency access audit }
+  /ctp/concerns/{concernId}:
+    parameters:
+      - { name: concernId, in: path, required: true, schema: { type: string } }
+    patch:
+      operationId: updateCtpConcern
+      responses:
+        "200": { description: Acknowledged or resolved with note }
+  /ctp/settings:
+    patch:
+      operationId: updateCtpSettings
+      responses:
+        "200": { description: Agency sample settings saved }
+  /ctp/carers/{carerId}/privacy:
+    parameters:
+      - { name: carerId, in: path, required: true, schema: { type: string } }
+    patch:
+      operationId: updateCtpCarerPrivacy
+      responses:
+        "200": { description: Sample carer name and photo preference saved }
+  /ctp/manager/visits:
+    get:
+      operationId: getCtpVisits
+      responses:
+        "200": { description: Sample visits and story versions }
+  /ctp/manager/visits/{visitId}:
+    parameters:
+      - { name: visitId, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getCtpSources
+      responses:
+        "200": { description: Sample verified sources }
+  /ctp/stories/{visitId}/regenerate:
+    parameters:
+      - { name: visitId, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: regenerateCtpStory
+      responses:
+        "200": { description: Queued and versioned story regeneration }
+  /ctp/sources/{sourceId}:
+    parameters:
+      - { name: sourceId, in: path, required: true, schema: { type: string } }
+    patch:
+      operationId: correctCtpSource
+      responses:
+        "200": { description: Corrected sample fact and regenerated story }
   /compliance/dashboard:
     get:
       operationId: getComplianceDashboard
@@ -260,33 +401,69 @@ paths:
           $ref: "#/components/responses/Error"
         "409":
           $ref: "#/components/responses/Error"
+  /family-updates/session:
+    post:
+      operationId: redeemFamilyInvite
+      tags: [family-updates]
+      summary: Exchange a one-time recipient invite for an HttpOnly family session
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/FamilyInviteInput" } } }
+      parameters:
+        - { in: header, name: X-CAREi-Family, required: true, schema: { type: string, enum: ["1"] } }
+      responses:
+        "200": { description: Recipient session established, content: { application/json: { schema: { $ref: "#/components/schemas/FamilyRecipient" } } } }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+    get:
+      operationId: getFamilySession
+      tags: [family-updates]
+      security: [{ familySession: [] }]
+      responses:
+        "200": { description: Authenticated recipient, content: { application/json: { schema: { $ref: "#/components/schemas/FamilyRecipient" } } } }
+        "401": { $ref: "#/components/responses/Error" }
+    delete:
+      operationId: endFamilySession
+      tags: [family-updates]
+      security: [{ familySession: [] }]
+      parameters:
+        - { in: header, name: X-CAREi-Family, required: true, schema: { type: string, enum: ["1"] } }
+      responses:
+        "204": { description: Session revoked }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
   /family-updates/consent:
     get:
       operationId: getFamilyUpdateConsent
       tags: [family-updates]
-      security: [{ bearerAuth: [] }]
+      security: [{ familySession: [] }]
       parameters:
         - { in: query, name: clientId, required: true, schema: { type: string } }
         - { in: query, name: familyMemberId, required: true, schema: { type: string } }
       responses:
         "200": { description: Consent, content: { application/json: { schema: { $ref: "#/components/schemas/FamilyUpdateConsentStatus" } } } }
         "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     put:
       operationId: updateFamilyUpdateConsent
       tags: [family-updates]
-      security: [{ bearerAuth: [] }]
+      security: [{ familySession: [] }]
+      parameters:
+        - { in: header, name: X-CAREi-Family, required: true, schema: { type: string, enum: ["1"] } }
       requestBody:
         required: true
         content: { application/json: { schema: { $ref: "#/components/schemas/FamilyUpdateConsentInput" } } }
       responses:
-        "200": { description: Updated consent, content: { application/json: { schema: { $ref: "#/components/schemas/FamilyUpdateConsent" } } } }
+        "200": { description: Updated consent, content: { application/json: { schema: { $ref: "#/components/schemas/FamilyUpdateConsentStatus" } } } }
         "400": { $ref: "#/components/responses/Error" }
         "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
   /family-updates:
     get:
       operationId: listFamilyUpdates
       tags: [family-updates]
-      security: [{ bearerAuth: [] }]
+      security: [{ familySession: [] }]
       parameters:
         - { in: query, name: clientId, required: true, schema: { type: string } }
         - { in: query, name: familyMemberId, required: true, schema: { type: string } }
@@ -294,6 +471,8 @@ paths:
         "200":
           description: Sent updates, newest first
           content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/FamilyUpdateDelivery" } } } }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
   /reports/generate:
     post:
       operationId: generateReport
@@ -344,6 +523,10 @@ paths:
           $ref: "#/components/responses/Error"
 components:
   securitySchemes:
+    familySession:
+      type: apiKey
+      in: cookie
+      name: carei_family_session
     bearerAuth:
       type: http
       scheme: bearer
@@ -465,10 +648,7 @@ components:
           maxLength: 20000
         plan:
           $ref: "#/components/schemas/CarePlanDraft"
-        confirmedBy:
-          type: string
-          minLength: 1
-      required: [assessmentInput, plan, confirmedBy]
+      required: [assessmentInput, plan]
     CarePlanVersion:
       type: object
       additionalProperties: false
@@ -768,6 +948,19 @@ components:
               type: string
               format: date-time
           required: [createdAt]
+    FamilyInviteInput:
+      type: object
+      additionalProperties: false
+      properties:
+        code: { type: string, pattern: "^[A-Za-z0-9_-]{43}$" }
+      required: [code]
+    FamilyRecipient:
+      type: object
+      properties:
+        clientId: { type: string }
+        familyMemberId: { type: string }
+        familyMemberName: { type: string }
+      required: [clientId, familyMemberId, familyMemberName]
     FamilyUpdateConsentInput:
       type: object
       additionalProperties: false
@@ -929,4 +1122,3 @@ components:
           type: string
           description: Evidence reference categories only; this is not a regulatory judgement.
       required: [generatedAt, agency, dataFreshness, overallStatus, areas, counts, flags, disclaimer]
-

@@ -23,4 +23,6 @@ export * from "./generated-documents";
 export * from "./generated-reports";
 export * from "./care-records";
 export * from "./family-updates";
+export * from "./family-access";
 export * from "./security-events";
+export * from "./close-to-home";

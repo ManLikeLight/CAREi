@@ -10,6 +10,7 @@ import careRecordsRouter from "./care-records";
 import reportsRouter from "./reports";
 import familyUpdatesRouter from "./family-updates";
 import complianceRouter from "./compliance";
+import closeToHomeRouter from "./close-to-home";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(careRecordsRouter);
 router.use(reportsRouter);
 router.use(familyUpdatesRouter);
 router.use(complianceRouter);
+router.use(closeToHomeRouter);
 
 export default router;

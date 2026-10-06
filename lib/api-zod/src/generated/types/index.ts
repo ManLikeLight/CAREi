@@ -39,6 +39,8 @@ export * from "./documentIdentityUserRole";
 export * from "./documentSection";
 export * from "./error";
 export * from "./errorResponse";
+export * from "./familyInviteInput";
+export * from "./familyRecipient";
 export * from "./familyUpdateConsent";
 export * from "./familyUpdateConsentInput";
 export * from "./familyUpdateConsentStatus";

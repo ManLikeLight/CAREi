@@ -11,6 +11,7 @@
 import { useState, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import CAREiApp from "./pages/CAREiApp";
+import FamilyView from "./pages/FamilyView";
 import AppLockScreen from "./components/AppLockScreen";
 import { purgeExpiredData, wipeAllData } from "./lib/careStore";
 import { clearBiometricRegistration } from "./lib/webAuthn";
@@ -98,6 +99,13 @@ async function performRemoteWipeCheck(): Promise<boolean> {
 }
 
 export default function App() {
+  const familyPath = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/family`;
+  // Family recipients must never mount the staff lock, device wipe, or offline care store.
+  if (window.location.pathname.replace(/\/$/, "") === familyPath) return <FamilyView />;
+  return <StaffApp />;
+}
+
+function StaffApp() {
   const [memoryKey, setKeyState] = useState<CryptoKey | null>(() => getMemoryKey());
   const [memoryEmail, setEmailState] = useState<string>(() => getMemoryEmail());
   // locked=true → show AppLockScreen before any care data

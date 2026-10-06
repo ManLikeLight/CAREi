@@ -161,6 +161,7 @@ export default function AppLockScreen({ onUnlock, onSignOut }: Props) {
   }
 
   async function handleSignOut() {
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
     clearBiometricRegistration();
     await wipeAllData(email).catch(() => {});
     sessionStorage.removeItem("carei_account");

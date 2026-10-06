@@ -7,7 +7,7 @@ Assistant audit identity must come from a short-lived, server-signed carer sessi
 
 **Why:** Caller-supplied carer and client fields allow false audit attribution and unauthorised retrieval of persisted care-plan context.
 
-**How to apply:** Issue the assistant token only after successful authentication, verify carer role and expiry on every assistant call, derive audit identity from the token, and validate client scope before database access.
+**How to apply:** Establish the HttpOnly assistant session only after successful authentication, verify carer role and expiry on every assistant call, derive audit identity from that session, and validate client scope before database access. Preserve the separate bearer authentication used by device-specific wipe and offline-sync flows.
 
 Encrypted assistant drafts must hydrate strictly and writes must be serialised per draft key.
 

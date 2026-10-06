@@ -7,6 +7,54 @@
  */
 import * as zod from "zod";
 
+export const GetCtpTodayParams = zod.object({
+  clientId: zod.coerce.string(),
+});
+
+export const CreateCtpConcernParams = zod.object({
+  clientId: zod.coerce.string(),
+});
+
+export const InviteCtpPersonParams = zod.object({
+  clientId: zod.coerce.string(),
+});
+
+export const UpdateCtpPermissionsParams = zod.object({
+  linkId: zod.coerce.string(),
+});
+
+export const ApplyCtpPresetParams = zod.object({
+  linkId: zod.coerce.string(),
+});
+
+export const UpdateCtpStatusParams = zod.object({
+  linkId: zod.coerce.string(),
+});
+
+export const GetCtpAuditParams = zod.object({
+  linkId: zod.coerce.string(),
+});
+
+export const UpdateCtpConcernParams = zod.object({
+  concernId: zod.coerce.string(),
+});
+
+export const UpdateCtpCarerPrivacyParams = zod.object({
+  carerId: zod.coerce.string(),
+});
+
+export const GetCtpSourcesParams = zod.object({
+  visitId: zod.coerce.string(),
+});
+
+export const RegenerateCtpStoryParams = zod.object({
+  visitId: zod.coerce.string(),
+});
+
+export const CorrectCtpSourceParams = zod.object({
+  sourceId: zod.coerce.string(),
+});
+
 /**
  * @summary Get deterministic manager compliance dashboard
  */
@@ -321,7 +369,6 @@ export const ConfirmCarePlanBody = zod.object({
       )
       .min(1),
   }),
-  confirmedBy: zod.string().min(1),
 });
 
 /**
@@ -613,6 +660,37 @@ export const IngestMedicationConfirmationResponse = zod
     }),
   );
 
+/**
+ * @summary Exchange a one-time recipient invite for an HttpOnly family session
+ */
+export const RedeemFamilyInviteHeader = zod.object({
+  "X-CAREi-Family": zod.enum(["1"]),
+});
+
+export const redeemFamilyInviteBodyCodeRegExp = new RegExp(
+  "^[A-Za-z0-9_-]{43}$",
+);
+
+export const RedeemFamilyInviteBody = zod.object({
+  code: zod.string().regex(redeemFamilyInviteBodyCodeRegExp),
+});
+
+export const RedeemFamilyInviteResponse = zod.object({
+  clientId: zod.string(),
+  familyMemberId: zod.string(),
+  familyMemberName: zod.string(),
+});
+
+export const GetFamilySessionResponse = zod.object({
+  clientId: zod.string(),
+  familyMemberId: zod.string(),
+  familyMemberName: zod.string(),
+});
+
+export const EndFamilySessionHeader = zod.object({
+  "X-CAREi-Family": zod.enum(["1"]),
+});
+
 export const GetFamilyUpdateConsentQueryParams = zod.object({
   clientId: zod.coerce.string(),
   familyMemberId: zod.coerce.string(),
@@ -627,6 +705,10 @@ export const GetFamilyUpdateConsentResponse = zod.object({
   withdrawnAt: zod.date().nullable(),
 });
 
+export const UpdateFamilyUpdateConsentHeader = zod.object({
+  "X-CAREi-Family": zod.enum(["1"]),
+});
+
 export const UpdateFamilyUpdateConsentBody = zod.object({
   clientId: zod.string().min(1),
   familyMemberId: zod.string().min(1),
@@ -634,24 +716,14 @@ export const UpdateFamilyUpdateConsentBody = zod.object({
   optedIn: zod.boolean(),
 });
 
-export const UpdateFamilyUpdateConsentResponse = zod
-  .object({
-    clientId: zod.string().min(1),
-    familyMemberId: zod.string().min(1),
-    familyMemberName: zod.string().min(1),
-    optedIn: zod.boolean(),
-  })
-  .and(
-    zod.object({
-      id: zod.number(),
-      consentedAt: zod.date().nullable(),
-      withdrawnAt: zod.date().nullable(),
-      recordedByName: zod.string(),
-      recordedByEmail: zod.string().email(),
-      createdAt: zod.date(),
-      updatedAt: zod.date(),
-    }),
-  );
+export const UpdateFamilyUpdateConsentResponse = zod.object({
+  clientId: zod.string(),
+  familyMemberId: zod.string(),
+  familyMemberName: zod.string(),
+  optedIn: zod.boolean(),
+  consentedAt: zod.date().nullable(),
+  withdrawnAt: zod.date().nullable(),
+});
 
 export const ListFamilyUpdatesQueryParams = zod.object({
   clientId: zod.coerce.string(),

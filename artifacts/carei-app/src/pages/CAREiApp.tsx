@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, Component, type ReactNode } from "react";
 import AdminDashboard from "./AdminDashboard";
 import FamilyView from "./FamilyView";
+import CloseToHomeManager from "../components/CloseToHomeManager";
 import { saveEncrypted, loadEncrypted, loadEncryptedStrict, deleteEncrypted, reencryptAll, getOrCreateSalt, deriveKey, wipeAllData } from "../lib/careStore";
 import EVVClockIn from "../components/EVVClockIn";
 import { type EVVRecord, CLIENT_COORDS } from "../lib/evv";
@@ -19,6 +20,7 @@ import { getDeviceId } from "../lib/deviceIdentity";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Screen =
+  | "close-to-home-manager"
   | "otp"
   | "signup"
   | "login"
@@ -7015,11 +7017,12 @@ function RoleSelectScreen({ onManager, onCarer, name }: { onManager: () => void;
 }
 
 function ManagerPortalScreen({
-  managerName, agencyName, onTeam, onClients, onApprovals, onDashboard, onSettings, onMessages, onSignOut, carers, pendingApprovals,
+  managerName, agencyName, onTeam, onClients, onApprovals, onDashboard, onSettings, onMessages, onCloseToHome, onSignOut, carers, pendingApprovals,
 }: {
   managerName: string; agencyName: string; pendingApprovals: number;
   onTeam: () => void; onClients: () => void; onApprovals: () => void;
   onDashboard: () => void; onSettings: () => void; onMessages: () => void; onSignOut: () => void;
+  onCloseToHome: () => void;
   carers: typeof DEMO_CARERS;
 }) {
   const activeCarers = carers.filter(c => c.status === "active").length;
@@ -7085,6 +7088,7 @@ function ManagerPortalScreen({
               { icon: "👥", title: "Care Team", sub: `${activeCarers} active · ${invitedCarers} invited`, action: onTeam, badge: null },
               { icon: "🧑‍🦳", title: "Clients", sub: `${SCHEDULE_CLIENTS.length} registered clients`, action: onClients, badge: null },
               { icon: "💬", title: "Team Messages", sub: "Read and reply to carer messages", action: onMessages, badge: null },
+              { icon: "⌂", title: "Close to Home", sub: "Sample trusted-person access and concerns", action: onCloseToHome, badge: null },
               { icon: "✅", title: "Shift Approvals", sub: pendingApprovals > 0 ? `${pendingApprovals} awaiting review` : "All shifts reviewed", action: onApprovals, badge: pendingApprovals > 0 ? String(pendingApprovals) : null },
               { icon: "📊", title: "Compliance Dashboard", sub: "Scores, audit trail, alerts", action: onDashboard, badge: null },
               { icon: "⚙️", title: "Agency Settings", sub: "Profile, subscription, security", action: onSettings, badge: null },
@@ -8331,7 +8335,8 @@ export default function CAREiApp({
           onDashboard={() => nav("admin-dashboard")}
           onSettings={() => nav("agency-settings")}
           onMessages={() => nav("messages")}
-           onSignOut={() => { void wipeAllData(carerEmailForStore); sessionStorage.removeItem("carei_account"); sessionStorage.removeItem("carei_screen"); setUserRole(null); nav("splash"); }}
+          onCloseToHome={() => nav("close-to-home-manager")}
+           onSignOut={() => { void fetch("/api/auth/logout", { method: "POST" }).catch(() => {}); void wipeAllData(carerEmailForStore); sessionStorage.removeItem("carei_account"); sessionStorage.removeItem("carei_screen"); setSessionToken(undefined); setUserRole(null); nav("splash"); }}
         />;
       case "team-management":
         return <TeamManagementScreen
@@ -8405,7 +8410,7 @@ export default function CAREiApp({
       }
       case "profile":
         return <ProfileScreen
-          onSignOut={() => { void wipeAllData(carerEmailForStore); sessionStorage.removeItem("carei_account"); sessionStorage.removeItem("carei_screen"); nav("splash"); }}
+          onSignOut={() => { void fetch("/api/auth/logout", { method: "POST" }).catch(() => {}); void wipeAllData(carerEmailForStore); sessionStorage.removeItem("carei_account"); sessionStorage.removeItem("carei_screen"); setSessionToken(undefined); nav("splash"); }}
           onSettings={userRole === "manager" ? () => nav("agency-settings") : undefined}
           onSwitchRole={() => { setUserRole(r => r === "carer" ? "manager" : "carer"); nav(userRole === "carer" ? "manager-portal" : "today"); }}
           carerName={carerName}
@@ -8446,11 +8451,6 @@ export default function CAREiApp({
         return (
           <FamilyView
             onBack={() => nav("today")}
-            visitData={lastVisitData}
-            carerName={carerName || "Sarah O'Brien"}
-            clientFirstName="Mary"
-            familyFirstName="James"
-            sessionToken={sessionToken}
           />
         );
       case "family-summary": {
@@ -8702,6 +8702,9 @@ export default function CAREiApp({
     }
   }
 
+  if (screen === "close-to-home-manager") {
+    return <CloseToHomeManager staffToken={readSessionToken() ?? ""} onBack={() => nav("manager-portal")} />;
+  }
   if (screen === "admin-dashboard") {
     if (userRole !== "manager") {
       return (

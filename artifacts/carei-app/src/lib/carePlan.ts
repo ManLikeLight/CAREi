@@ -50,14 +50,13 @@ export async function confirmCarePlan(
   clientId: string,
   assessmentInput: string,
   plan: CarePlanDraft,
-  confirmedBy: string,
 ): Promise<CarePlanVersion> {
   const response = await fetch(
     `/api/care-plans/${encodeURIComponent(clientId)}/versions`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ assessmentInput, plan, confirmedBy }),
+      body: JSON.stringify({ assessmentInput, plan }),
     },
   );
   const data = await response.json();

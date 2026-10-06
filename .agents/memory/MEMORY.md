@@ -7,3 +7,6 @@
 - [Care assistant trust boundaries](care-assistant-trust-boundaries.md) — audit identity comes from a signed carer session; care-plan retrieval is limited to authorised CAREi client IDs.
 - [Family update delivery safety](family-update-delivery-safety.md) — consented family updates originate only from authenticated synced visits and render exclusively from approved structured facts.
 - [CAREi security workstream](security-workstream.md) — startup PIN migration must fail closed; signed sessions, device-scoped wipe, and separate audit storage define the security boundary.
+- [Preview cookie security](preview-cookie-security.md) — external development preview rewrites Strict cookies to None; recipient CSRF protection must not rely on SameSite alone.
+- [Close to Home launch boundary](close-to-home-scope.md) — only the foundation and four specified experiences; no real data until every pilot approval and hosting gate is met.
+- [OpenAPI path references](openapi-generator-refs.md) — current Orval 8 failed external path-item resolution; keep paths inline unless codegen verifies a split.

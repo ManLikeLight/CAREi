@@ -14,6 +14,4 @@ export interface ConfirmCarePlanRequest {
    */
   assessmentInput: string;
   plan: CarePlanDraft;
-  /** @minLength 1 */
-  confirmedBy: string;
 }

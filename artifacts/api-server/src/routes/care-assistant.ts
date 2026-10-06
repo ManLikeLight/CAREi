@@ -2,11 +2,11 @@ import { Router, type IRouter } from "express";
 import { desc, eq } from "drizzle-orm";
 import { careAssistantAudit, carePlanVersions, db } from "@workspace/db";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
-import { verifyAssistantSession } from "../assistant-session";
 import {
   ChatWithCareAssistantBody,
   ChatWithCareAssistantResponse,
 } from "@workspace/api-zod";
+import { requireSession } from "../auth-session";
 
 const router: IRouter = Router();
 
@@ -93,11 +93,9 @@ async function writeAuditEntry({
   return audit.id;
 }
 
-router.post("/care-assistant/chat", async (req, res): Promise<void> => {
-  const authorization = req.header("authorization");
-  const token = authorization?.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
-  const session = token ? verifyAssistantSession(token) : null;
-  if (!session || session.role !== "carer") {
+router.post("/care-assistant/chat", requireSession, async (req, res): Promise<void> => {
+  const session = req.authenticatedCarer!;
+  if (session.role !== "carer") {
     res.status(401).json({ error: "A valid carer assistant session is required." });
     return;
   }
@@ -108,6 +106,8 @@ router.post("/care-assistant/chat", async (req, res): Promise<void> => {
   }
 
   const { question, client } = parsed.data;
+
+  const { name: carerName, email: carerEmail } = session;
   const allowedClients: Record<string, string> = {
     mary: "Mary Johnson",
     tom: "Tom Adams",

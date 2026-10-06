@@ -1,52 +1,36 @@
-export type FamilyUpdateConsent = {
-  clientId: string;
-  familyMemberId: string;
-  familyMemberName: string;
-  optedIn: boolean;
-  consentedAt?: string | null;
-  withdrawnAt?: string | null;
-};
+import type { FamilyRecipient, FamilyUpdateConsentStatus, FamilyUpdateDelivery } from "@workspace/api-client-react";
 
-export type SentFamilyUpdate = {
-  id: number | string;
-  visitKey: string;
-  clientId: string;
-  familyMemberId: string;
-  summary: string;
-  sentAt: string;
-};
+export type { FamilyRecipient, FamilyUpdateConsentStatus };
+export type SentFamilyUpdate = FamilyUpdateDelivery;
 
-async function request<T>(path: string, token: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
-    ...init,
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...init?.headers },
+export class FamilyRequestError extends Error {
+  constructor(message: string, public status: number) { super(message); }
+}
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${base}/api/family-updates${path}`, {
+    ...init, credentials: "same-origin", cache: "no-store",
+    headers: { "Content-Type": "application/json", "X-CAREi-Family": "1", ...init?.headers },
   });
-  const payload = await response.json().catch(() => undefined);
+  const payload = response.status === 204 ? undefined : await response.json().catch(() => undefined);
   if (!response.ok) {
-    const message = payload && typeof payload === "object" && typeof payload.error === "string"
-      ? payload.error : `Family updates request failed (${response.status})`;
-    throw new Error(message);
+    throw new FamilyRequestError(
+      typeof payload?.error === "string" ? payload.error : `Family request failed (${response.status}).`,
+      response.status,
+    );
   }
   return payload as T;
 }
+const pairQuery = (identity: FamilyRecipient) =>
+  `?clientId=${encodeURIComponent(identity.clientId)}&familyMemberId=${encodeURIComponent(identity.familyMemberId)}`;
 
-export function fetchFamilyUpdateConsent(token: string, clientId: string, familyMemberId: string) {
-  return request<FamilyUpdateConsent>(
-    `/api/family-updates/consent?clientId=${encodeURIComponent(clientId)}&familyMemberId=${encodeURIComponent(familyMemberId)}`,
-    token,
-  );
-}
-
-export function saveFamilyUpdateConsent(token: string, consent: FamilyUpdateConsent) {
-  return request<FamilyUpdateConsent>("/api/family-updates/consent", token, {
-    method: "PUT",
-    body: JSON.stringify(consent),
-  });
-}
-
-export function fetchSentFamilyUpdates(token: string, clientId: string, familyMemberId: string) {
-  return request<SentFamilyUpdate[]>(
-    `/api/family-updates?clientId=${encodeURIComponent(clientId)}&familyMemberId=${encodeURIComponent(familyMemberId)}`,
-    token,
-  );
-}
+export const fetchFamilySession = () => request<FamilyRecipient>("/session");
+export const redeemFamilyInvite = (code: string) =>
+  request<FamilyRecipient>("/session", { method: "POST", body: JSON.stringify({ code }) });
+export const endFamilySession = () => request<void>("/session", { method: "DELETE", body: "{}" });
+export const fetchFamilyUpdateConsent = (identity: FamilyRecipient) =>
+  request<FamilyUpdateConsentStatus>(`/consent${pairQuery(identity)}`);
+export const fetchSentFamilyUpdates = (identity: FamilyRecipient) =>
+  request<SentFamilyUpdate[]>(pairQuery(identity));
+export const saveFamilyUpdateConsent = (identity: FamilyRecipient, optedIn: boolean) =>
+  request<FamilyUpdateConsentStatus>("/consent", { method: "PUT", body: JSON.stringify({ ...identity, optedIn }) });

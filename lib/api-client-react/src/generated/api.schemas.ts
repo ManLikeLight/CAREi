@@ -68,8 +68,6 @@ export interface ConfirmCarePlanRequest {
    */
   assessmentInput: string;
   plan: CarePlanDraft;
-  /** @minLength 1 */
-  confirmedBy: string;
 }
 
 export interface CarePlanVersion {
@@ -339,6 +337,17 @@ export interface MedicationConfirmationInput {
 export type MedicationConfirmationRecord = MedicationConfirmationInput & {
   createdAt: string;
 };
+
+export interface FamilyInviteInput {
+  /** @pattern ^[A-Za-z0-9_-]{43}$ */
+  code: string;
+}
+
+export interface FamilyRecipient {
+  clientId: string;
+  familyMemberId: string;
+  familyMemberName: string;
+}
 
 export interface FamilyUpdateConsentInput {
   /** @minLength 1 */

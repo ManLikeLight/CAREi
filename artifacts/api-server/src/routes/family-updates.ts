@@ -1,60 +1,126 @@
-import { Router, type IRouter, type Request } from "express";
+import { Router, type IRouter } from "express";
 import { and, desc, eq } from "drizzle-orm";
-import { db, familyUpdateConsents, familyUpdateDeliveries } from "@workspace/db";
-import { verifyAssistantSession } from "../assistant-session";
-import { GetFamilyUpdateConsentQueryParams, UpdateFamilyUpdateConsentBody } from "@workspace/api-zod";
-import { isSupportedFamilyMember, SUPPORTED_FAMILY_MAPPING } from "../family-mapping";
+import { db, familyUpdateConsents, familyUpdateDeliveries, type FamilyUpdateConsent, type FamilyUpdateDelivery } from "@workspace/db";
+import { GetFamilyUpdateConsentQueryParams, UpdateFamilyUpdateConsentBody, RedeemFamilyInviteBody } from "@workspace/api-zod";
+import {
+  FAMILY_COOKIE, clearFamilyCookie, familyMutationAllowed, familySessionStore,
+  hashCredential, matchesFamilyPair, readFamilySession, redeemFamilyInvite,
+  setFamilyCookie, type FamilyIdentity, type FamilySessionStore,
+} from "../family-session";
 
-const router: IRouter = Router();
-
-function authorize(req: Request) {
-  const header = req.headers.authorization;
-  const token = header?.startsWith("Bearer ") ? header.slice(7).trim() : "";
-  const session = verifyAssistantSession(token);
-  return session?.role === "carer" || session?.role === "manager" ? session : null;
+export interface FamilyUpdateStore {
+  consent(identity: FamilyIdentity): Promise<FamilyUpdateConsent | undefined>;
+  saveConsent(identity: FamilyIdentity, optedIn: boolean): Promise<FamilyUpdateConsent>;
+  deliveries(identity: FamilyIdentity): Promise<FamilyUpdateDelivery[]>;
 }
-function validMember(clientId: string, memberId: string, name: string) {
-  return isSupportedFamilyMember(clientId, memberId, name);
+const updateStore: FamilyUpdateStore = {
+  async consent(identity) {
+    return (await db.select().from(familyUpdateConsents).where(and(
+      eq(familyUpdateConsents.clientId, identity.clientId),
+      eq(familyUpdateConsents.familyMemberId, identity.familyMemberId),
+    )).limit(1))[0];
+  },
+  async saveConsent(identity, optedIn) {
+    const now = new Date();
+    // A recipient identity is not a staff email; this legacy audit field holds a namespaced ID.
+    const recordedByEmail = `family:${identity.familyMemberId}`;
+    const [row] = await db.insert(familyUpdateConsents).values({
+      ...identity, optedIn, recordedByName: identity.familyMemberName, recordedByEmail,
+      consentedAt: optedIn ? now : null, withdrawnAt: optedIn ? null : now,
+    }).onConflictDoUpdate({
+      target: [familyUpdateConsents.clientId, familyUpdateConsents.familyMemberId],
+      set: {
+        familyMemberName: identity.familyMemberName, recordedByName: identity.familyMemberName, recordedByEmail,
+        optedIn, consentedAt: optedIn ? now : undefined, withdrawnAt: optedIn ? null : now, updatedAt: now,
+      },
+    }).returning();
+    return row;
+  },
+  async deliveries(identity) {
+    return db.select().from(familyUpdateDeliveries).where(and(
+      eq(familyUpdateDeliveries.clientId, identity.clientId),
+      eq(familyUpdateDeliveries.familyMemberId, identity.familyMemberId),
+      eq(familyUpdateDeliveries.status, "sent"),
+    )).orderBy(desc(familyUpdateDeliveries.sentAt));
+  },
+};
+
+function consentResponse(identity: FamilyIdentity, row?: FamilyUpdateConsent) {
+  return {
+    ...identity, optedIn: row?.optedIn ?? false,
+    consentedAt: row?.consentedAt ?? null, withdrawnAt: row?.withdrawnAt ?? null,
+  };
 }
 
-router.get("/family-updates/consent", async (req, res) => {
-  if (!authorize(req)) { res.status(401).json({ error: "A valid carer bearer token is required." }); return; }
-  const query = GetFamilyUpdateConsentQueryParams.safeParse(req.query);
-  if (!query.success) { res.status(400).json({ error: query.error.message }); return; }
-  const { clientId, familyMemberId } = query.data;
-  if (!validMember(clientId, familyMemberId, SUPPORTED_FAMILY_MAPPING.familyMemberName)) { res.status(403).json({ error: "Family member is not mapped to this CAREi client." }); return; }
-  const row = (await db.select().from(familyUpdateConsents).where(and(eq(familyUpdateConsents.clientId, clientId), eq(familyUpdateConsents.familyMemberId, familyMemberId))).limit(1))[0];
-  res.json(row ?? { clientId, familyMemberId, familyMemberName: SUPPORTED_FAMILY_MAPPING.familyMemberName, optedIn: false, consentedAt: null, withdrawnAt: null });
-});
+export function createFamilyUpdatesRouter(sessions: FamilySessionStore = familySessionStore, updates: FamilyUpdateStore = updateStore): IRouter {
+  const router = Router();
+  router.use("/family-updates", (req, res, next) => {
+    res.set("Cache-Control", "no-store");
+    // Family endpoints are same-origin only, regardless of general staff API CORS settings.
+    res.removeHeader("Access-Control-Allow-Origin");
+    res.removeHeader("Access-Control-Allow-Credentials");
+    if (req.method !== "GET" && !familyMutationAllowed(req)) {
+      res.status(403).json({ error: "A same-origin family request is required." }); return;
+    }
+    next();
+  });
+  router.post("/family-updates/session", async (req, res) => {
+    const input = RedeemFamilyInviteBody.safeParse(req.body);
+    if (!input.success) { res.status(400).json({ error: "Enter a valid invite code." }); return; }
+    const session = await redeemFamilyInvite(input.data.code, sessions);
+    if (!session) { res.status(401).json({ error: "This invite is invalid, expired, or already used." }); return; }
+    const previous: unknown = req.cookies?.[FAMILY_COOKIE];
+    if (typeof previous === "string") await sessions.revoke(hashCredential(previous));
+    setFamilyCookie(res, session.token);
+    res.json(session.identity);
+  });
+  router.use("/family-updates", async (req, res, next) => {
+    const identity = await readFamilySession(req, sessions);
+    if (!identity) { res.status(401).json({ error: "Sign in with your family invite to continue." }); return; }
+    res.locals.family = identity;
+    next();
+  });
+  router.get("/family-updates/session", (_req, res) => res.json(res.locals.family));
+  router.delete("/family-updates/session", async (req, res) => {
+    await sessions.revoke(hashCredential(req.cookies[FAMILY_COOKIE]));
+    clearFamilyCookie(res);
+    res.sendStatus(204);
+  });
+  router.get("/family-updates/consent", async (req, res) => {
+    const identity = res.locals.family as FamilyIdentity;
+    const query = GetFamilyUpdateConsentQueryParams.safeParse(req.query);
+    if (!query.success) { res.status(400).json({ error: query.error.message }); return; }
+    if (!matchesFamilyPair(identity, query.data.clientId, query.data.familyMemberId)) {
+      res.status(403).json({ error: "This recipient cannot access that client/member pair." }); return;
+    }
+    res.json(consentResponse(identity, await updates.consent(identity)));
+  });
+  router.put("/family-updates/consent", async (req, res) => {
+    const identity = res.locals.family as FamilyIdentity;
+    const parsed = UpdateFamilyUpdateConsentBody.safeParse(req.body);
+    if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+    if (!matchesFamilyPair(identity, parsed.data.clientId, parsed.data.familyMemberId) ||
+        parsed.data.familyMemberName !== identity.familyMemberName) {
+      res.status(403).json({ error: "You can only change your own consent." }); return;
+    }
+    res.json(consentResponse(identity, await updates.saveConsent(identity, parsed.data.optedIn)));
+  });
+  router.get("/family-updates", async (req, res) => {
+    const identity = res.locals.family as FamilyIdentity;
+    const query = GetFamilyUpdateConsentQueryParams.safeParse(req.query);
+    if (!query.success) { res.status(400).json({ error: query.error.message }); return; }
+    if (!matchesFamilyPair(identity, query.data.clientId, query.data.familyMemberId)) {
+      res.status(403).json({ error: "This recipient cannot access that client/member pair." }); return;
+    }
+    const rows = await updates.deliveries(identity);
+    // Explicit allowlist: never return audit identity or internal processing fields.
+    res.json(rows.map(row => ({
+      id: row.id, visitKey: row.visitKey, clientId: row.clientId, familyMemberId: row.familyMemberId,
+      familyMemberName: row.familyMemberName, channel: row.channel, status: row.status,
+      summary: row.summary, createdAt: row.createdAt, sentAt: row.sentAt,
+    })));
+  });
+  return router;
+}
 
-router.put("/family-updates/consent", async (req, res) => {
-  if (!authorize(req)) { res.status(401).json({ error: "A valid carer bearer token is required." }); return; }
-  const parsed = UpdateFamilyUpdateConsentBody.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const input = parsed.data;
-  if (!validMember(input.clientId, input.familyMemberId, input.familyMemberName)) { res.status(403).json({ error: "Family member is not mapped to this CAREi client." }); return; }
-  const token = req.headers.authorization?.startsWith("Bearer ") ? req.headers.authorization.slice(7).trim() : "";
-  const session = verifyAssistantSession(token);
-  if (!session) { res.status(401).json({ error: "A valid bearer token is required." }); return; }
-  const now = new Date();
-  const [row] = await db.insert(familyUpdateConsents).values({
-    ...input, recordedByName: session.name, recordedByEmail: session.email,
-    consentedAt: input.optedIn ? now : null, withdrawnAt: input.optedIn ? null : now,
-  }).onConflictDoUpdate({
-    target: [familyUpdateConsents.clientId, familyUpdateConsents.familyMemberId],
-    set: { familyMemberName: input.familyMemberName, recordedByName: session.name, recordedByEmail: session.email, optedIn: input.optedIn, consentedAt: input.optedIn ? now : undefined, withdrawnAt: input.optedIn ? null : now, updatedAt: now },
-  }).returning();
-  res.json(row);
-});
-
-router.get("/family-updates", async (req, res) => {
-  if (!authorize(req)) { res.status(401).json({ error: "A valid carer bearer token is required." }); return; }
-  const query = GetFamilyUpdateConsentQueryParams.safeParse(req.query);
-  if (!query.success) { res.status(400).json({ error: query.error.message }); return; }
-  const { clientId, familyMemberId } = query.data;
-  if (!validMember(clientId, familyMemberId, SUPPORTED_FAMILY_MAPPING.familyMemberName)) { res.status(403).json({ error: "Family member is not mapped to this CAREi client." }); return; }
-  const rows = await db.select().from(familyUpdateDeliveries).where(and(eq(familyUpdateDeliveries.clientId, clientId), eq(familyUpdateDeliveries.familyMemberId, familyMemberId), eq(familyUpdateDeliveries.status, "sent"))).orderBy(desc(familyUpdateDeliveries.sentAt));
-  res.json(rows.map(({ error: _error, attempts: _attempts, updatedAt: _updatedAt, nextAttemptAt: _nextAttemptAt, ...safe }) => safe));
-});
-
-export default router;
+export default createFamilyUpdatesRouter();

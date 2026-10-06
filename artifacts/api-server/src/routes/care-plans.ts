@@ -10,6 +10,7 @@ import {
   GetCarePlanVersionsParams,
   GetCarePlanVersionsResponseItem,
 } from "@workspace/api-zod";
+import { requireSession } from "../auth-session";
 
 const router: IRouter = Router();
 
@@ -21,7 +22,7 @@ function extractJson(text: string): unknown {
   return JSON.parse(unfenced);
 }
 
-router.post("/care-plans/generate", async (req, res): Promise<void> => {
+router.post("/care-plans/generate", requireSession, async (req, res): Promise<void> => {
   const parsed = GenerateCarePlanBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -106,6 +107,7 @@ router.get(
 
 router.post(
   "/care-plans/:clientId/versions",
+  requireSession,
   async (req, res): Promise<void> => {
     const params = ConfirmCarePlanParams.safeParse(req.params);
     const body = ConfirmCarePlanBody.safeParse(req.body);
@@ -133,7 +135,7 @@ router.post(
           version: (current?.version ?? 0) + 1,
           assessmentInput: body.data.assessmentInput,
           plan: body.data.plan,
-          confirmedBy: body.data.confirmedBy,
+          confirmedBy: req.authenticatedCarer!.name,
         })
         .returning();
       return row;

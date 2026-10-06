@@ -26,7 +26,8 @@ import type {
   DocumentDraft,
   DocumentGenerationInput,
   ErrorResponse,
-  FamilyUpdateConsent,
+  FamilyInviteInput,
+  FamilyRecipient,
   FamilyUpdateConsentInput,
   FamilyUpdateConsentStatus,
   FamilyUpdateDelivery,
@@ -54,6 +55,1728 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+/**
+ * @summary Dedicated scheduler credential only, never a staff or trusted-person session
+ */
+export const getEscalateCtpConcernsUrl = () => {
+  return `/api/ctp/jobs/escalate`;
+};
+
+export const escalateCtpConcerns = async (
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getEscalateCtpConcernsUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getEscalateCtpConcernsMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof escalateCtpConcerns>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof escalateCtpConcerns>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["escalateCtpConcerns"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof escalateCtpConcerns>>,
+    void
+  > = () => {
+    return escalateCtpConcerns(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type EscalateCtpConcernsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof escalateCtpConcerns>>
+>;
+
+export type EscalateCtpConcernsMutationError = ErrorType<void>;
+
+/**
+ * @summary Dedicated scheduler credential only, never a staff or trusted-person session
+ */
+export const useEscalateCtpConcerns = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof escalateCtpConcerns>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof escalateCtpConcerns>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getEscalateCtpConcernsMutationOptions(options));
+};
+
+export const getGetCtpSessionUrl = () => {
+  return `/api/ctp/auth/session`;
+};
+
+export const getCtpSession = async (options?: RequestInit): Promise<void> => {
+  return customFetch<void>(getGetCtpSessionUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCtpSessionQueryKey = () => {
+  return [`/api/ctp/auth/session`] as const;
+};
+
+export const getGetCtpSessionQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCtpSession>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCtpSession>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCtpSessionQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCtpSession>>> = ({
+    signal,
+  }) => getCtpSession({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCtpSession>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCtpSessionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCtpSession>>
+>;
+export type GetCtpSessionQueryError = ErrorType<unknown>;
+
+export function useGetCtpSession<
+  TData = Awaited<ReturnType<typeof getCtpSession>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCtpSession>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCtpSessionQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getActivateCtpInviteUrl = () => {
+  return `/api/ctp/auth/activate`;
+};
+
+export const activateCtpInvite = async (
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getActivateCtpInviteUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getActivateCtpInviteMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof activateCtpInvite>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof activateCtpInvite>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["activateCtpInvite"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof activateCtpInvite>>,
+    void
+  > = () => {
+    return activateCtpInvite(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ActivateCtpInviteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof activateCtpInvite>>
+>;
+
+export type ActivateCtpInviteMutationError = ErrorType<unknown>;
+
+export const useActivateCtpInvite = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof activateCtpInvite>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof activateCtpInvite>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getActivateCtpInviteMutationOptions(options));
+};
+
+export const getLoginCtpUrl = () => {
+  return `/api/ctp/auth/login`;
+};
+
+export const loginCtp = async (options?: RequestInit): Promise<void> => {
+  return customFetch<void>(getLoginCtpUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getLoginCtpMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof loginCtp>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof loginCtp>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["loginCtp"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof loginCtp>>,
+    void
+  > = () => {
+    return loginCtp(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type LoginCtpMutationResult = NonNullable<
+  Awaited<ReturnType<typeof loginCtp>>
+>;
+
+export type LoginCtpMutationError = ErrorType<unknown>;
+
+export const useLoginCtp = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof loginCtp>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof loginCtp>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getLoginCtpMutationOptions(options));
+};
+
+export const getLogoutCtpUrl = () => {
+  return `/api/ctp/auth/logout`;
+};
+
+export const logoutCtp = async (options?: RequestInit): Promise<void> => {
+  return customFetch<void>(getLogoutCtpUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getLogoutCtpMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof logoutCtp>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof logoutCtp>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["logoutCtp"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof logoutCtp>>,
+    void
+  > = () => {
+    return logoutCtp(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type LogoutCtpMutationResult = NonNullable<
+  Awaited<ReturnType<typeof logoutCtp>>
+>;
+
+export type LogoutCtpMutationError = ErrorType<unknown>;
+
+export const useLogoutCtp = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof logoutCtp>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof logoutCtp>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getLogoutCtpMutationOptions(options));
+};
+
+export const getGetCtpClientsUrl = () => {
+  return `/api/ctp/me/clients`;
+};
+
+export const getCtpClients = async (options?: RequestInit): Promise<void> => {
+  return customFetch<void>(getGetCtpClientsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCtpClientsQueryKey = () => {
+  return [`/api/ctp/me/clients`] as const;
+};
+
+export const getGetCtpClientsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCtpClients>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCtpClients>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCtpClientsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCtpClients>>> = ({
+    signal,
+  }) => getCtpClients({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCtpClients>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCtpClientsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCtpClients>>
+>;
+export type GetCtpClientsQueryError = ErrorType<unknown>;
+
+export function useGetCtpClients<
+  TData = Awaited<ReturnType<typeof getCtpClients>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCtpClients>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCtpClientsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getGetCtpTodayUrl = (clientId: string) => {
+  return `/api/ctp/me/clients/${clientId}/today`;
+};
+
+export const getCtpToday = async (
+  clientId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getGetCtpTodayUrl(clientId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCtpTodayQueryKey = (clientId: string) => {
+  return [`/api/ctp/me/clients/${clientId}/today`] as const;
+};
+
+export const getGetCtpTodayQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCtpToday>>,
+  TError = ErrorType<unknown>,
+>(
+  clientId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCtpToday>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCtpTodayQueryKey(clientId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCtpToday>>> = ({
+    signal,
+  }) => getCtpToday(clientId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!clientId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCtpToday>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCtpTodayQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCtpToday>>
+>;
+export type GetCtpTodayQueryError = ErrorType<unknown>;
+
+export function useGetCtpToday<
+  TData = Awaited<ReturnType<typeof getCtpToday>>,
+  TError = ErrorType<unknown>,
+>(
+  clientId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCtpToday>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCtpTodayQueryOptions(clientId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getCreateCtpConcernUrl = (clientId: string) => {
+  return `/api/ctp/me/clients/${clientId}/concerns`;
+};
+
+export const createCtpConcern = async (
+  clientId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getCreateCtpConcernUrl(clientId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getCreateCtpConcernMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createCtpConcern>>,
+    TError,
+    { clientId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createCtpConcern>>,
+  TError,
+  { clientId: string },
+  TContext
+> => {
+  const mutationKey = ["createCtpConcern"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createCtpConcern>>,
+    { clientId: string }
+  > = (props) => {
+    const { clientId } = props ?? {};
+
+    return createCtpConcern(clientId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateCtpConcernMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createCtpConcern>>
+>;
+
+export type CreateCtpConcernMutationError = ErrorType<unknown>;
+
+export const useCreateCtpConcern = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createCtpConcern>>,
+    TError,
+    { clientId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createCtpConcern>>,
+  TError,
+  { clientId: string },
+  TContext
+> => {
+  return useMutation(getCreateCtpConcernMutationOptions(options));
+};
+
+export const getGetCtpConcernsUrl = () => {
+  return `/api/ctp/me/concerns`;
+};
+
+export const getCtpConcerns = async (options?: RequestInit): Promise<void> => {
+  return customFetch<void>(getGetCtpConcernsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCtpConcernsQueryKey = () => {
+  return [`/api/ctp/me/concerns`] as const;
+};
+
+export const getGetCtpConcernsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCtpConcerns>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCtpConcerns>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCtpConcernsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCtpConcerns>>> = ({
+    signal,
+  }) => getCtpConcerns({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCtpConcerns>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCtpConcernsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCtpConcerns>>
+>;
+export type GetCtpConcernsQueryError = ErrorType<unknown>;
+
+export function useGetCtpConcerns<
+  TData = Awaited<ReturnType<typeof getCtpConcerns>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCtpConcerns>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCtpConcernsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getGetCtpManagerUrl = () => {
+  return `/api/ctp/manager`;
+};
+
+export const getCtpManager = async (options?: RequestInit): Promise<void> => {
+  return customFetch<void>(getGetCtpManagerUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCtpManagerQueryKey = () => {
+  return [`/api/ctp/manager`] as const;
+};
+
+export const getGetCtpManagerQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCtpManager>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCtpManager>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCtpManagerQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCtpManager>>> = ({
+    signal,
+  }) => getCtpManager({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCtpManager>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCtpManagerQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCtpManager>>
+>;
+export type GetCtpManagerQueryError = ErrorType<unknown>;
+
+export function useGetCtpManager<
+  TData = Awaited<ReturnType<typeof getCtpManager>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCtpManager>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCtpManagerQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getSetupCtpSampleUrl = () => {
+  return `/api/ctp/sample/setup`;
+};
+
+export const setupCtpSample = async (options?: RequestInit): Promise<void> => {
+  return customFetch<void>(getSetupCtpSampleUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getSetupCtpSampleMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setupCtpSample>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setupCtpSample>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["setupCtpSample"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setupCtpSample>>,
+    void
+  > = () => {
+    return setupCtpSample(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetupCtpSampleMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setupCtpSample>>
+>;
+
+export type SetupCtpSampleMutationError = ErrorType<unknown>;
+
+export const useSetupCtpSample = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setupCtpSample>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setupCtpSample>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getSetupCtpSampleMutationOptions(options));
+};
+
+export const getInviteCtpPersonUrl = (clientId: string) => {
+  return `/api/ctp/clients/${clientId}/trusted-people`;
+};
+
+export const inviteCtpPerson = async (
+  clientId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getInviteCtpPersonUrl(clientId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getInviteCtpPersonMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof inviteCtpPerson>>,
+    TError,
+    { clientId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof inviteCtpPerson>>,
+  TError,
+  { clientId: string },
+  TContext
+> => {
+  const mutationKey = ["inviteCtpPerson"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof inviteCtpPerson>>,
+    { clientId: string }
+  > = (props) => {
+    const { clientId } = props ?? {};
+
+    return inviteCtpPerson(clientId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type InviteCtpPersonMutationResult = NonNullable<
+  Awaited<ReturnType<typeof inviteCtpPerson>>
+>;
+
+export type InviteCtpPersonMutationError = ErrorType<unknown>;
+
+export const useInviteCtpPerson = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof inviteCtpPerson>>,
+    TError,
+    { clientId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof inviteCtpPerson>>,
+  TError,
+  { clientId: string },
+  TContext
+> => {
+  return useMutation(getInviteCtpPersonMutationOptions(options));
+};
+
+export const getUpdateCtpPermissionsUrl = (linkId: string) => {
+  return `/api/ctp/links/${linkId}/permissions`;
+};
+
+export const updateCtpPermissions = async (
+  linkId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getUpdateCtpPermissionsUrl(linkId), {
+    ...options,
+    method: "PATCH",
+  });
+};
+
+export const getUpdateCtpPermissionsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCtpPermissions>>,
+    TError,
+    { linkId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateCtpPermissions>>,
+  TError,
+  { linkId: string },
+  TContext
+> => {
+  const mutationKey = ["updateCtpPermissions"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateCtpPermissions>>,
+    { linkId: string }
+  > = (props) => {
+    const { linkId } = props ?? {};
+
+    return updateCtpPermissions(linkId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateCtpPermissionsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateCtpPermissions>>
+>;
+
+export type UpdateCtpPermissionsMutationError = ErrorType<unknown>;
+
+export const useUpdateCtpPermissions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCtpPermissions>>,
+    TError,
+    { linkId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateCtpPermissions>>,
+  TError,
+  { linkId: string },
+  TContext
+> => {
+  return useMutation(getUpdateCtpPermissionsMutationOptions(options));
+};
+
+export const getApplyCtpPresetUrl = (linkId: string) => {
+  return `/api/ctp/links/${linkId}/preset`;
+};
+
+export const applyCtpPreset = async (
+  linkId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getApplyCtpPresetUrl(linkId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getApplyCtpPresetMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof applyCtpPreset>>,
+    TError,
+    { linkId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof applyCtpPreset>>,
+  TError,
+  { linkId: string },
+  TContext
+> => {
+  const mutationKey = ["applyCtpPreset"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof applyCtpPreset>>,
+    { linkId: string }
+  > = (props) => {
+    const { linkId } = props ?? {};
+
+    return applyCtpPreset(linkId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ApplyCtpPresetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof applyCtpPreset>>
+>;
+
+export type ApplyCtpPresetMutationError = ErrorType<unknown>;
+
+export const useApplyCtpPreset = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof applyCtpPreset>>,
+    TError,
+    { linkId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof applyCtpPreset>>,
+  TError,
+  { linkId: string },
+  TContext
+> => {
+  return useMutation(getApplyCtpPresetMutationOptions(options));
+};
+
+export const getUpdateCtpStatusUrl = (linkId: string) => {
+  return `/api/ctp/links/${linkId}/status`;
+};
+
+export const updateCtpStatus = async (
+  linkId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getUpdateCtpStatusUrl(linkId), {
+    ...options,
+    method: "PATCH",
+  });
+};
+
+export const getUpdateCtpStatusMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCtpStatus>>,
+    TError,
+    { linkId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateCtpStatus>>,
+  TError,
+  { linkId: string },
+  TContext
+> => {
+  const mutationKey = ["updateCtpStatus"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateCtpStatus>>,
+    { linkId: string }
+  > = (props) => {
+    const { linkId } = props ?? {};
+
+    return updateCtpStatus(linkId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateCtpStatusMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateCtpStatus>>
+>;
+
+export type UpdateCtpStatusMutationError = ErrorType<unknown>;
+
+export const useUpdateCtpStatus = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCtpStatus>>,
+    TError,
+    { linkId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateCtpStatus>>,
+  TError,
+  { linkId: string },
+  TContext
+> => {
+  return useMutation(getUpdateCtpStatusMutationOptions(options));
+};
+
+export const getGetCtpAuditUrl = (linkId: string) => {
+  return `/api/ctp/links/${linkId}/audit`;
+};
+
+export const getCtpAudit = async (
+  linkId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getGetCtpAuditUrl(linkId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCtpAuditQueryKey = (linkId: string) => {
+  return [`/api/ctp/links/${linkId}/audit`] as const;
+};
+
+export const getGetCtpAuditQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCtpAudit>>,
+  TError = ErrorType<unknown>,
+>(
+  linkId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCtpAudit>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCtpAuditQueryKey(linkId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCtpAudit>>> = ({
+    signal,
+  }) => getCtpAudit(linkId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!linkId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCtpAudit>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCtpAuditQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCtpAudit>>
+>;
+export type GetCtpAuditQueryError = ErrorType<unknown>;
+
+export function useGetCtpAudit<
+  TData = Awaited<ReturnType<typeof getCtpAudit>>,
+  TError = ErrorType<unknown>,
+>(
+  linkId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCtpAudit>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCtpAuditQueryOptions(linkId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getUpdateCtpConcernUrl = (concernId: string) => {
+  return `/api/ctp/concerns/${concernId}`;
+};
+
+export const updateCtpConcern = async (
+  concernId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getUpdateCtpConcernUrl(concernId), {
+    ...options,
+    method: "PATCH",
+  });
+};
+
+export const getUpdateCtpConcernMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCtpConcern>>,
+    TError,
+    { concernId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateCtpConcern>>,
+  TError,
+  { concernId: string },
+  TContext
+> => {
+  const mutationKey = ["updateCtpConcern"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateCtpConcern>>,
+    { concernId: string }
+  > = (props) => {
+    const { concernId } = props ?? {};
+
+    return updateCtpConcern(concernId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateCtpConcernMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateCtpConcern>>
+>;
+
+export type UpdateCtpConcernMutationError = ErrorType<unknown>;
+
+export const useUpdateCtpConcern = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCtpConcern>>,
+    TError,
+    { concernId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateCtpConcern>>,
+  TError,
+  { concernId: string },
+  TContext
+> => {
+  return useMutation(getUpdateCtpConcernMutationOptions(options));
+};
+
+export const getUpdateCtpSettingsUrl = () => {
+  return `/api/ctp/settings`;
+};
+
+export const updateCtpSettings = async (
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getUpdateCtpSettingsUrl(), {
+    ...options,
+    method: "PATCH",
+  });
+};
+
+export const getUpdateCtpSettingsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCtpSettings>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateCtpSettings>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["updateCtpSettings"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateCtpSettings>>,
+    void
+  > = () => {
+    return updateCtpSettings(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateCtpSettingsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateCtpSettings>>
+>;
+
+export type UpdateCtpSettingsMutationError = ErrorType<unknown>;
+
+export const useUpdateCtpSettings = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCtpSettings>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateCtpSettings>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getUpdateCtpSettingsMutationOptions(options));
+};
+
+export const getUpdateCtpCarerPrivacyUrl = (carerId: string) => {
+  return `/api/ctp/carers/${carerId}/privacy`;
+};
+
+export const updateCtpCarerPrivacy = async (
+  carerId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getUpdateCtpCarerPrivacyUrl(carerId), {
+    ...options,
+    method: "PATCH",
+  });
+};
+
+export const getUpdateCtpCarerPrivacyMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCtpCarerPrivacy>>,
+    TError,
+    { carerId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateCtpCarerPrivacy>>,
+  TError,
+  { carerId: string },
+  TContext
+> => {
+  const mutationKey = ["updateCtpCarerPrivacy"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateCtpCarerPrivacy>>,
+    { carerId: string }
+  > = (props) => {
+    const { carerId } = props ?? {};
+
+    return updateCtpCarerPrivacy(carerId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateCtpCarerPrivacyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateCtpCarerPrivacy>>
+>;
+
+export type UpdateCtpCarerPrivacyMutationError = ErrorType<unknown>;
+
+export const useUpdateCtpCarerPrivacy = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCtpCarerPrivacy>>,
+    TError,
+    { carerId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateCtpCarerPrivacy>>,
+  TError,
+  { carerId: string },
+  TContext
+> => {
+  return useMutation(getUpdateCtpCarerPrivacyMutationOptions(options));
+};
+
+export const getGetCtpVisitsUrl = () => {
+  return `/api/ctp/manager/visits`;
+};
+
+export const getCtpVisits = async (options?: RequestInit): Promise<void> => {
+  return customFetch<void>(getGetCtpVisitsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCtpVisitsQueryKey = () => {
+  return [`/api/ctp/manager/visits`] as const;
+};
+
+export const getGetCtpVisitsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCtpVisits>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCtpVisits>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCtpVisitsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCtpVisits>>> = ({
+    signal,
+  }) => getCtpVisits({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCtpVisits>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCtpVisitsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCtpVisits>>
+>;
+export type GetCtpVisitsQueryError = ErrorType<unknown>;
+
+export function useGetCtpVisits<
+  TData = Awaited<ReturnType<typeof getCtpVisits>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCtpVisits>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCtpVisitsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getGetCtpSourcesUrl = (visitId: string) => {
+  return `/api/ctp/manager/visits/${visitId}`;
+};
+
+export const getCtpSources = async (
+  visitId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getGetCtpSourcesUrl(visitId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCtpSourcesQueryKey = (visitId: string) => {
+  return [`/api/ctp/manager/visits/${visitId}`] as const;
+};
+
+export const getGetCtpSourcesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCtpSources>>,
+  TError = ErrorType<unknown>,
+>(
+  visitId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCtpSources>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCtpSourcesQueryKey(visitId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCtpSources>>> = ({
+    signal,
+  }) => getCtpSources(visitId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!visitId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCtpSources>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCtpSourcesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCtpSources>>
+>;
+export type GetCtpSourcesQueryError = ErrorType<unknown>;
+
+export function useGetCtpSources<
+  TData = Awaited<ReturnType<typeof getCtpSources>>,
+  TError = ErrorType<unknown>,
+>(
+  visitId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCtpSources>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCtpSourcesQueryOptions(visitId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getRegenerateCtpStoryUrl = (visitId: string) => {
+  return `/api/ctp/stories/${visitId}/regenerate`;
+};
+
+export const regenerateCtpStory = async (
+  visitId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getRegenerateCtpStoryUrl(visitId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRegenerateCtpStoryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof regenerateCtpStory>>,
+    TError,
+    { visitId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof regenerateCtpStory>>,
+  TError,
+  { visitId: string },
+  TContext
+> => {
+  const mutationKey = ["regenerateCtpStory"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof regenerateCtpStory>>,
+    { visitId: string }
+  > = (props) => {
+    const { visitId } = props ?? {};
+
+    return regenerateCtpStory(visitId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RegenerateCtpStoryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof regenerateCtpStory>>
+>;
+
+export type RegenerateCtpStoryMutationError = ErrorType<unknown>;
+
+export const useRegenerateCtpStory = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof regenerateCtpStory>>,
+    TError,
+    { visitId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof regenerateCtpStory>>,
+  TError,
+  { visitId: string },
+  TContext
+> => {
+  return useMutation(getRegenerateCtpStoryMutationOptions(options));
+};
+
+export const getCorrectCtpSourceUrl = (sourceId: string) => {
+  return `/api/ctp/sources/${sourceId}`;
+};
+
+export const correctCtpSource = async (
+  sourceId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getCorrectCtpSourceUrl(sourceId), {
+    ...options,
+    method: "PATCH",
+  });
+};
+
+export const getCorrectCtpSourceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof correctCtpSource>>,
+    TError,
+    { sourceId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof correctCtpSource>>,
+  TError,
+  { sourceId: string },
+  TContext
+> => {
+  const mutationKey = ["correctCtpSource"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof correctCtpSource>>,
+    { sourceId: string }
+  > = (props) => {
+    const { sourceId } = props ?? {};
+
+    return correctCtpSource(sourceId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CorrectCtpSourceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof correctCtpSource>>
+>;
+
+export type CorrectCtpSourceMutationError = ErrorType<unknown>;
+
+export const useCorrectCtpSource = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof correctCtpSource>>,
+    TError,
+    { sourceId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof correctCtpSource>>,
+  TError,
+  { sourceId: string },
+  TContext
+> => {
+  return useMutation(getCorrectCtpSourceMutationOptions(options));
+};
 
 /**
  * @summary Get deterministic manager compliance dashboard
@@ -998,6 +2721,235 @@ export const useIngestMedicationConfirmation = <
   return useMutation(getIngestMedicationConfirmationMutationOptions(options));
 };
 
+/**
+ * @summary Exchange a one-time recipient invite for an HttpOnly family session
+ */
+export const getRedeemFamilyInviteUrl = () => {
+  return `/api/family-updates/session`;
+};
+
+export const redeemFamilyInvite = async (
+  familyInviteInput: FamilyInviteInput,
+  options?: RequestInit,
+): Promise<FamilyRecipient> => {
+  return customFetch<FamilyRecipient>(getRedeemFamilyInviteUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(familyInviteInput),
+  });
+};
+
+export const getRedeemFamilyInviteMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof redeemFamilyInvite>>,
+    TError,
+    { data: BodyType<FamilyInviteInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof redeemFamilyInvite>>,
+  TError,
+  { data: BodyType<FamilyInviteInput> },
+  TContext
+> => {
+  const mutationKey = ["redeemFamilyInvite"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof redeemFamilyInvite>>,
+    { data: BodyType<FamilyInviteInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return redeemFamilyInvite(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RedeemFamilyInviteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof redeemFamilyInvite>>
+>;
+export type RedeemFamilyInviteMutationBody = BodyType<FamilyInviteInput>;
+export type RedeemFamilyInviteMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Exchange a one-time recipient invite for an HttpOnly family session
+ */
+export const useRedeemFamilyInvite = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof redeemFamilyInvite>>,
+    TError,
+    { data: BodyType<FamilyInviteInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof redeemFamilyInvite>>,
+  TError,
+  { data: BodyType<FamilyInviteInput> },
+  TContext
+> => {
+  return useMutation(getRedeemFamilyInviteMutationOptions(options));
+};
+
+export const getGetFamilySessionUrl = () => {
+  return `/api/family-updates/session`;
+};
+
+export const getFamilySession = async (
+  options?: RequestInit,
+): Promise<FamilyRecipient> => {
+  return customFetch<FamilyRecipient>(getGetFamilySessionUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetFamilySessionQueryKey = () => {
+  return [`/api/family-updates/session`] as const;
+};
+
+export const getGetFamilySessionQueryOptions = <
+  TData = Awaited<ReturnType<typeof getFamilySession>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getFamilySession>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetFamilySessionQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getFamilySession>>
+  > = ({ signal }) => getFamilySession({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getFamilySession>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetFamilySessionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getFamilySession>>
+>;
+export type GetFamilySessionQueryError = ErrorType<ErrorResponse>;
+
+export function useGetFamilySession<
+  TData = Awaited<ReturnType<typeof getFamilySession>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getFamilySession>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetFamilySessionQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getEndFamilySessionUrl = () => {
+  return `/api/family-updates/session`;
+};
+
+export const endFamilySession = async (
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getEndFamilySessionUrl(), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getEndFamilySessionMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof endFamilySession>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof endFamilySession>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["endFamilySession"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof endFamilySession>>,
+    void
+  > = () => {
+    return endFamilySession(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type EndFamilySessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof endFamilySession>>
+>;
+
+export type EndFamilySessionMutationError = ErrorType<ErrorResponse>;
+
+export const useEndFamilySession = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof endFamilySession>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof endFamilySession>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getEndFamilySessionMutationOptions(options));
+};
+
 export const getGetFamilyUpdateConsentUrl = (
   params: GetFamilyUpdateConsentParams,
 ) => {
@@ -1101,13 +3053,16 @@ export const getUpdateFamilyUpdateConsentUrl = () => {
 export const updateFamilyUpdateConsent = async (
   familyUpdateConsentInput: FamilyUpdateConsentInput,
   options?: RequestInit,
-): Promise<FamilyUpdateConsent> => {
-  return customFetch<FamilyUpdateConsent>(getUpdateFamilyUpdateConsentUrl(), {
-    ...options,
-    method: "PUT",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(familyUpdateConsentInput),
-  });
+): Promise<FamilyUpdateConsentStatus> => {
+  return customFetch<FamilyUpdateConsentStatus>(
+    getUpdateFamilyUpdateConsentUrl(),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(familyUpdateConsentInput),
+    },
+  );
 };
 
 export const getUpdateFamilyUpdateConsentMutationOptions = <
@@ -1209,7 +3164,7 @@ export const getListFamilyUpdatesQueryKey = (
 
 export const getListFamilyUpdatesQueryOptions = <
   TData = Awaited<ReturnType<typeof listFamilyUpdates>>,
-  TError = ErrorType<unknown>,
+  TError = ErrorType<ErrorResponse>,
 >(
   params: ListFamilyUpdatesParams,
   options?: {
@@ -1240,11 +3195,11 @@ export const getListFamilyUpdatesQueryOptions = <
 export type ListFamilyUpdatesQueryResult = NonNullable<
   Awaited<ReturnType<typeof listFamilyUpdates>>
 >;
-export type ListFamilyUpdatesQueryError = ErrorType<unknown>;
+export type ListFamilyUpdatesQueryError = ErrorType<ErrorResponse>;
 
 export function useListFamilyUpdates<
   TData = Awaited<ReturnType<typeof listFamilyUpdates>>,
-  TError = ErrorType<unknown>,
+  TError = ErrorType<ErrorResponse>,
 >(
   params: ListFamilyUpdatesParams,
   options?: {

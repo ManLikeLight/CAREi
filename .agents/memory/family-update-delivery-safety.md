@@ -14,3 +14,9 @@ AI output must not become family-visible free-form prose. The model may select o
 **Why:** Prompt instructions alone cannot guarantee that generated prose will avoid inventions or leak internal notes, medication details, staff identity, or clinical context.
 
 **How to apply:** Exclude raw notes and staff/medication data from the model input, validate every returned fact ID, and render only fixed family-safe sentence templates.
+
+Family recipients must not inherit a staff identity or see the staff portal's locally held visit data. Initial invitation issuance is a trusted-operator action after out-of-band recipient verification, not a staff-account permission.
+
+**Why:** Staff authorization to care for a client is not proof of being that client's family recipient. Letting ordinary staff mint and consume recipient credentials would recreate the impersonation path.
+
+**How to apply:** Keep recipient sign-in separate from staff sessions, restrict data and consent to the verified recipient pair, and preserve the out-of-band verification requirement when replacing manual invite delivery.

@@ -18,7 +18,7 @@ Close to Home replaces the Family Portal. Former `/family` links open `/close-to
 
 ## Deliberately unconfigured, not simulated as delivered
 
-**No real data or email delivery is enabled.** The invitation UI copies a sample link. Notification rows are labelled `sample_only`, including their email channel. They are not delivered emails or push messages. The manager console shows this explicitly.
+**No real care data or email delivery is enabled.** The merged invitation workflow creates access records, then requires separately approved private delivery before issuing a sign-in code. It no longer copies credential-bearing sample links to staff. Private delivery stays disabled without an approved, configured provider; do not treat this as working email delivery. See `artifacts/api-server/CLOSE-TO-HOME-INVITES.md` for the verification and configuration requirements. Notification rows are labelled `sample_only`, including their email channel; they are not delivered notifications.
 
 Only fictional `example.com`, `example.org`, `example.net`, `.example`, and `.test` email addresses are accepted. Names, phone and evidence must also be fictional. Existing CAREi care records are not copied into this portal: legacy records do not carry the verified/synced provenance required by the specification.
 

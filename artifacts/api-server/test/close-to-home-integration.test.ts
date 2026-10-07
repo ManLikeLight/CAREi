@@ -4,7 +4,7 @@ import Database from "@replit/database";
 import { randomUUID } from "node:crypto";
 import app from "../src/app";
 import { issueAssistantSession } from "../src/assistant-session";
-import { rows } from "../src/ctp/store";
+import { rows, token, digest, id } from "../src/ctp/store";
 import { queueStory,settleStoryWorker,escalateConcerns,missedVisitNotifications } from "../src/ctp/jobs";
 
 test("Close to Home acceptance journey: permissions, isolation, invite, story, concern, suspension and revocation",{timeout:120000},async()=>{
@@ -22,7 +22,7 @@ test("Close to Home acceptance journey: permissions, isolation, invite, story, c
   async function manager(path:string,method="GET",body?:unknown){return request(path,method,body,bearer,true);}
   async function invite(name:string,presetId?:string){
     const r=await manager(`/clients/${clientId}/trusted-people`,"POST",{name,email:`${name.toLowerCase()}@example.test`,phone:"sample",relationship:"daughter",authorityType:"other",authorityEvidenceRef:"fictional-consent",presetId});
-    assert.equal(r.status,201,JSON.stringify(r.data));return r.data;
+    assert.equal(r.status,201,JSON.stringify(r.data));assert.equal("inviteUrl" in r.data,false);return r.data;
   }
   let clientId="";
   try{
@@ -35,12 +35,18 @@ test("Close to Home acceptance journey: permissions, isolation, invite, story, c
     const primary=m.presets.find((p:{name:string})=>p.name==="Primary Trusted Person").id;
     const limited=m.presets.find((p:{name:string})=>p.name==="Limited Trusted Person").id;
     const sarah=await invite("Sarah",primary),john=await invite("John",limited),zero=await invite("Zero");
-    const activate=async(inv:{inviteUrl:string})=>{
-      const r=await request("/auth/activate","POST",{code:new URL(inv.inviteUrl,"https://sample.test").searchParams.get("invite"),password:"Fictional-password-729!"});
+    const fixtureCodes=new Map<string,string>();
+    const activate=async(inv:{link:{id:string}})=>{
+      // This acceptance fixture does not send mail. Approved delivery itself is
+      // covered by close-to-home-invites.test.ts with the real transaction path.
+      const code=token();fixtureCodes.set(inv.link.id,code);
+      const [link]=await rows("SELECT l.trusted_person_id,p.email FROM ctp_client_trusted_person l JOIN ctp_trusted_person p ON p.id=l.trusted_person_id AND p.agency_id=l.agency_id WHERE l.id=$1 AND l.agency_id=$2",[inv.link.id,agency]);
+      await rows("INSERT INTO ctp_invite(id,agency_id,trusted_person_id,token_hash,expires_at,delivered_at,recipient_email_hash) VALUES($1,$2,$3,$4,now()+interval '24 hours',now(),$5)",[id(),agency,link.trusted_person_id,digest(code),digest(link.email)]);
+      const r=await request("/auth/activate","POST",{code,password:"Fictional-password-729!"});
       assert.equal(r.status,200);assert.ok(r.cookie);return r.cookie!;
     };
     let sarahCookie=await activate(sarah),johnCookie=await activate(john),zeroCookie=await activate(zero);
-    assert.equal((await request("/auth/activate","POST",{code:new URL(sarah.inviteUrl,"https://sample.test").searchParams.get("invite"),password:"Fictional-password-729!"})).status,403);
+    assert.equal((await request("/auth/activate","POST",{code:fixtureCodes.get(sarah.link.id),password:"Fictional-password-729!"})).status,403);
     const todayPath=`/me/clients/${clientId}/today`;
     let result=await request(todayPath,"GET",undefined,sarahCookie);
     assert.equal(result.status,200);assert.match(result.cache!,/no-store/);assert.ok(result.data.medication.length);assert.ok(result.data.story.some((s:string)=>s.includes("Medication")));

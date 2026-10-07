@@ -40,8 +40,24 @@ paths:
   /ctp/auth/activate:
     post:
       operationId: activateCtpInvite
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/CtpActivationInput" } } }
       responses:
         "200": { description: Invitation redeemed and cookie set }
+        "400": { description: Invalid code or password }
+        "403": { description: "Code unavailable, expired, already used or not privately delivered" }
+  /ctp/auth/recover:
+    post:
+      operationId: requestCtpInviteRecovery
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/CtpRecoveryInput" } } }
+      responses:
+        "202": { description: Non-enumerating acknowledgement, content: { application/json: { schema: { $ref: "#/components/schemas/CtpInviteAcknowledgement" } } } }
+        "400": { description: Invalid details }
+        "403": { description: Same-origin request required }
+        "429": { description: Request rate limited }
   /ctp/auth/login:
     post:
       operationId: loginCtp
@@ -92,7 +108,22 @@ paths:
     post:
       operationId: inviteCtpPerson
       responses:
-        "201": { description: Sample invitation link; no email sent }
+        "201": { description: Sample link created awaiting separate verification; no credential issued }
+  /ctp/links/{linkId}/invite:
+    parameters:
+      - { name: linkId, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: sendVerifiedCtpInvite
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/CtpVerifiedInviteInput" } } }
+      responses:
+        "202": { description: Provider accepted private code delivery, content: { application/json: { schema: { $ref: "#/components/schemas/CtpInviteAcknowledgement" } } } }
+        "400": { description: Confirm out-of-band verification }
+        "403": { description: Separate operator approval and active staff session required }
+        "404": { description: Active agency link not found }
+        "429": { description: Resend cooldown }
+        "503": { description: Approved private delivery unavailable }
   /ctp/links/{linkId}/permissions:
     parameters:
       - { name: linkId, in: path, required: true, schema: { type: string } }
@@ -948,6 +979,31 @@ components:
               type: string
               format: date-time
           required: [createdAt]
+    CtpRecoveryInput:
+      type: object
+      additionalProperties: false
+      required: [agency, email]
+      properties:
+        agency: { type: string, minLength: 1, maxLength: 200 }
+        email: { type: string, format: email, maxLength: 254 }
+    CtpVerifiedInviteInput:
+      type: object
+      additionalProperties: false
+      required: [recipientVerified, operatorKey]
+      properties:
+        recipientVerified: { type: boolean, const: true }
+        operatorKey: { type: string, minLength: 32, maxLength: 256 }
+    CtpInviteAcknowledgement:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
+    CtpActivationInput:
+      type: object
+      required: [code, password]
+      properties:
+        code: { type: string, pattern: "^[A-Za-z0-9_-]{43}$" }
+        password: { type: string, minLength: 8, maxLength: 128 }
     FamilyInviteInput:
       type: object
       additionalProperties: false

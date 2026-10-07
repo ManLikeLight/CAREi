@@ -4,8 +4,11 @@ import { rows, transaction, audit, id, token, digest, can, notification } from "
 import { CATEGORIES, emptyFlags, type Flags, type Category } from "./permissions";
 import { setupSample } from "./sample";
 import { queueStory, kickStoryWorker, processStoryJobs, escalateConcerns, missedVisitNotifications } from "./jobs";
+import { privateInviteDelivery, type PrivateInviteDelivery, RESEND_SECONDS } from "./invite-delivery";
+import { SendVerifiedCtpInviteBody } from "@workspace/api-zod";
 
-export const managerRoutes=Router();
+export function createManagerRoutes(invites: PrivateInviteDelivery = privateInviteDelivery) {
+const managerRoutes=Router();
 managerRoutes.use((req,res,next)=>{
   if(req.path.startsWith("/me/")||(/^\/clients\/[^/]+\/(today|concerns)$/.test(req.path))) {next("router");return;}
   void staff(req,res,next).catch(next);
@@ -23,10 +26,10 @@ const concernSql=`SELECT id,client_id AS "clientId",status,reason_code AS "reaso
 managerRoutes.get("/manager",async(_req,res)=>{
   const p=actor(res);
   await rows("INSERT INTO ctp_agency_settings(agency_id) VALUES($1) ON CONFLICT DO NOTHING",[p.agency]);
-  const links=await rows(`SELECT l.id,l.client_id AS "clientId",c.name AS "clientName",p.name AS "personName",p.email,l.relationship,l.authority_type AS "authorityType",l.status,l.review_due_at AS "reviewDueAt",l.expires_at AS "expiresAt"
+  const links=await rows(`SELECT l.id,l.trusted_person_id AS "trustedPersonId",l.client_id AS "clientId",c.name AS "clientName",p.name AS "personName",p.email,l.relationship,l.authority_type AS "authorityType",l.status,l.review_due_at AS "reviewDueAt",l.expires_at AS "expiresAt"
     FROM ctp_client_trusted_person l JOIN ctp_trusted_person p ON p.id=l.trusted_person_id AND p.agency_id=l.agency_id JOIN ctp_sample_client c ON c.id=l.client_id AND c.agency_id=l.agency_id WHERE l.agency_id=$1 ORDER BY l.created_at`,[p.agency]);
   const [settings]=await rows(`SELECT carer_identity_enabled AS "carerIdentityEnabled",concern_ack_minutes AS "concernAckMinutes",concern_escalate_minutes AS "concernEscalateMinutes",escalation_contacts AS "escalationContacts" FROM ctp_agency_settings WHERE agency_id=$1`,[p.agency]);
-  res.json({sampleOnly:true,clients:await rows("SELECT id,name FROM ctp_sample_client WHERE agency_id=$1",[p.agency]),
+  res.json({sampleOnly:true,agencyId:p.agency,inviteDelivery:{operatorApproved:invites.operatorApproved(p),configured:invites.configured()},clients:await rows("SELECT id,name FROM ctp_sample_client WHERE agency_id=$1",[p.agency]),
     links:await Promise.all(links.map(async l=>({...l,permissions:await permissions(l.id)}))),
     presets:await rows("SELECT id,name FROM ctp_access_preset WHERE agency_id=$1",[p.agency]),
     concerns:await rows(concernSql,[p.agency]),settings,
@@ -40,7 +43,6 @@ managerRoutes.post("/clients/:clientId/trusted-people",async(req,res)=>{
   if(!nonempty(b.name)||!sampleEmail(b.email)||!nonempty(b.relationship)||!["none","lpa_health_welfare","deputy","client_self","other"].includes(b.authorityType)||!nonempty(b.authorityEvidenceRef)|| (b.expiresAt && (!Number.isFinite(Date.parse(b.expiresAt))||Date.parse(b.expiresAt)<=Date.now()))){
     res.status(400).json({error:"Use fictional details and an email at example.com or a .test domain. Name, relationship, authority and evidence are required; expiry must be in the future."});return;
   }
-  const raw=token();
   const result=await transaction(async tx=>{
     const [client]=await rows("SELECT id FROM ctp_sample_client WHERE id=$1 AND agency_id=$2 AND sample_only",[String(req.params.clientId),p.agency],tx);
     if(!client)return null;
@@ -58,12 +60,23 @@ managerRoutes.post("/clients/:clientId/trusted-people",async(req,res)=>{
       const f=(preset?.permissions[c]??emptyFlags()) as Flags;
       await rows("INSERT INTO ctp_permission(id,agency_id,client_trusted_person_id,category,can_view,can_contribute,can_notify,client_restricted) VALUES($1,$2,$3,$4,$5,$6,$7,false)",[id(),p.agency,linkId,c,f.can_view,f.can_contribute,f.can_view&&f.can_notify],tx);
     }
-    await rows("INSERT INTO ctp_invite(id,agency_id,trusted_person_id,token_hash,expires_at) VALUES($1,$2,$3,$4,now()+interval '7 days')",[id(),p.agency,person.id,digest(raw)],tx);
     await audit(p.agency,"staff",p.id,"access_granted",linkId,client.id,tx);
     return {id:linkId};
   });
   if(!result){res.status(404).json({error:"Sample client not found."});return;}
-  res.status(201).json({link:result,inviteUrl:`/close-to-home?agency=${encodeURIComponent(p.agency)}&invite=${encodeURIComponent(raw)}`,delivery:"sample_link_only"});
+  res.status(201).json({link:result,delivery:"awaiting_private_verification"});
+});
+managerRoutes.post("/links/:linkId/invite",async(req,res):Promise<void>=>{
+  const p=actor(res);
+  const input=SendVerifiedCtpInviteBody.safeParse(req.body);
+  if(!input.success||input.data.recipientVerified!==true){res.status(400).json({error:"Confirm out-of-band identity, relationship and address verification."});return;}
+  if(!invites.operatorApproved(p,input.data.operatorKey)){res.status(403).json({error:"Separate trusted-operator approval is required; manager sign-in alone cannot issue invites."});return;}
+  const [link]=await rows("SELECT trusted_person_id FROM ctp_client_trusted_person WHERE id=$1 AND agency_id=$2 AND status='active' AND (expires_at IS NULL OR expires_at>now())",[String(req.params.linkId),p.agency]);
+  if(!link){res.status(404).json({error:"Active link not found."});return;}
+  const result=await invites.send(p.agency,link.trusted_person_id,p.id);
+  if(result==="cooldown"){res.setHeader("Retry-After",String(RESEND_SECONDS));res.status(429).json({error:"Wait five minutes before requesting another private code."});return;}
+  if(result!=="sent"){res.status(503).json({error:"Private delivery is unavailable. Check approved provider setup and recent recipient verification. No new invite was activated."});return;}
+  res.status(202).json({message:"The provider accepted a code for private delivery to the verified recipient. No code is shown to staff."});
 });
 managerRoutes.patch("/links/:linkId/permissions",async(req,res)=>{
   const p=actor(res);const b=req.body??{};
@@ -172,3 +185,6 @@ managerRoutes.post("/stories/:visitId/regenerate",async(req,res)=>{
 managerRoutes.post("/manager/run-jobs",async(_req,res)=>{
   await processStoryJobs();await escalateConcerns();await missedVisitNotifications();res.json({ok:true,sampleOnly:true});
 });
+return managerRoutes;
+}
+export const managerRoutes=createManagerRoutes();

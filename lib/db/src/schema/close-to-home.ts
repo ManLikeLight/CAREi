@@ -7,7 +7,7 @@ const tenant = () => ({
 });
 export const ctpPeople = pgTable("ctp_trusted_person", {
   id: text("id").primaryKey(), ...tenant(), name: text("name").notNull(), email: text("email").notNull(),
-  phone: text("phone"), passwordHash: text("password_hash"), loginStatus: text("login_status").notNull().default("invited"),
+  phone: text("phone"), passwordHash: text("password_hash"), loginEmailHash: text("login_email_hash"), loginStatus: text("login_status").notNull().default("invited"),
 }, t => [uniqueIndex("ctp_person_agency_email_idx").on(t.agencyId, t.email)]);
 export const ctpClients = pgTable("ctp_sample_client", {
   id: text("id").primaryKey(), ...tenant(), name: text("name").notNull(), sampleOnly: boolean("sample_only").notNull().default(true),
@@ -91,6 +91,8 @@ export const ctpInvites = pgTable("ctp_invite", {
   id: text("id").primaryKey(), ...tenant(), trustedPersonId: text("trusted_person_id").notNull().references(() => ctpPeople.id),
   tokenHash: text("token_hash").notNull().unique(), expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   redeemedAt: timestamp("redeemed_at", { withTimezone: true }),
+  deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+  recipientEmailHash: text("recipient_email_hash"),
 });
 export const ctpJobs = pgTable("ctp_story_job", {
   id: text("id").primaryKey(), ...tenant(), visitId: text("visit_id").notNull().references(() => ctpVisits.id),

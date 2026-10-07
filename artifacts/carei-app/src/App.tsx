@@ -77,7 +77,6 @@ async function performRemoteWipeCheck(): Promise<boolean> {
       await wipeAllData(email);
       clearMemory();
       clearBiometricRegistration();
-      sessionStorage.clear();
 
       // Acknowledge the wipe so the server clears the flag
       await fetch("/api/auth/wipe-ack", {

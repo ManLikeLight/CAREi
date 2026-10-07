@@ -1,11 +1,13 @@
 import { Router, type ErrorRequestHandler } from "express";
-import { authRoutes } from "../ctp/auth-routes";
-import { managerRoutes } from "../ctp/manager-routes";
+import { createAuthRoutes } from "../ctp/auth-routes";
+import { createManagerRoutes } from "../ctp/manager-routes";
 import { portalRoutes } from "../ctp/portal-routes";
 import { timingSafeEqual } from "node:crypto";
 import { digest } from "../ctp/store";
 import { escalateConcerns } from "../ctp/jobs";
+import { privateInviteDelivery, type PrivateInviteDelivery } from "../ctp/invite-delivery";
 
+export function createCloseToHomeRouter(invites: PrivateInviteDelivery = privateInviteDelivery) {
 const router=Router();
 router.post("/ctp/jobs/escalate",async(req,res)=>{
   res.setHeader("Cache-Control","no-store");
@@ -27,8 +29,8 @@ router.use("/ctp",(req,res,next)=>{
   }
   next();
 });
-router.use("/ctp/auth",authRoutes);
-router.use("/ctp",managerRoutes);
+router.use("/ctp/auth",createAuthRoutes(invites));
+router.use("/ctp",createManagerRoutes(invites));
 // Manager middleware must only apply to manager routes, not trusted-person paths.
 router.use("/ctp",portalRoutes);
 const handle:ErrorRequestHandler=(err,_req,res,_next)=>{
@@ -38,4 +40,6 @@ const handle:ErrorRequestHandler=(err,_req,res,_next)=>{
   res.status(expected?400:500).json({error:expected?message:"Close to Home is unavailable. Please try again."});
 };
 router.use("/ctp",handle);
-export default router;
+return router;
+}
+export default createCloseToHomeRouter();

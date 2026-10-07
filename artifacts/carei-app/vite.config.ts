@@ -28,6 +28,11 @@ if (!basePath) {
 
 export default defineConfig({
   base: basePath,
+  // Browser regressions use production React with a separate dev server.
+  // Never let their optimized dependencies overwrite the live preview cache.
+  cacheDir: process.env.CAREI_BROWSER_TEST === "1"
+    ? path.resolve(import.meta.dirname, "node_modules/.vite-browser-tests")
+    : path.resolve(import.meta.dirname, "node_modules/.vite"),
   plugins: [
     react(),
     tailwindcss(),
@@ -60,6 +65,11 @@ export default defineConfig({
   },
   server: {
     port,
+    strictPort: true,
+    // A dev-client reconnect can reload the page just as the offline queue
+    // drains. Production has no HMR client; keep network regressions faithful
+    // to that behavior instead of losing their in-memory test harness.
+    hmr: process.env.CAREI_BROWSER_TEST === "1" ? false : undefined,
     host: "0.0.0.0",
     allowedHosts: true,
     fs: {
@@ -69,6 +79,7 @@ export default defineConfig({
   },
   preview: {
     port,
+    strictPort: true,
     host: "0.0.0.0",
     allowedHosts: true,
   },

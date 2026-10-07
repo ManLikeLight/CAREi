@@ -1,39 +1,16 @@
-# Recipient access
+# Legacy recipient access
 
-Family access is separate from staff authentication. Send recipients to `/family`.
-Staff tokens cannot read delivered updates or confirm/withdraw recipient consent.
-Only approved server summaries are displayed; local staff visit data is never used.
+Close to Home replaces the old Family Portal. `/family` redirects to
+`/close-to-home`; the retired `FamilyView` is not re-enabled.
 
-## Issue an invite
+The terminal command `src/scripts/invite-family.ts` has been removed. Do not issue
+new legacy family credentials. Existing legacy records, expiry, atomic single-use
+redemption and separate recipient sessions are preserved; they are not converted
+into Close to Home credentials or permissions.
 
-A trusted operator must verify the intended recipient's identity and their relationship
-to the client using the organisation's established process **before** issuing a code.
-This initial release supports the James/Mary mapping only. Do not issue codes for
-other people or share them with staff acting as the recipient.
+For the current browser-based private invitation and recovery workflow, see
+[CLOSE-TO-HOME-INVITES.md](CLOSE-TO-HOME-INVITES.md). Staff access does not establish
+recipient identity, and a manager must never issue and consume a recipient's code.
 
-From the workspace, run:
-
-```sh
-pnpm --filter @workspace/api-server exec tsx src/scripts/invite-family.ts --recipient-verified
-```
-
-Deliver the resulting code privately to the verified recipient through an approved
-channel. Treat it as a password. Do not put it in URLs, tickets, shared chat, screenshots,
-or application logs. It expires after 24 hours and can be redeemed exactly once.
-The recipient enters it on `/family`. A lost/expired session requires a newly verified
-invite. There is deliberately no staff HTTP endpoint for issuing invites.
-
-The session lasts eight hours, survives reloads through a separate HttpOnly,
-SameSite=Strict cookie, and is revoked server-side on sign-out. Credentials are stored
-only as digests in PostgreSQL. Apply the additive `family_access` schema before
-running this release in another environment using the project's existing schema process.
-
-The external development-preview proxy rewrites cookies to `SameSite=None; Secure`
-for its iframe. The server's direct response still uses Strict. Do not rely on
-SameSite alone: mutations require a custom header and JSON (except bodyless sign-out),
-reject non-same-origin browser fetch metadata, and recipient responses disable
-cross-origin credential access.
-
-Withdrawal prevents future delivery; previously delivered updates remain available
-to the same authenticated recipient. Neither staff nor a different recipient can
-read or change that client's/member's consent.
+Neither legacy credentials nor Close to Home codes belong in URLs, shared chat,
+tickets, screenshots or application logs.

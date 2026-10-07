@@ -9,5 +9,7 @@
 - [CAREi security workstream](security-workstream.md) — startup PIN migration must fail closed; signed sessions, device-scoped wipe, and separate audit storage define the security boundary.
 - [Preview cookie security](preview-cookie-security.md) — external development preview rewrites Strict cookies to None; recipient CSRF protection must not rely on SameSite alone.
 - [Close to Home launch boundary](close-to-home-scope.md) — only the foundation and four specified experiences; no real data until every pilot approval and hosting gate is met.
-- [OpenAPI path references](openapi-generator-refs.md) — current Orval 8 failed external path-item resolution; keep paths inline unless codegen verifies a split.
+- [OpenAPI generation limits](openapi-generator-refs.md) — Orval 8 path refs and boolean const need verification; enforce required-true confirmations explicitly.
 - [GitHub sync](github-sync.md) — terminal credentials and tracking refs may fail while the connected proxy works; preserve remote history and verify the exact uploaded tree.
+- [Offline verification boundaries](offline-verification-boundaries.md) — queue durability, offline shell availability, and real server acceptance are separate claims.
+- [Workspace dependency installation](workspace-package-installs.md) — the generic installer targets the root; restore declared dependencies without duplicating artifact packages there.

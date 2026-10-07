@@ -17,6 +17,41 @@ env = { "CI" = "true" }
 [workflows]
 runButton = "Project"
 
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "carei-browser-storage"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "carei-production-build"
+
+[[workflows.workflow]]
+name = "carei-browser-storage"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/carei-app typecheck:browser && pnpm --filter @workspace/carei-app test:browser"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "carei-production-build"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PORT=5179 BASE_PATH=/ pnpm --filter @workspace/carei-app build"
+
+[workflows.workflow.metadata]
+isValidation = true
+
 [agent]
 stack = "PNPM_WORKSPACE"
 expertMode = true

@@ -57,13 +57,19 @@ Mobile-first React prototype for UK domiciliary care platform targeting CQC-regu
 | AI Copilot | `copilot` | Anthropic claude-sonnet-4-6 with offline fallback |
 | Medication | `medication` | Per-med confirm/defer with allergy banner |
 | Summary (legacy) | `summary` | Old AI-generated handover |
-| Family Portal | `family` | Live visit timeline + agency contact buttons |
+| Close to Home | `/close-to-home` (`/family` alias) | Separate trusted-person portal; legacy family credentials are not migrated |
 | Visit History | `visit-history` | Last 30 days of visits |
 | Care Plan | `care-plan` | Objectives, preferences, risks — back navigates to caller |
 | Emergency Contacts | `emergency` | Next of kin, GP, agency, 999/111 — back navigates to caller |
 | Profile | `profile` | Carer profile + SOS overlay |
 | Admin Teaser | `admin` | Manager metrics + carer strip + CQC meters (in phone frame) |
 | Admin Dashboard | `admin-dashboard` | **Full-page desktop view** — Carer Overview, Client Roster, CQC Audit Trail, Agency Alerts |
+
+Private invitation delivery and recovery target Close to Home, not the retired
+Family Portal. Configuration, verification, disabled-by-default provider delivery,
+and release restrictions are documented in
+`artifacts/api-server/CLOSE-TO-HOME-INVITES.md`. The sample release is not approval
+to use real care data.
 
 ### Schedule Clients
 - **Mary Johnson** (82, Dementia) — Morning

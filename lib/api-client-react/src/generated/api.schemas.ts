@@ -338,6 +338,39 @@ export type MedicationConfirmationRecord = MedicationConfirmationInput & {
   createdAt: string;
 };
 
+export interface CtpRecoveryInput {
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  agency: string;
+  /** @maxLength 254 */
+  email: string;
+}
+
+export interface CtpVerifiedInviteInput {
+  recipientVerified: true;
+  /**
+   * @minLength 32
+   * @maxLength 256
+   */
+  operatorKey: string;
+}
+
+export interface CtpInviteAcknowledgement {
+  message: string;
+}
+
+export interface CtpActivationInput {
+  /** @pattern ^[A-Za-z0-9_-]{43}$ */
+  code: string;
+  /**
+   * @minLength 8
+   * @maxLength 128
+   */
+  password: string;
+}
+
 export interface FamilyInviteInput {
   /** @pattern ^[A-Za-z0-9_-]{43}$ */
   code: string;

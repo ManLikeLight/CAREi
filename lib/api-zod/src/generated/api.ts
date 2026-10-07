@@ -7,6 +7,29 @@
  */
 import * as zod from "zod";
 
+export const activateCtpInviteBodyCodeRegExp = new RegExp(
+  "^[A-Za-z0-9_-]{43}$",
+);
+export const activateCtpInviteBodyPasswordMin = 8;
+export const activateCtpInviteBodyPasswordMax = 128;
+
+export const ActivateCtpInviteBody = zod.object({
+  code: zod.string().regex(activateCtpInviteBodyCodeRegExp),
+  password: zod
+    .string()
+    .min(activateCtpInviteBodyPasswordMin)
+    .max(activateCtpInviteBodyPasswordMax),
+});
+
+export const requestCtpInviteRecoveryBodyAgencyMax = 200;
+
+export const requestCtpInviteRecoveryBodyEmailMax = 254;
+
+export const RequestCtpInviteRecoveryBody = zod.object({
+  agency: zod.string().min(1).max(requestCtpInviteRecoveryBodyAgencyMax),
+  email: zod.string().email().max(requestCtpInviteRecoveryBodyEmailMax),
+});
+
 export const GetCtpTodayParams = zod.object({
   clientId: zod.coerce.string(),
 });
@@ -17,6 +40,21 @@ export const CreateCtpConcernParams = zod.object({
 
 export const InviteCtpPersonParams = zod.object({
   clientId: zod.coerce.string(),
+});
+
+export const SendVerifiedCtpInviteParams = zod.object({
+  linkId: zod.coerce.string(),
+});
+
+export const sendVerifiedCtpInviteBodyOperatorKeyMin = 32;
+export const sendVerifiedCtpInviteBodyOperatorKeyMax = 256;
+
+export const SendVerifiedCtpInviteBody = zod.object({
+  recipientVerified: zod.boolean(),
+  operatorKey: zod
+    .string()
+    .min(sendVerifiedCtpInviteBodyOperatorKeyMin)
+    .max(sendVerifiedCtpInviteBodyOperatorKeyMax),
 });
 
 export const UpdateCtpPermissionsParams = zod.object({

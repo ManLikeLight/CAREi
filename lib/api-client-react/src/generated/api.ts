@@ -22,6 +22,10 @@ import type {
   CarePlanVersion,
   ComplianceDashboard,
   ConfirmCarePlanRequest,
+  CtpActivationInput,
+  CtpInviteAcknowledgement,
+  CtpRecoveryInput,
+  CtpVerifiedInviteInput,
   DocumentConfirmationInput,
   DocumentDraft,
   DocumentGenerationInput,
@@ -208,29 +212,32 @@ export const getActivateCtpInviteUrl = () => {
 };
 
 export const activateCtpInvite = async (
+  ctpActivationInput: CtpActivationInput,
   options?: RequestInit,
 ): Promise<void> => {
   return customFetch<void>(getActivateCtpInviteUrl(), {
     ...options,
     method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(ctpActivationInput),
   });
 };
 
 export const getActivateCtpInviteMutationOptions = <
-  TError = ErrorType<unknown>,
+  TError = ErrorType<void>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof activateCtpInvite>>,
     TError,
-    void,
+    { data: BodyType<CtpActivationInput> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof activateCtpInvite>>,
   TError,
-  void,
+  { data: BodyType<CtpActivationInput> },
   TContext
 > => {
   const mutationKey = ["activateCtpInvite"];
@@ -244,9 +251,11 @@ export const getActivateCtpInviteMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof activateCtpInvite>>,
-    void
-  > = () => {
-    return activateCtpInvite(requestOptions);
+    { data: BodyType<CtpActivationInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return activateCtpInvite(data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -255,27 +264,110 @@ export const getActivateCtpInviteMutationOptions = <
 export type ActivateCtpInviteMutationResult = NonNullable<
   Awaited<ReturnType<typeof activateCtpInvite>>
 >;
-
-export type ActivateCtpInviteMutationError = ErrorType<unknown>;
+export type ActivateCtpInviteMutationBody = BodyType<CtpActivationInput>;
+export type ActivateCtpInviteMutationError = ErrorType<void>;
 
 export const useActivateCtpInvite = <
-  TError = ErrorType<unknown>,
+  TError = ErrorType<void>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof activateCtpInvite>>,
     TError,
-    void,
+    { data: BodyType<CtpActivationInput> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof activateCtpInvite>>,
   TError,
-  void,
+  { data: BodyType<CtpActivationInput> },
   TContext
 > => {
   return useMutation(getActivateCtpInviteMutationOptions(options));
+};
+
+export const getRequestCtpInviteRecoveryUrl = () => {
+  return `/api/ctp/auth/recover`;
+};
+
+export const requestCtpInviteRecovery = async (
+  ctpRecoveryInput: CtpRecoveryInput,
+  options?: RequestInit,
+): Promise<CtpInviteAcknowledgement> => {
+  return customFetch<CtpInviteAcknowledgement>(
+    getRequestCtpInviteRecoveryUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(ctpRecoveryInput),
+    },
+  );
+};
+
+export const getRequestCtpInviteRecoveryMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestCtpInviteRecovery>>,
+    TError,
+    { data: BodyType<CtpRecoveryInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof requestCtpInviteRecovery>>,
+  TError,
+  { data: BodyType<CtpRecoveryInput> },
+  TContext
+> => {
+  const mutationKey = ["requestCtpInviteRecovery"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof requestCtpInviteRecovery>>,
+    { data: BodyType<CtpRecoveryInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return requestCtpInviteRecovery(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RequestCtpInviteRecoveryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof requestCtpInviteRecovery>>
+>;
+export type RequestCtpInviteRecoveryMutationBody = BodyType<CtpRecoveryInput>;
+export type RequestCtpInviteRecoveryMutationError = ErrorType<void>;
+
+export const useRequestCtpInviteRecovery = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestCtpInviteRecovery>>,
+    TError,
+    { data: BodyType<CtpRecoveryInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof requestCtpInviteRecovery>>,
+  TError,
+  { data: BodyType<CtpRecoveryInput> },
+  TContext
+> => {
+  return useMutation(getRequestCtpInviteRecoveryMutationOptions(options));
 };
 
 export const getLoginCtpUrl = () => {
@@ -929,6 +1021,91 @@ export const useInviteCtpPerson = <
   TContext
 > => {
   return useMutation(getInviteCtpPersonMutationOptions(options));
+};
+
+export const getSendVerifiedCtpInviteUrl = (linkId: string) => {
+  return `/api/ctp/links/${linkId}/invite`;
+};
+
+export const sendVerifiedCtpInvite = async (
+  linkId: string,
+  ctpVerifiedInviteInput: CtpVerifiedInviteInput,
+  options?: RequestInit,
+): Promise<CtpInviteAcknowledgement> => {
+  return customFetch<CtpInviteAcknowledgement>(
+    getSendVerifiedCtpInviteUrl(linkId),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(ctpVerifiedInviteInput),
+    },
+  );
+};
+
+export const getSendVerifiedCtpInviteMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendVerifiedCtpInvite>>,
+    TError,
+    { linkId: string; data: BodyType<CtpVerifiedInviteInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof sendVerifiedCtpInvite>>,
+  TError,
+  { linkId: string; data: BodyType<CtpVerifiedInviteInput> },
+  TContext
+> => {
+  const mutationKey = ["sendVerifiedCtpInvite"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof sendVerifiedCtpInvite>>,
+    { linkId: string; data: BodyType<CtpVerifiedInviteInput> }
+  > = (props) => {
+    const { linkId, data } = props ?? {};
+
+    return sendVerifiedCtpInvite(linkId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SendVerifiedCtpInviteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof sendVerifiedCtpInvite>>
+>;
+export type SendVerifiedCtpInviteMutationBody =
+  BodyType<CtpVerifiedInviteInput>;
+export type SendVerifiedCtpInviteMutationError = ErrorType<void>;
+
+export const useSendVerifiedCtpInvite = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendVerifiedCtpInvite>>,
+    TError,
+    { linkId: string; data: BodyType<CtpVerifiedInviteInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof sendVerifiedCtpInvite>>,
+  TError,
+  { linkId: string; data: BodyType<CtpVerifiedInviteInput> },
+  TContext
+> => {
+  return useMutation(getSendVerifiedCtpInviteMutationOptions(options));
 };
 
 export const getUpdateCtpPermissionsUrl = (linkId: string) => {

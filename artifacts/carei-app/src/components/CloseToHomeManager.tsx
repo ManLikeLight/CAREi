@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { CTP_CATEGORIES, ctp } from "@/lib/closeToHome";
+import PrivateInvite from "./CloseToHomePrivateInvite";
 import type { Category, Concern, Flags, Link, ManagerData } from "@/lib/closeToHome";
 import "./close-to-home.css";
 
@@ -31,7 +32,7 @@ export default function Manager({ staffToken, onBack }: Props) {
   const mut = <T,>(path: string, method: string, body?: unknown) => ctp<T>(path, { method, body, staffToken });
 
   return (
-    <div className="cth"><div className="cth-banner">SAMPLE ONLY — fictional data. No email or message is sent from this screen.</div>
+    <div className="cth"><div className="cth-banner">SAMPLE ONLY — fictional care data. Private invites require separate verification and approved delivery.</div>
       <div className="cth-wrap cth-wide">
         <div className="cth-row" style={{ justifyContent: "space-between" }}>
           <h1>Close to Home: agency manager</h1>
@@ -48,7 +49,9 @@ export default function Manager({ staffToken, onBack }: Props) {
           <Invite data={data} busy={busy} run={run} mut={mut} />
           <h2>Trusted people</h2>
           {data.links.length === 0 && <div className="cth-card"><p>No trusted people yet. Create the sample fixture or invite someone above.</p></div>}
-          {data.links.map((l) => <LinkCard key={l.id} link={l} presets={data.presets} busy={busy} run={run} mut={mut} />)}
+          {data.links.map((l) => <div key={l.id}><LinkCard link={l} presets={data.presets} busy={busy} run={run} mut={mut} />
+            {data.inviteDelivery?.operatorApproved && <PrivateInvite link={l} agency={data.agencyId} configured={data.inviteDelivery.configured} busy={busy} run={run} mut={mut} />}
+          </div>)}
           <Concerns concerns={data.concerns} busy={busy} run={run} mut={mut} />
           <Settings data={data} busy={busy} run={run} mut={mut} />
           <Visits visits={visits} busy={busy} run={run} mut={mut} staffToken={staffToken} />
@@ -64,15 +67,13 @@ type Mut = <T>(path: string, method: string, body?: unknown) => Promise<T>;
 
 function Invite({ data, busy, run, mut }: { data: ManagerData; busy: boolean; run: Run; mut: Mut }) {
   const [f, setF] = useState({ clientId: "", name: "", email: "", phone: "", relationship: "", authorityType: "", authorityEvidenceRef: "", presetId: "", expiresAt: "" });
-  const [res, setRes] = useState<{ link: unknown; inviteUrl: string; delivery: string } | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [res, setRes] = useState<{ link: {id:string}; delivery: string } | null>(null);
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const { clientId, presetId, expiresAt, ...rest } = f;
     void run(async () => {
       setRes(await mut(`/clients/${encodeURIComponent(clientId)}/trusted-people`, "POST", { ...rest, ...(presetId ? { presetId } : {}), ...(expiresAt ? { expiresAt: new Date(expiresAt).toISOString() } : {}) }));
-      setCopied(false);
     }, "Trusted person created.");
   };
   return (
@@ -88,11 +89,11 @@ function Invite({ data, busy, run, mut }: { data: ManagerData; busy: boolean; ru
         <div><label>Authority evidence reference</label><input required value={f.authorityEvidenceRef} onChange={set("authorityEvidenceRef")} data-testid="input-invite-evidence" /></div>
         <div><label>Access expires (optional)</label><input type="date" value={f.expiresAt} onChange={set("expiresAt")} /></div>
       </div>
-      <button className="cth-btn primary" disabled={busy} data-testid="button-invite">Create sample link</button>
+      <p className="cth-muted">Creating a link does not issue a sign-in code. A separately approved operator must verify the recipient outside CAREi and send privately.</p>
+      <button className="cth-btn primary" disabled={busy} data-testid="button-invite">Create access link</button>
       {res && <div style={{ marginTop: "1rem" }} data-testid="invite-result">
-        <p className="cth-err">Delivery: {lab(res.delivery)}. No email was sent. Share this sample link yourself.</p>
-        <div className="cth-link" data-testid="text-invite-url">{new URL(res.inviteUrl, window.location.origin).href}</div>
-        <button type="button" className="cth-btn sm" style={{ marginTop: ".5rem" }} data-testid="button-copy" onClick={() => { void navigator.clipboard?.writeText(new URL(res.inviteUrl, window.location.origin).href).then(() => setCopied(true), () => setCopied(false)); }}>{copied ? "Copied" : "Copy link"}</button>
+        <p className="cth-muted">Delivery: {lab(res.delivery)}. No email was sent.</p>
+        <p>Access link created, awaiting private recipient verification and delivery. No sign-in credential was issued.</p>
       </div>}
     </form>
   );

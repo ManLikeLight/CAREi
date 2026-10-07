@@ -7,7 +7,9 @@
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
     "build": "vite build --config vite.config.ts",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:browser": "playwright test",
+    "typecheck:browser": "tsc -p tests/browser/tsconfig.json"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -64,6 +66,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@replit/vite-plugin-cartographer": "catalog:",
     "@replit/vite-plugin-dev-banner": "catalog:",
     "@replit/vite-plugin-runtime-error-modal": "catalog:",

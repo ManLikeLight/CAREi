@@ -4,6 +4,7 @@ import { flushSync } from "react-dom";
 import { AccessUnavailable, ctp } from "@/lib/closeToHome";
 import type { Concern, Today } from "@/lib/closeToHome";
 import "./close-to-home.css";
+import RecoveryForm from "./CloseToHomeRecovery";
 
 type Phase = "loading" | "signedout" | "ready" | "unavailable" | "offline";
 type Tab = "today" | "who" | "story" | "worried";
@@ -23,7 +24,6 @@ export default function Portal() {
   const [today, setToday] = useState<Today | null>(null);
   const [concerns, setConcerns] = useState<Concern[]>([]);
   const [tab, setTab] = useState<Tab>("today");
-  const [invite, setInvite] = useState<string | null>(() => new URLSearchParams(window.location.search).get("invite"));
   const clientRef = useRef<string | null>(null);
   const gen = useRef(0);
   const phaseRef = useRef<Phase>("loading");
@@ -58,14 +58,13 @@ export default function Portal() {
   }, [clearAll]);
 
   useEffect(() => {
-    if (invite) { setPhase("signedout"); return; }
     void refresh();
-  }, [invite, refresh]);
+  }, [refresh]);
 
   useEffect(() => {
     const hide = () => { flushSync(()=>{ clearAll(); setPhase("loading"); }); };
-    const back = () => { clearAll(); setPhase("loading"); setInvite(new URLSearchParams(window.location.search).get("invite")); void refresh(); };
-    const focus = () => { if (!invite && ["ready","offline","loading"].includes(phaseRef.current)) void refresh(); };
+    const back = () => { clearAll(); setPhase("loading"); void refresh(); };
+    const focus = () => { if (["ready","offline","loading"].includes(phaseRef.current)) void refresh(); };
     const visible = () => { if(document.visibilityState==="visible")focus(); };
     const show = (e:PageTransitionEvent) => {if(e.persisted){hide();focus();}};
     const offline = () => {clearAll();setPhase("offline");};
@@ -75,9 +74,9 @@ export default function Portal() {
     window.addEventListener("focus", focus);
     window.addEventListener("offline",offline);
     document.addEventListener("visibilitychange",visible);
-    const iv = window.setInterval(() => { if (!invite && phaseRef.current === "ready") void refresh(); }, 5000);
+    const iv = window.setInterval(() => { if (phaseRef.current === "ready") void refresh(); }, 5000);
     return () => { window.removeEventListener("pagehide", hide); window.removeEventListener("pageshow",show); window.removeEventListener("popstate", back); window.removeEventListener("focus", focus); window.removeEventListener("offline",offline);document.removeEventListener("visibilitychange",visible);window.clearInterval(iv); };
-  }, [clearAll, refresh, invite]);
+  }, [clearAll, refresh]);
 
   const logout = async () => {
     clearAll();
@@ -105,11 +104,7 @@ export default function Portal() {
     </div></div></div>
   );
   if (phase === "signedout") return (
-    <div className="cth">{banner}<AuthForm invite={invite} onDone={() => {
-      if (invite) {
-        const url=new URL(window.location.href);url.searchParams.delete("invite");
-        window.history.replaceState(null,"",url.pathname+url.search);setInvite(null);
-      }
+    <div className="cth">{banner}<AuthForm onDone={() => {
       setPhase("loading"); void refresh();
     }} /></div>
   );
@@ -143,27 +138,35 @@ export default function Portal() {
   );
 }
 
-function AuthForm({ invite, onDone }: { invite: string | null; onDone: () => void }) {
+function AuthForm({ onDone }: { onDone: () => void }) {
   const [email, setEmail] = useState(""); const [pw, setPw] = useState("");
+  const [privateMode, setPrivateMode] = useState(false);
+  const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
   const submit = async (e: FormEvent) => {
     e.preventDefault(); setBusy(true); setErr("");
     try {
-      if (invite) await ctp("/auth/activate", { method: "POST", body: { code: invite, password: pw } });
+      if (privateMode) await ctp("/auth/activate", { method: "POST", body: { code: code.trim(), password: pw } });
       else await ctp("/auth/login", { method: "POST", body: { email, password: pw, agency:new URLSearchParams(window.location.search).get("agency") } });
       setPw(""); onDone();
-    } catch (x) { setErr(x instanceof Error ? x.message : "Could not sign in."); } finally { setBusy(false); }
+    } catch (x) { setErr(x instanceof Error ? x.message : "Could not sign in."); } finally { setCode(""); setPw(""); setBusy(false); }
   };
   return (
     <div className="cth-wrap"><form className="cth-card" onSubmit={submit} style={{ marginTop: "8dvh" }}>
-      <h1>{invite ? "Set your password" : "Welcome back"}</h1>
-      <p className="cth-muted">{invite ? "Choose a password to open your invitation." : "Sign in to see how today has gone."}</p>
-      {!invite && <><label htmlFor="e">Email</label><input id="e" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} data-testid="input-email" /></>}
+      <h1>{privateMode ? "Use your private code" : "Welcome back"}</h1>
+      <p className="cth-muted">{privateMode ? "Enter the code sent privately to your verified address. Choose a new password to activate or recover your access. Codes expire after 24 hours." : "Sign in to see how today has gone."}</p>
+      {privateMode ? <><label htmlFor="private-code">One-time private code</label>
+        <input id="private-code" type="password" autoComplete="off" required value={code} onChange={e=>setCode(e.target.value)} data-testid="input-private-code" /></> :
+        <><label htmlFor="e">Email</label><input id="e" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} data-testid="input-email" /></>}
       <label htmlFor="p">Password</label>
-      <input id="p" type="password" autoComplete={invite ? "new-password" : "current-password"} required minLength={invite ? 8 : 1} value={pw} onChange={(e) => setPw(e.target.value)} data-testid="input-password" />
+      <input id="p" type="password" autoComplete={privateMode ? "new-password" : "current-password"} required minLength={privateMode ? 8 : 1} maxLength={128} value={pw} onChange={(e) => setPw(e.target.value)} data-testid="input-password" />
       {err && <div className="cth-err" role="alert" data-testid="text-error">{err}</div>}
-      <button className="cth-btn primary" disabled={busy} data-testid="button-submit">{busy ? "One moment..." : invite ? "Activate" : "Sign in"}</button>
-    </form></div>
+      <button className="cth-btn primary" disabled={busy} data-testid="button-submit">{busy ? "One moment..." : privateMode ? "Set password and sign in" : "Sign in"}</button>
+      <button type="button" className="cth-btn" disabled={busy} style={{marginTop:12}} data-testid="button-private-mode"
+        onClick={()=>{setPrivateMode(!privateMode);setCode("");setPw("");setErr("");}}>
+        {privateMode ? "Use email and password" : "Use a private code"}
+      </button>
+    </form><RecoveryForm /></div>
   );
 }
 
